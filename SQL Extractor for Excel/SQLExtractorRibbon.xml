@@ -1,0 +1,16 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<customUI xmlns="http://schemas.microsoft.com/office/2009/07/customui" onLoad="Ribbon_Load">
+  <ribbon>
+    <tabs>
+      <tab idMso="TabData">
+        <group id="SqlExtractor" label="SQL Extractor for Excel" insertBeforeMso="GroupConnections">
+          <button id="launchSqlExtractorButton" label="SQL Extractor for Excel" size="large"
+                            onAction="OnLaunchSqlExtractorButtonClick" getImage="launchSqlExtractorButton_GetImage" />
+          <button id="openSqlDataFolderButton" label="SQL data" size="large"
+                            onAction="sqlEditorDataFolderButtonClick" imageMso="FolderScopeGallery" />
+        </group>
+      </tab>
+    </tabs>
+  </ribbon>
+</customUI>
+
