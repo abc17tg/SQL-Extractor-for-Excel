@@ -4,12 +4,15 @@ using System.Data;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using SQL_Extractor_for_Excel.Forms;
 using SQL_Extractor_for_Excel.Scripts;
+using static ScintillaNET.Style;
 using Excel = Microsoft.Office.Interop.Excel;
+using Timer = System.Windows.Forms.Timer;
 
 namespace SQL_Extractor_for_Excel
 {
@@ -26,8 +29,13 @@ namespace SQL_Extractor_for_Excel
         public bool PasteHeaders => headersCheckBox.Checked;
         public bool PasteToSelection => pasteResultsToSelectionCheckBox.Checked;
 
+        private readonly string m_guid;
+        private readonly string m_backupName;
+        private readonly object saveLock = new object();
         private SqlServerManager m_sqlManager;
         private Timer m_timer;
+        private Timer m_autoSaveTimer;
+        private string m_querySeparator = "--------------------------------------------------";
         private List<string> m_tablesListBoxAllItemsList = new List<string>();
         private List<string> m_tablesListBoxSelectedItemsList = new List<string>();
         private List<string> m_fieldsListBoxAllItemsList = new List<string>();
@@ -46,6 +54,7 @@ namespace SQL_Extractor_for_Excel
         private bool isMouseOverForm = false;
         public const Int32 ToggleTopMostMenuItem = 1000;
         public const Int32 CenterFormMenuItem = 1001;
+        public const Int32 NewFormMenuItem = 1002;
 
         [DllImport("user32.dll")]
         private static extern IntPtr GetSystemMenu(IntPtr hWnd, bool bRevert);
@@ -53,9 +62,11 @@ namespace SQL_Extractor_for_Excel
         private static extern bool InsertMenu(IntPtr hMenu, Int32 wPosition, Int32 wFlags, Int32 wIDNewItem, string lpNewItem);
 
 
-        public SqlEditorForm(Excel.Application app)
+        public SqlEditorForm(Excel.Application app, string saveFile = null)
         {
             InitializeComponent();
+            m_guid = Guid.NewGuid().ToString();
+            m_backupName = $"{Text}_{m_guid}.json";
             FormTitle = Text;
             m_sqlManager = new SqlServerManager();
             App = app;
@@ -63,6 +74,7 @@ namespace SQL_Extractor_for_Excel
             m_timer = new Timer();
             /*app.WindowActivate += (_, w) => this.TopMost = true;
             app.WindowDeactivate += (_, w) => this.TopMost = false;*/
+
 
             serverTypeComboBox.Items.AddRange(Directory.EnumerateDirectories(FileManager.SqlQueriesPath).Select(p => Path.GetFileName(p)).ToArray());
 
@@ -73,6 +85,12 @@ namespace SQL_Extractor_for_Excel
 
             serverComboBox.ContextMenuStrip = new ContextMenuStrip();
             serverComboBox.ContextMenuStrip.Items.Add("Add Server Connection").Click += (sender, e) => SqlServerManager.AddSqlConnection();
+
+            if (!string.IsNullOrEmpty(saveFile))
+                LoadEditorState(saveFile);
+
+            app.WindowDeactivate += (_, w) => SaveEditorState();
+            SetupAutoSaveTimer(30000);
 
             sheetNameTextBox.Enter += (s, e) =>
             {
@@ -112,7 +130,7 @@ namespace SQL_Extractor_for_Excel
             m_timer.Tick += (t, v) => RefreshRunningQueriesDataGridView();
             m_timer.Start();
             m_sqlManager.CommandFinished += RefreshRunningQueriesDataGridView;
-
+            m_sqlManager.CommandFinished += SaveEditorState;
             ContextMenu cm = new ContextMenu();
 
             MenuItem copyCMI = new MenuItem("Copy", (o, e) => { sqlEditorScintilla.Copy(); });
@@ -138,9 +156,27 @@ namespace SQL_Extractor_for_Excel
             sqlEditorScintilla.ContextMenu = cm;
         }
 
+        protected override void OnFormClosing(FormClosingEventArgs e)
+        {
+            base.OnFormClosing(e);
+            if (e.CloseReason == CloseReason.UserClosing)
+            {
+                string saveFile = Path.Combine(FileManager.SqlEditorBackupPath, m_backupName);
+                if (File.Exists(saveFile))
+                {
+                    File.Delete(saveFile);
+                }
+            }
+            else
+                SaveEditorState();
+        }
+
+
         ~SqlEditorForm()
         {
-            m_timer.Dispose();
+            m_timer?.Dispose();
+            m_autoSaveTimer?.Dispose();
+            App.WindowDeactivate -= (_, w) => SaveEditorState();
             m_sqlManager = null;
         }
 
@@ -155,6 +191,10 @@ namespace SQL_Extractor_for_Excel
                         break;
                     case CenterFormMenuItem:
                         Utils.MoveFormToCenter(this);
+                        break;
+                    case NewFormMenuItem:
+                        SqlEditorForm form = new SqlEditorForm(App);
+                        form.Show();
                         break;
                     default:
                         break;
@@ -190,6 +230,7 @@ namespace SQL_Extractor_for_Excel
             IntPtr MenuHandle = GetSystemMenu(this.Handle, false);
             InsertMenu(MenuHandle, 5, MF_BYPOSITION, ToggleTopMostMenuItem, "Pin/Unpin this window");
             InsertMenu(MenuHandle, 6, MF_BYPOSITION, CenterFormMenuItem, "Center window");
+            InsertMenu(MenuHandle, 7, MF_BYPOSITION, NewFormMenuItem, "New SQL Extractor window");
         }
 
         private void ToggleTopMost()
@@ -358,7 +399,7 @@ namespace SQL_Extractor_for_Excel
             Run(Query);
         }
 
-        private void Run(string query)
+        private void Run_old(string query)
         {
             if (new List<string> { query, SqlConn?.ConnectionString(), serverComboBox.SelectedItem?.ToString(), serverTypeComboBox.SelectedItem?.ToString() }.Any(p => string.IsNullOrWhiteSpace(p)))
             {
@@ -529,6 +570,163 @@ namespace SQL_Extractor_for_Excel
             }
 
             runQueryWithResult.Start();
+        }
+
+        private void Run(string query)
+        {
+            if (new List<string> { query, SqlConn?.ConnectionString(), serverComboBox.SelectedItem?.ToString(), serverTypeComboBox.SelectedItem?.ToString() }.Any(p => string.IsNullOrWhiteSpace(p)))
+            {
+                MessageBox.Show("Missing server selections or query", "Run error");
+                return;
+            }
+
+            if (++RunningQueries == 1)
+                Text = $"{FormTitle} [{RunningQueries}] running queries";
+            else
+                Text = Regex.Replace(Text, @"\s\[\d+\]\srunning\squeries", $" [{RunningQueries}] running queries");
+
+            //runQueryWithResult = null;
+            if (pasteToDataTableCheckBox.Checked)
+            {
+                RunQueryToDataTable(query, SqlConn);
+            }
+            else
+            {
+                RunQueryToExcel(query, SqlConn);
+            }
+            SaveEditorState();
+        }
+
+        private void RunQueryToDataTable(string query, SqlConn sqlConn)
+        {
+            Task<(SqlResult, bool)> runQueryWithResult = new Task<(SqlResult, bool)>(() => (SqlServerManager.GetDataFromServer(m_sqlManager, query, sqlConn, 0), true));
+
+            runQueryWithResult.GetAwaiter().OnCompleted(() =>
+            {
+                if (this.IsDisposed || this.Disposing || this == null)
+                    return;
+
+                --RunningQueries;
+
+                this.Invoke(new Action(() =>
+                {
+                    UpdateRunningQueriesText();
+
+                    SqlResult sqlResult = runQueryWithResult.Result.Item1;
+                    if (sqlResult.HasErrors)
+                    {
+                        if (!sqlResult.Cancelled)
+                        {
+                            string msg = $"Query finished with errors:\n\n{sqlResult.Errors}\n\nQuery:\n\n{query}";
+                            MessageBoxForm messageBox = new MessageBoxForm(msg, "Query finished", true);
+                            messageBox.Show();
+                        }
+                        return;
+                    }
+                    DataTableForm form = new DataTableForm(sqlResult.DataTable, query, App);
+                    form.Show();
+                    form.Activate();
+                }));
+            });
+
+            runQueryWithResult.Start();
+        }
+
+        private void RunQueryToExcel(string query, SqlConn sqlConn)
+        {
+
+            Excel.Range rng;
+            Excel.Worksheet ws = null;
+            string wsName;
+            if (!pasteResultsToSelectionCheckBox.Checked)
+            {
+                Excel.Workbook wb = App.ActiveWorkbook;
+                if (wb == null)
+                    wb = App.Workbooks.Add();
+                ws = wb.Sheets.Add();
+                wsName = NewSheetName == m_sheetNameTextBoxPlaceholder ? DefaultSheetName : NewSheetName;
+                if (!string.IsNullOrEmpty(wsName))
+                {
+                    ws.Rename(wsName);
+                    wsName = ws.Name;
+                }
+                rng = ws.Cells[1, 1];
+            }
+            else
+            {
+                rng = App.ActiveWindow.RangeSelection;
+                wsName = rng.Worksheet?.Name;
+            }
+
+            Task<(SqlResult, bool)> runQueryWithResult = new Task<(SqlResult, bool)>(() => SqlServerManager.GetDataFromServerToExcelRange(m_sqlManager, query, sqlConn, rng, PasteHeaders, 0));
+
+            runQueryWithResult.GetAwaiter().OnCompleted(() =>
+            {
+                if (this.IsDisposed || this.Disposing || this == null)
+                    return;
+
+                --RunningQueries;
+
+                this.Invoke(new Action(() =>
+                {
+                    string text;
+                    if (RunningQueries <= 0)
+                        text = FormTitle;
+                    else
+                        text = Regex.Replace(Text, @"\s\[\d+\]\srunning\squeries", $" [{RunningQueries}] running queries");
+
+                    this.Text = text;
+
+                    if (!runQueryWithResult.Result.Item2)
+                    {
+                        var result = MessageBox.Show($"Query for Worksheet [{wsName ?? "null"}] finished but Worksheet/Range unavailable/too small.\n\nPaste to DataTable?", "Query finished", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+                        if (result == DialogResult.Yes)
+                        {
+                            SqlResult sqlResult = runQueryWithResult.Result.Item1;
+                            DataTableForm form = new DataTableForm(sqlResult.DataTable, query, App);
+                            form.Show();
+                            form.Activate();
+                        }
+                        else if (result == DialogResult.No && ws.Exists())
+                        {
+                            App.DisplayAlerts = false;
+                            ws.Delete();
+                            App.DisplayAlerts = true;
+                        }
+                    }
+                    else
+                    {
+                        string msg;
+                        SqlResult sqlResult = runQueryWithResult.Result.Item1;
+                        if (sqlResult.HasErrors)
+                        {
+                            msg = $"Query finished with errors:\n\n{sqlResult.Errors}\n\nQuery:\n\n{query}";
+                            if (ws.Exists() && (ws.Parent as Excel.Workbook).Worksheets.Count > 1)
+                            {
+                                App.DisplayAlerts = false;
+                                ws.Delete();
+                                App.DisplayAlerts = true;
+                            }
+                        }
+                        else
+                            msg = $"{query}\n\nFinished";
+                        if (!sqlResult.Cancelled)
+                        {
+                            MessageBoxForm messageBox = new MessageBoxForm(msg, $"{wsName ?? string.Empty} query finished", true);
+                            messageBox.Show();
+                        }
+                    }
+                }));
+            });
+
+            runQueryWithResult.Start();
+        }
+
+        private void UpdateRunningQueriesText()
+        {
+            Text = RunningQueries <= 0
+                ? FormTitle
+                : Regex.Replace(Text, @"\s\[\d+\]\srunning\squeries", $" [{RunningQueries}] running queries");
         }
 
         private void commentBtn_Click(object sender, EventArgs e)
@@ -1002,7 +1200,7 @@ namespace SQL_Extractor_for_Excel
 
         private void separateBtn_Click(object sender, EventArgs e)
         {
-            sqlEditorScintilla.ReplaceSelection($"{Environment.NewLine}--------------------------------------------------{Environment.NewLine}");
+            sqlEditorScintilla.ReplaceSelection($"{Environment.NewLine}{m_querySeparator}{Environment.NewLine}");
         }
 
         private void objectsAndVariablesTabControl_TabIndexChanged(object sender, EventArgs e)
@@ -1070,14 +1268,210 @@ namespace SQL_Extractor_for_Excel
             if (e.ColumnIndex == 0 && runningQueriesDataGridView.RowCount == m_sqlManager.SqlElements.Count)
             {
                 if (m_sqlManager.SqlElements[e.RowIndex].TryToCancelQuery())
+                {
                     m_sqlManager.CancelCmd(m_sqlManager.SqlElements[e.RowIndex].Cmd);
+                }
             }
             else if (e.ColumnIndex == 3 && runningQueriesDataGridView.RowCount == m_sqlManager.SqlElements.Count)
             {
-                string msg = $"DB: {m_sqlManager.SqlElements[e.RowIndex].Cmd.Connection.Database}{Environment.NewLine + Environment.NewLine}------------------------------{Environment.NewLine + Environment.NewLine}Query:{Environment.NewLine + Environment.NewLine}{m_sqlManager.SqlElements[e.RowIndex].Cmd.CommandText}";
+                string msg = FormatQueryDetailsMessage(m_sqlManager.SqlElements[e.RowIndex]);
                 MessageBoxForm messageBox = new MessageBoxForm(msg, "Query", true);
                 messageBox.Show();
             }
         }
+
+        private string FormatQueryDetailsMessage(SqlElement sqlElement)
+        {
+            // Use string interpolation and better formatting for readability
+            string message = $@"
+                Server Type: {sqlElement.ServerType}
+                Database: {sqlElement.DbName}
+                Elapsed Time: {(DateTime.UtcNow - sqlElement.m_startTime).Value.Minutes} minutes
+
+                {m_querySeparator}
+
+                -- Query:
+
+                {((string)sqlElement.Cmd.CommandText).RemoveLeadingTabsMultiline()}";
+
+            return message.RemoveLeadingTabsMultiline(); // Remove any trailing newlines or whitespace
+        }
+
+        private void AutoSaveEditorState()
+        {
+            if (this.ContainsFocus)
+            {
+                SaveEditorState();
+            }
+        }
+
+        private void SetupAutoSaveTimer(int interval)
+        {
+            m_autoSaveTimer = new Timer();
+            m_autoSaveTimer.Interval = interval; // 10 seconds
+            m_autoSaveTimer.Tick += (s, e) => AutoSaveEditorState();
+            m_autoSaveTimer.Start();
+        }
+
+        private void ResetAutoSaveTimer()
+        {
+            if (m_autoSaveTimer != null)
+            {
+                m_autoSaveTimer.Stop();
+                m_autoSaveTimer.Start();
+            }
+        }
+
+        private void SaveEditorState()
+        {
+            // Reset the timer
+            ResetAutoSaveTimer();
+            if (this.IsDisposed || this.Disposing || this == null)
+                return;
+
+            this.Invoke(new Action(() =>
+            {
+                lock (saveLock)
+                {
+                    if (FileManager.EnsureDirectoryExists(FileManager.SqlEditorBackupPath))
+                    {
+                        string saveFile = Path.Combine(FileManager.SqlEditorBackupPath, m_backupName);
+
+                        var save = new EditorState(sqlEditorScintilla.Text, m_sqlManager.SqlElements.Select(e => new SqlElementDto(e.Cmd.CommandText, e.ServerType, e.DbName)).ToList(), sqlEditorScintilla.WrapMode, pasteToDataTableCheckBox.Checked);
+
+                        var options = new JsonSerializerOptions
+                        {
+                            PropertyNameCaseInsensitive = true,
+                            WriteIndented = true
+                        };
+
+                        string json = JsonSerializer.Serialize(save, typeof(EditorState), options);
+                        if (json != null && saveFile != null)
+                            File.WriteAllText(saveFile, json);
+                    }
+                }
+            }));
+        }
+
+        private void LoadEditorState(string saveFile)
+        {
+
+            if (!File.Exists(saveFile))
+                return;
+
+            string json = File.ReadAllText(saveFile);
+            var options = new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true,
+                WriteIndented = true
+            };
+            EditorState save;
+            try
+            {
+                save = JsonSerializer.Deserialize<EditorState>(json, options);
+            }
+            catch
+            {
+                MessageBox.Show("Failed to load editor state. The backup file might be corrupted.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
+            if (save == null)
+                return;
+
+            sqlEditorScintilla.Text = save.Query ?? string.Empty;
+
+            if (Enum.TryParse<ScintillaNET.WrapMode>(save.WrapMode.ToString(), out var wrapMode))
+                sqlEditorScintilla.WrapMode = wrapMode;
+
+            pasteToDataTableCheckBox.Checked = save.PasteToDataTable;
+
+            // rerun queries if there were any
+            List<SqlElementDto> sqlElementsDto = save.SqlElementsDto;
+            if (sqlElementsDto != null && sqlElementsDto.Count > 0)
+            {
+                var result = MessageBox.Show($"There {(sqlElementsDto.Count == 1 ? "was" : $"were {sqlElementsDto.Count}")} quer{(sqlElementsDto.Count == 1 ? "y" : "ies")} from last session.\nDo you want to run them or copy? Click:\n-No for copy\n-Yes to try to run\n-Cancel", "Queries from last session", MessageBoxButtons.YesNoCancel, MessageBoxIcon.Question);
+                if (result == DialogResult.Yes)
+                {
+                    string errorQueries = string.Empty;
+                    var connDicSqlServer = FileManager.GetSqlServerConnectionValues();
+                    var connDicOracle = FileManager.GetOracleConnectionValues();
+
+                    foreach (var sqlElementDto in sqlElementsDto)
+                    {
+
+                        SqlConn sqlConn;
+                        if (sqlElementDto.ServerType == SqlServerManager.ServerType.SqlServer)
+                            connDicSqlServer.TryGetValue(sqlElementDto.DbName, out sqlConn);
+                        else if (sqlElementDto.ServerType == SqlServerManager.ServerType.Oracle)
+                            connDicOracle.TryGetValue(sqlElementDto.DbName, out sqlConn);
+                        else
+                            sqlConn = null;
+
+                        if (sqlConn == null || !sqlConn.Test())
+                        {
+                            errorQueries += $"{m_querySeparator}{Environment.NewLine}{m_querySeparator}{Environment.NewLine}-- Server type: {sqlElementDto.ServerType.ToString()}{Environment.NewLine}-- DB: {sqlElementDto.DbName}{Environment.NewLine}{m_querySeparator}{Environment.NewLine}-- Query:{Environment.NewLine}{sqlElementDto.CommandText}{Environment.NewLine}{m_querySeparator}{Environment.NewLine}{Environment.NewLine}";
+                            continue;
+                        }
+
+                        if (++RunningQueries == 1)
+                            Text = $"{FormTitle} [{RunningQueries}] running queries";
+                        else
+                            Text = Regex.Replace(Text, @"\s\[\d+\]\srunning\squeries", $" [{RunningQueries}] running queries");
+
+                        RunQueryToDataTable(sqlElementDto.CommandText, sqlConn.Clone());
+                    }
+
+                    if (!string.IsNullOrEmpty(errorQueries))
+                    {
+                        Clipboard.SetText(errorQueries);
+                        MessageBox.Show("Some queries couldn't run so they got copied to clipboard!", "Some queries not run", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    }
+                }
+                else if (result == DialogResult.No)
+                {
+                    string queries = string.Empty;
+                    foreach (var sqlElementDto in sqlElementsDto)
+                    {
+                        queries += $"{m_querySeparator}{Environment.NewLine}{m_querySeparator}{Environment.NewLine}-- Server type: {sqlElementDto.ServerType.ToString()}{Environment.NewLine}-- DB: {sqlElementDto.DbName}{Environment.NewLine}{m_querySeparator}{Environment.NewLine}-- Query:{Environment.NewLine}{sqlElementDto.CommandText}{Environment.NewLine}{m_querySeparator}{Environment.NewLine}{Environment.NewLine}";
+                    }
+                    Clipboard.SetText(queries);
+                }
+            }
+        }
+
+        public class EditorState
+        {
+            public string Query { get; set; }
+            public List<SqlElementDto> SqlElementsDto { get; set; }
+            public ScintillaNET.WrapMode WrapMode { get; set; }
+            public bool PasteToDataTable { get; set; }
+
+            // Constructor with matching parameter names to properties
+            [System.Text.Json.Serialization.JsonConstructor]
+            public EditorState(string query, List<SqlElementDto> sqlElementsDto, ScintillaNET.WrapMode wrapMode, bool pasteToDataTable)
+            {
+                Query = query;
+                SqlElementsDto = sqlElementsDto;
+                WrapMode = wrapMode;
+                PasteToDataTable = pasteToDataTable;
+            }
+        }
+
+
+        public class SqlElementDto
+        {
+            public string CommandText { get; set; }
+            public SqlServerManager.ServerType ServerType { get; set; }
+            public string DbName { get; set; }
+
+            public SqlElementDto(string commandText, SqlServerManager.ServerType serverType, string dbName)
+            {
+                CommandText = commandText;
+                ServerType = serverType;
+                DbName = dbName;
+            }
+        }
+
     }
 }

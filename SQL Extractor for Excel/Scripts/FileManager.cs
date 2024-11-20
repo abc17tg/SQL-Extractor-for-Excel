@@ -12,6 +12,7 @@ namespace SQL_Extractor_for_Excel.Scripts
     {
         public static string BasePath => AppDomain.CurrentDomain.BaseDirectory;
         public static string SqlKeywords => GetSqlKeywords();
+        public static string SqlEditorBackupPath => Path.Combine(BasePath, "SQL Editor backup");
         public static string SqlQueriesPath => Path.Combine(BasePath, "SQL Queries");
         public static string PropertiesFilesPath => Path.Combine(BasePath, "Properties Files");
         public static string SqlServerQueriesPath => Path.Combine(SqlQueriesPath, "SqlServer");
@@ -63,6 +64,22 @@ namespace SQL_Extractor_for_Excel.Scripts
                 }
             }
             catch { }
+        }
+
+        public static bool EnsureDirectoryExists(string path)
+        {
+            try
+            {
+                if (!Directory.Exists(path))
+                {
+                    Directory.CreateDirectory(path);
+                }
+                return true; // Directory exists or was successfully created
+            }
+            catch
+            {
+                return false; // Failed to ensure the directory exists
+            }
         }
 
         private static string GetSqlKeywords()

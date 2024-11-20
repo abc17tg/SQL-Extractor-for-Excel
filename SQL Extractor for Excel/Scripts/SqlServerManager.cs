@@ -180,7 +180,7 @@ namespace SQL_Extractor_for_Excel.Scripts
 
                 if (ex.Errors.Count > 0)
                 {
-                    return $"Syntax error:\n{string.Join("\n", ex.Errors.Cast<SqlError>().Select(p => $"Line {p.LineNumber}\tError: {p.Message}"))}";
+                    return $"Syntax error:\n{string.Join(Environment.NewLine, ex.Errors.Cast<SqlError>().Select(p => $"Line {p.LineNumber}\tError: {p.Message}"))}";
                 }
                 return $"Syntax error: {ex.Message}";
             }
@@ -262,7 +262,7 @@ namespace SQL_Extractor_for_Excel.Scripts
                     con.Open();
                     OracleCommand cmd = new OracleCommand(query, con);
                     cmd.CommandTimeout = timeout >= 0 ? timeout : cmd.CommandTimeout;
-                    SqlElement sqlElement = new SqlElement(cmd, sqlConn.Type, string.IsNullOrEmpty(con.Database) ? con.Database : "Oracle query");
+                    SqlElement sqlElement = new SqlElement(cmd, sqlConn.Type, sqlConn.Name, string.IsNullOrEmpty(con.Database) ? con.Database : "Oracle query");
                     manager.SqlElements.Add(sqlElement);
                     try
                     {
@@ -298,7 +298,7 @@ namespace SQL_Extractor_for_Excel.Scripts
                     con.Open();
                     SqlCommand cmd = new SqlCommand(query, con);
                     cmd.CommandTimeout = timeout >= 0 ? timeout : cmd.CommandTimeout;
-                    SqlElement sqlElement = new SqlElement(cmd, sqlConn.Type, string.IsNullOrEmpty(con.Database) ? con.Database : "MS Sql query");
+                    SqlElement sqlElement = new SqlElement(cmd, sqlConn.Type, sqlConn.Name, string.IsNullOrEmpty(con.Database) ? con.Database : "MS Sql query");
                     manager.SqlElements.Add(sqlElement);
                     try
                     {

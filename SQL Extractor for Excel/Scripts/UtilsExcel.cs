@@ -285,8 +285,13 @@ public static class UtilsExcel
 
     public static void ApplyNumberFormatToRange(Excel.Range rng, DataColumn column)
     {
-        string format = DetermineExcelNumberFormatFromDataTableColumn(column);
-        rng.NumberFormat = format;
+        try
+        {
+            string format = DetermineExcelNumberFormatFromDataTableColumn(column);
+            rng.NumberFormat = format;
+        }
+        catch (COMException) { }
+        catch (Exception) { }
     }
 
     private static string DetermineDateTimeFormat(DataColumn column)
@@ -318,16 +323,16 @@ public static class UtilsExcel
         return date;
     }
 
-    public static void PasteDataTableToRange(DataTable dt, Excel.Range rng, bool headers = true)
+    public static bool PasteDataTableToRange(DataTable dt, Excel.Range rng, bool headers = true)
     {
         if (dt == null || !rng.Valid())
-            return;
+            return false;
 
         Excel.Range startCell = rng.Cells[1, 1];
         Excel.Worksheet ws = rng.Worksheet;
 
         if (dt.Rows.Count < 1 || dt.Columns.Count < 1)
-            return;
+            return false;
 
         object[,] dataArr = new object[dt.Rows.Count + (headers ? 1 : 0), dt.Columns.Count];
 
@@ -374,9 +379,27 @@ public static class UtilsExcel
                 ApplyNumberFormatToRange(columnRange, dt.Columns[c]);
             }
 
-            // Write data to Excel in one go
-            writeRange.Value = dataArr;
+            try
+            {
+                t = 0;
+                while (!ws.Application.Ready || ws.Application.Interactive == false)
+                {
+                    if (ws.Application.Interactive == false || t == 6000)
+                        break;
+                    System.Threading.Thread.Sleep(100); // Sleep for 100 milliseconds
+                    t += 0.1;
+                }
+                // Write data to Excel in one go
+                ws.Application.Interactive = false;
+                writeRange.Value = dataArr;
+                ws.Application.Interactive = true;
+            }
+            catch (COMException)
+            {
+                return false;
+            }
         }
+        return true;
     }
 
     public static void SplitDataTableAndPasteToExcel(DataTable dataTable, Excel.Range rng, bool includeHeaders)
