@@ -1,5 +1,8 @@
 ﻿using System.IO;
+using Microsoft.Office.Interop.Excel;
+using System.Web.Services.Description;
 using Newtonsoft.Json;
+using static System.Windows.Forms.LinkLabel;
 
 namespace SQL_Extractor_for_Excel.Scripts
 {
@@ -45,6 +48,11 @@ namespace SQL_Extractor_for_Excel.Scripts
             Link = link;
             Port = port;
             Type = type;
+        }
+
+        public SqlConn Clone() 
+        {
+            return new SqlConn(Name, UserName, Password, Link, Port, Type, false); 
         }
 
         public static bool SaveSqlConn(SqlConn sqlConn)

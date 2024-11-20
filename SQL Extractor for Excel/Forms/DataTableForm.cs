@@ -99,7 +99,13 @@ namespace SQL_Extractor_for_Excel.Forms
             {
                 if ((rng.Worksheet.Rows.Count - rng.Row - 1) >= (DataTable.Rows.Count + (headersCheckBox.Checked ? 1 : 0)))
                 {
-                    UtilsExcel.PasteDataTableToRange(DataTable, rng, headersCheckBox.Checked);
+                    bool success = UtilsExcel.PasteDataTableToRange(DataTable, rng, headersCheckBox.Checked);
+                    if (!success)
+                    {
+                        var result = MessageBox.Show("No selection to paste", "Error", MessageBoxButtons.RetryCancel, MessageBoxIcon.Error);
+                        if (result == DialogResult.Retry)
+                            Paste();
+                    }
                 }
                 else
                 {

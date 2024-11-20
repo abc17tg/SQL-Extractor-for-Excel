@@ -53,6 +53,27 @@ public static class Utils
         MacOld     // Use \r (old Mac OS pre-OSX)
     }
 
+    public static string RemoveLeadingTabsMultiline(this string input)
+    {
+        // Split the input into lines
+        var lines = input.Split(new[] { Environment.NewLine }, StringSplitOptions.None);
+
+        // Find the minimum number of leading tabs for non-empty lines
+        int minLeadingTabs = lines
+            .Where(line => !string.IsNullOrWhiteSpace(line))
+            .Select(line => line.TakeWhile(c => c == '\t').Count())
+            .DefaultIfEmpty(0) // Handle empty or whitespace-only input
+            .Min();
+
+        // Remove the minimum number of leading tabs from each line
+        var normalizedLines = lines.Select(line => line.StartsWith(new string('\t', minLeadingTabs))
+                                    ? line.Substring(minLeadingTabs)
+                                    : line);
+
+        // Join the lines back into a single string
+        return string.Join(Environment.NewLine, normalizedLines);
+    }
+
     public static string UnifyLineEndings(this string text, LineEndingType lineEndingType = LineEndingType.Default)
     {
         if (text == null)
