@@ -236,7 +236,8 @@ namespace SQL_Extractor_for_Excel.Scripts
 
         public static SqlResult GetDataFromExcelSqlTables(string query)
         {
-            try
+            return null;
+/*            try
             {
                 object rs = UtilsExcel.RunMacro("SqlQueries.ExecuteSQLQuery", new object[] { query });
 
@@ -249,8 +250,7 @@ namespace SQL_Extractor_for_Excel.Scripts
             catch (Exception ex)
             {
                 return new SqlResult(null, ex.Message);
-            }
-
+            }*/
         }
 
         public static SqlResult GetDataFromOracleSqlServer(SqlServerManager manager, string query, SqlConn sqlConn, int timeout = -1)

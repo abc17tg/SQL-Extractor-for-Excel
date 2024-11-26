@@ -89,7 +89,8 @@ namespace SQL_Extractor_for_Excel
             if (!string.IsNullOrEmpty(saveFile))
                 LoadEditorState(saveFile);
 
-            app.WindowDeactivate += (_, w) => SaveEditorState();
+            sqlEditorScintilla.LostFocus += (o, s) => SaveEditorState();
+            //app.WindowDeactivate += (_, w) => SaveEditorState();
             SetupAutoSaveTimer(30000);
 
             sheetNameTextBox.Enter += (s, e) =>
@@ -171,12 +172,11 @@ namespace SQL_Extractor_for_Excel
                 SaveEditorState();
         }
 
-
         ~SqlEditorForm()
         {
             m_timer?.Dispose();
             m_autoSaveTimer?.Dispose();
-            App.WindowDeactivate -= (_, w) => SaveEditorState();
+            //App.WindowDeactivate -= (_, w) => SaveEditorState();
             m_sqlManager = null;
         }
 
@@ -1025,6 +1025,7 @@ namespace SQL_Extractor_for_Excel
                 fillSheetNameBtn.Enabled = true;
             }
         }
+
         private void pasteToDataTableCheckBox_CheckedChanged(object sender, EventArgs e)
         {
             if (pasteToDataTableCheckBox.Checked)

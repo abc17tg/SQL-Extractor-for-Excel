@@ -697,6 +697,8 @@ namespace SQL_Extractor_for_Excel
             // pasteToDataTableCheckBox
             // 
             this.pasteToDataTableCheckBox.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right)));
+            this.pasteToDataTableCheckBox.Checked = true;
+            this.pasteToDataTableCheckBox.CheckState = System.Windows.Forms.CheckState.Checked;
             this.pasteToDataTableCheckBox.Location = new System.Drawing.Point(517, 3);
             this.pasteToDataTableCheckBox.Margin = new System.Windows.Forms.Padding(10, 3, 3, 3);
             this.pasteToDataTableCheckBox.Name = "pasteToDataTableCheckBox";

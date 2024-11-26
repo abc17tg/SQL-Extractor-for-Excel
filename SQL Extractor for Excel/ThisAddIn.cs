@@ -5,7 +5,6 @@ using System.Text;
 using System.Xml.Linq;
 using Excel = Microsoft.Office.Interop.Excel;
 using Office = Microsoft.Office.Core;
-using Microsoft.Office.Tools.Excel;
 using SQL_Extractor_for_Excel.Scripts;
 using System.IO;
 using System.Windows.Forms;
@@ -22,7 +21,8 @@ namespace SQL_Extractor_for_Excel
         private void ThisAddIn_Startup(object sender, System.EventArgs e)
         {
             Excel.Application app = Globals.ThisAddIn.Application;
-            OpenBackupFiles(app);
+            if (app.Visible)
+                OpenBackupFiles(app);
         }
 
         private void OpenBackupFiles(Excel.Application app)

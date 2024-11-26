@@ -25,7 +25,7 @@ public static class UtilsExcel
         application.EnableEvents = enableUpdates;
     }
 
-    public static object RunMacro(string macroName, string macroWbName = "")
+    /*public static object RunMacro(string macroName, string macroWbName = "")
     {
         if (macroName == string.Empty)
         {
@@ -64,7 +64,7 @@ public static class UtilsExcel
             MessageBox.Show($"Problem running macro \"{(string.IsNullOrWhiteSpace(macroWbName) ? FileManager.MacrosWbName : macroWbName)}!{macroName}\", check if you have workbook \"{(string.IsNullOrWhiteSpace(macroWbName) ? FileManager.MacrosWbName : macroWbName)}\" open with macro \"{macroName}\" in any module\n\n{e.Message}");
         }
         return null;
-    }
+    }*/
 
     private static object RunMacro(object oApp, object[] oRunArgs)
     {

@@ -21,51 +21,6 @@ namespace SQL_Extractor_for_Excel.Scripts
         public static string ResourcesPath => Path.Combine(BasePath, "Resources");
         public static string DownloadsPath => Microsoft.Win32.Registry.GetValue(@"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders", "{374DE290-123F-4565-9164-39C4925E467B}", String.Empty).ToString();
 
-#if DEBUG
-        public static string MacrosWbName = "MyPERSONAL.xlsb";
-        public static string FunctionsWbName = "MyFunctions.xlam";
-#else
-        public static string MacrosWbName = "MyPERSONAL_Pv1.0.xlsb";
-        public static string FunctionsWbName = "MyFunctions_Pv1.0.xlam";
-#endif
-
-        public static void CheckForCustomMacrosWbNames()
-        {
-            try
-            {
-                string filePath = Path.Combine(PropertiesFilesPath, "MacrosWbName.txt");
-                if (File.Exists(filePath))
-                {
-                    string text = File.ReadAllText(filePath);
-                    if (!string.IsNullOrWhiteSpace(text))
-                        MacrosWbName = text.Trim();
-                    else
-                    {
-                        if (!IsExplorerPathOpen(PropertiesFilesPath))
-                            Process.Start("explorer.exe", PropertiesFilesPath);
-                    }
-                }
-            }
-            catch { }
-
-            try
-            {
-                string filePath = Path.Combine(PropertiesFilesPath, "FunctionsWbName.txt");
-                if (File.Exists(filePath))
-                {
-                    string text = File.ReadAllText(filePath);
-                    if (!string.IsNullOrWhiteSpace(text))
-                        FunctionsWbName = text.Trim();
-                    else
-                    {
-                        if (!IsExplorerPathOpen(PropertiesFilesPath))
-                            Process.Start("explorer.exe", PropertiesFilesPath);
-                    }
-                }
-            }
-            catch { }
-        }
-
         public static bool EnsureDirectoryExists(string path)
         {
             try
