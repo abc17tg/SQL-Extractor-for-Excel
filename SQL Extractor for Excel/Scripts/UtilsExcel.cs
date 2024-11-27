@@ -382,17 +382,19 @@ public static class UtilsExcel
             try
             {
                 t = 0;
-                while (!ws.Application.Ready || ws.Application.Interactive == false)
+                while (!ws.Application.Ready || !ws.Application.Interactive)
                 {
-                    if (ws.Application.Interactive == false || t == 6000)
+                    if (!ws.Application.Interactive || t == 6000)
                         break;
                     System.Threading.Thread.Sleep(100); // Sleep for 100 milliseconds
                     t += 0.1;
                 }
                 // Write data to Excel in one go
-                ws.Application.Interactive = false;
+                if (ws.Application.Interactive)
+                    ws.Application.Interactive = false;
                 writeRange.Value = dataArr;
-                ws.Application.Interactive = true;
+                if (!ws.Application.Interactive)
+                    ws.Application.Interactive = true;
             }
             catch (COMException)
             {

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Runtime.InteropServices;
 using Excel = Microsoft.Office.Interop.Excel;
 
 namespace SQL_Extractor_for_Excel.Scripts
@@ -21,16 +22,25 @@ namespace SQL_Extractor_for_Excel.Scripts
             m_app.ScreenUpdating = false;
             m_app.EnableEvents = false;
             m_app.Calculation = Excel.XlCalculation.xlCalculationManual;
-            m_interactive = false;
+            try
+            {
+                if (m_app.Interactive)
+                    m_app.Interactive = false;
+            }
+            catch (COMException) { }
         }
 
         public void Dispose()
         {
             m_app.ScreenUpdating = m_screenUpdating;
             m_app.EnableEvents = m_events;
-            m_app.Calculation = m_xlCalculation;  
-            m_app.Interactive = true;
+            m_app.Calculation = m_xlCalculation;
+            try
+            {
+                if (!m_app.Interactive)
+                    m_app.Interactive = true;
+            }
+            catch (COMException) { }
         }
     }
-
 }
