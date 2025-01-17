@@ -110,6 +110,14 @@ public static class Utils
         return splits;
     }
 
+    public static object[,] NewObject2DArray(int iRows, int iCols)
+    {
+        int[] aiLowerBounds = new int[] { 1, 1 };
+        int[] aiLengths = new int[] { iRows, iCols };
+
+        return (object[,])Array.CreateInstance(typeof(object), aiLengths, aiLowerBounds);
+    }
+
     // due to critical error not working for now
     public static bool IsSQLQueryValid(string sql, out List<string> errors)
     {
@@ -138,6 +146,110 @@ public static class Utils
                     }
                 }
                 return true;*/
+    }
+
+    public static string GenerateSqlFilter(DataTable table)
+    {
+        // Step 1: Order columns by the count of unique values
+        var orderedColumns = table.Columns
+            .Cast<DataColumn>()
+            .OrderBy(col => table.AsEnumerable().Select(row => row[col]).Distinct().Count())
+            .ToList();
+
+        // Step 2: Recursively build the SQL tree
+        string BuildSql(List<DataColumn> columns, IEnumerable<DataRow> rows, int indentationLevel = 0)
+        {
+            if (!columns.Any())
+                return string.Empty;
+
+            var currentColumn = columns.First();
+            var remainingColumns = columns.Skip(1).ToList();
+            var groupedRows = rows.GroupBy(row => row[currentColumn.ColumnName]);
+            var groupedValues = groupedRows
+                .Select(group => group.Key == DBNull.Value || string.IsNullOrWhiteSpace(group.Key?.ToString())
+                    ? null
+                    : group.Key.ToString())
+                .Distinct()
+                .ToList();
+
+            var sb = new StringBuilder();
+            string indentation = new string('\t', indentationLevel);
+
+            if (groupedValues.Any(v => v != null) && groupedValues.Count > 1)
+            {
+                string condition = string.Empty;
+                var validValues = groupedValues.Where(v => v != null).Distinct().ToList();
+                if (validValues.Count > 1000)
+                {
+                    condition += $"{indentation}(\n" + string.Join($"\n{indentation}\tOR\n", validValues.Split((int)Math.Ceiling((double)validValues.Count / 1000))
+                        .Select(p => $"{indentation}\t{currentColumn.ColumnName} IN ({string.Join(", ", p.Select(v => $"'{v}'"))})"));
+                }
+                else
+                {
+                    condition += $"{indentation}(\n{indentation}\t{currentColumn.ColumnName} IN ({string.Join(", ", validValues.Select(v => $"'{v}'"))})";
+                }
+
+                if (groupedValues.Any(v => v == null))
+                {
+                    if (remainingColumns.Count >= 1)
+                    {
+                        condition += $"\n{indentation}\tOR\n{indentation}\t{currentColumn.ColumnName} IS NULL";
+                        condition = $"{indentation}(\n{string.Join("\n", condition.Split('\n').Select(p => $"\t{p}"))}\n{indentation}\t)";
+                    }
+                    else
+                        condition += $"\n{indentation}\tOR\n{indentation}\t{currentColumn.ColumnName} IS NULL";
+                }
+
+                if (remainingColumns.Any())
+                {
+                    var subSql = BuildSql(remainingColumns, rows, indentationLevel + 1);
+                    if (!string.IsNullOrEmpty(subSql))
+                    {
+                        condition += $"\n{indentation}\tAND\n{subSql}";
+                    }
+                }
+
+                condition += $"\n{indentation})";
+                sb.Append(condition);
+            }
+            else
+                foreach (var group in groupedRows)
+                {
+                    string condition = string.Empty;
+                    if (group.Key == DBNull.Value || string.IsNullOrWhiteSpace(group.Key?.ToString()))
+                    {
+                        // Handle null or empty values
+                        condition = $"(\n{indentation}\t\t{currentColumn.ColumnName} = ''\n{indentation}\t\tOR\n{indentation}\t\t{currentColumn.ColumnName} IS NULL\n{indentation}\t)";
+                    }
+                    else
+                    {
+                        // Handle regular values
+                        var value = group.Key;
+                        condition = $"{currentColumn.ColumnName} = '{value}'";
+                    }
+
+                    if (remainingColumns.Any())
+                    {
+                        var subSql = BuildSql(remainingColumns, group, indentationLevel + 1);
+                        if (!string.IsNullOrEmpty(subSql))
+                        {
+                            condition += $"\n{indentation}\tAND\n{subSql}";//$"\n{indentation}\tAND\n{indentation}\t(\n{subSql}\n{indentation}\t)";
+                        }
+                    }
+
+                    if (sb.Length > 0)
+                        sb.Append($"\n{indentation}OR\n");
+                    sb.Append($"{indentation}(\n{indentation}\t{condition}\n{indentation})");
+                }
+
+            return sb.ToString();
+        }
+
+        // Step 3: Call the recursive function
+        var sqlFilter = BuildSql(orderedColumns, table.AsEnumerable());
+
+        // Step 4: Wrap the filter in parentheses
+        return sqlFilter;
     }
 
     public static T Clamp<T>(this T val, T min, T max) where T : IComparable<T>

@@ -49,8 +49,6 @@ namespace SQL_Extractor_for_Excel.Scripts
             editor.GotoPosition(editor.Lines[currentLine].EndPosition - (editor.Lines[currentLine].Text.EndsWith(Environment.NewLine) ? Environment.NewLine.Length : 0));
         }
 
-
-
         public static void ReformatTextToSql(Scintilla editor, string text = null)
         {
             if (text == null)
@@ -58,9 +56,59 @@ namespace SQL_Extractor_for_Excel.Scripts
             if (string.IsNullOrWhiteSpace(text))
                 return;
 
-            List<char> DelimiterChars = new List<char> { ' ', @"'"[0], '(', ')', ',', '\t', '\n', '\r', ';', '|' };
-            text = $"({string.Join(", ", text.Split(DelimiterChars.ToArray(), StringSplitOptions.RemoveEmptyEntries).Select(p => $"\'{p.Trim()}\'").ToArray())})";
+            // Regex patterns to detect formats
+            var singleQuotedPattern = @"^\(\s*'[^']*'(,\s*'[^']*')*\s*\)$";
+            var unquotedPattern = @"^\(\s*[^,']+(,\s*[^,']+)*\s*\)$";
+
+            if (Regex.IsMatch(text, singleQuotedPattern))
+            {
+                // Format from ('x','x','x',...) to (x, x, x, ...)
+                text = text.Trim('(', ')'); // Remove outer parentheses
+                text = string.Join(", ", text.Split(',')
+                    .Select(p => p.Trim().Trim('\''))); // Remove single quotes and trim
+                text = $"({text})";
+            }
+            else if (Regex.IsMatch(text, unquotedPattern))
+            {
+                // Format from (x, x, x, ...) to ('x','x','x',...)
+                text = text.Trim('(', ')'); // Remove outer parentheses
+                text = string.Join(", ", text.Split(',')
+                    .Select(p => $"'{p.Trim()}'")); // Add single quotes and trim
+                text = $"({text})";
+            }
+            else
+            {
+                // If neither format is matched, use the default formatting logic
+                List<char> DelimiterChars = new List<char> { ' ', '\'', '(', ')', ',', '\t', '\n', '\r', ';', '|' };
+                text = $"({string.Join(", ", text.Split(DelimiterChars.ToArray(), StringSplitOptions.RemoveEmptyEntries).Select(p => $"'{p.Trim()}'").ToArray())})";
+            }
+
+            // Replace the selected text in the editor
             editor.ReplaceSelection(text);
+        }
+
+        public static string GetIndentationLevel(this Scintilla scintilla)
+        {
+            int position = scintilla.SelectionStart;
+            int lineNumber = scintilla.LineFromPosition(position);
+            int indentation = scintilla.Lines[lineNumber].Indentation;
+            int lineStartPos = scintilla.Lines[lineNumber].Position;
+            
+            if (position == lineStartPos) 
+                return string.Empty;
+
+            string lineText = scintilla.GetTextRange(lineStartPos, position - lineStartPos);
+            return new string(lineText.Select(p => char.IsWhiteSpace(p) ? p : ' ').ToArray());
+            
+            //int position = scintilla.SelectionStart;
+            //int lineNumber = scintilla.LineFromPosition(position);
+            //int lineStartPos = scintilla.Lines[lineNumber].Position;
+            
+            //if (position == lineStartPos) 
+            //    return string.Empty;
+
+            //string lineText = scintilla.GetTextRange(lineStartPos, position - lineStartPos);
+            //return new string(lineText.Select(p => char.IsWhiteSpace(p) ? p : ' ').ToArray());
         }
 
         public static void SelectBlock(Scintilla editor, string blockStartIdentifier = "-----", string blockEndIdentifier = "-----") // Selects block that is serrounded by at least 5 '-'
@@ -119,7 +167,7 @@ namespace SQL_Extractor_for_Excel.Scripts
             editor.Lines[editor.LineFromPosition(selStartPos) + linesCount + 1].Indentation = indentation;
 
             for (int i = editor.LineFromPosition(editor.SelectionStart); i <= editor.LineFromPosition(editor.SelectionEnd); i++)
-                editor.Lines[i].Indentation = Math.Max(indentation, editor.Lines[i].Indentation) + 4;
+                editor.Lines[i].Indentation = Math.Max(indentation, editor.Lines[i].Indentation) + editor.TabWidth;
         }
 
         public static void MoveLineUp(Scintilla editor)
@@ -289,7 +337,8 @@ namespace SQL_Extractor_for_Excel.Scripts
                          }
                          //editor.IndicatorClearRange(0, editor.TextLength);
                          HighlightVariables(editor, indicatorIndex);
-                         HighlightCustomWords(editor, indicatorIndexForSelection, editor.SelectedText);
+                         if (editor.TextLength < 50000) // to avoid slowness
+                             HighlightCustomWords(editor, indicatorIndexForSelection, editor.SelectedText);
 
                          position = editor.CurrentPosition;
                          matchPos = editor.BraceMatch(position);

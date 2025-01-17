@@ -163,6 +163,7 @@ namespace SQL_Extractor_for_Excel
             // tablesListBox
             // 
             this.tablesListBox.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.tablesListBox.DrawMode = System.Windows.Forms.DrawMode.OwnerDrawFixed;
             this.tablesListBox.Font = new System.Drawing.Font("Microsoft Sans Serif", 6.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.tablesListBox.FormattingEnabled = true;
             this.tablesListBox.HorizontalScrollbar = true;
@@ -172,6 +173,7 @@ namespace SQL_Extractor_for_Excel
             this.tablesListBox.SelectionMode = System.Windows.Forms.SelectionMode.MultiExtended;
             this.tablesListBox.Size = new System.Drawing.Size(233, 576);
             this.tablesListBox.TabIndex = 20;
+            this.tablesListBox.DrawItem += new System.Windows.Forms.DrawItemEventHandler(this.tablesListBox_DrawItem);
             this.tablesListBox.SelectedIndexChanged += new System.EventHandler(this.objectsListBox_SelectedIndexChanged);
             this.tablesListBox.DoubleClick += new System.EventHandler(this.objectsListBox_DoubleClick);
             // 

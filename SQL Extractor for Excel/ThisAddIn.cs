@@ -8,6 +8,7 @@ using Office = Microsoft.Office.Core;
 using SQL_Extractor_for_Excel.Scripts;
 using System.IO;
 using System.Windows.Forms;
+using static SQL_Extractor_for_Excel.SqlEditorForm;
 
 namespace SQL_Extractor_for_Excel
 {
@@ -36,16 +37,32 @@ namespace SQL_Extractor_for_Excel
                 if (backupFiles == null || backupFiles.Length < 1)
                     return;
 
-                foreach (string backupFile in backupFiles)
+                var result = MessageBox.Show($"There {(backupFiles.Length == 1 ? "was" : $"were {backupFiles.Length}")} SQL Extractor editor{(backupFiles.Length == 1 ? string.Empty : "s")} from last session.\nDo you want to open them or not? Click:\n-No to delete backup{(backupFiles.Length == 1 ? string.Empty : "s")}\n-Yes to open all\n-Cancel to ignore", "Queries from last session", MessageBoxButtons.YesNoCancel, MessageBoxIcon.Question);
+
+                switch (result)
                 {
-                    SqlEditorForm form = new SqlEditorForm(app, backupFile);
-                    form.Show();
-                    File.Delete(backupFile);
-                }
+                    case DialogResult.Yes:
+                        foreach (string backupFile in backupFiles)
+                        {
+                            SqlEditorForm form = new SqlEditorForm(app, backupFile);
+                            form.Show();
+                            File.Delete(backupFile);
+                        }
+                        break;
+                    case DialogResult.None:
+                    case DialogResult.Cancel:
+                        return;
+                    case DialogResult.No:
+                        foreach (string backupFile in backupFiles)
+                        {
+                            File.Delete(backupFile);
+                        }
+                        break;
+                };
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Error opening backup files: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show($"Error with backup files: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
@@ -64,7 +81,7 @@ namespace SQL_Extractor_for_Excel
             this.Startup += new System.EventHandler(ThisAddIn_Startup);
             this.Shutdown += new System.EventHandler(ThisAddIn_Shutdown);
         }
-        
+
         #endregion
     }
 }

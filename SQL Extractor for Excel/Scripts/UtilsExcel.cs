@@ -15,6 +15,7 @@ using System.Numerics;
 using System.Drawing;
 using System.Globalization;
 using SQL_Extractor_for_Excel;
+using System.Text;
 
 public static class UtilsExcel
 {
@@ -93,34 +94,105 @@ public static class UtilsExcel
         return $"('{string.Join("', '", values.Distinct())}')";
     }
 
-    public static string GenerateSqlFilterFromExcelSelection(Excel.Range rng)
+    public static string GenerateSqlFilter2(DataTable table)
     {
-        if (!rng.Valid() || rng.Rows.Count < 2)
-            return string.Empty;
+        // Step 1: Order columns by the count of unique values
+        var orderedColumns = table.Columns
+            .Cast<DataColumn>()
+            .OrderBy(col => table.AsEnumerable().Select(row => row[col]).Distinct().Count())
+            .ToList();
 
-        var filterParts = new List<string>();
-
-        int columnCount = rng.Columns.Count;
-        int rowCount = rng.Rows.Count;
-
-        for (int row = 2; row <= rowCount; row++) // Start from 2 to skip header row
+        // Step 2: Build the SQL filter string
+        string BuildSql(List<DataColumn> columns, IEnumerable<DataRow> rows, int indentationLevel = 1)
         {
-            var rowFilterParts = new List<string>();
+            if (!columns.Any())
+                return string.Empty;
 
-            for (int column = 1; column <= columnCount; column++)
+            var currentColumn = columns.First();
+            var remainingColumns = columns.Skip(1).ToList();
+            string indentation = new string('\t', indentationLevel);
+
+            // Group rows by the current column
+            var groupedRows = rows.GroupBy(row => row[currentColumn.ColumnName]);
+            var groupedValues = groupedRows
+                .Select(group => group.Key == DBNull.Value || string.IsNullOrWhiteSpace(group.Key?.ToString())
+                    ? null
+                    : group.Key.ToString())
+                .Distinct()
+                .ToList();
+
+            var sb = new StringBuilder();
+
+            // Handle `IN` clause for the current column
+            if (groupedValues.Any(v => v != null))
             {
-                string fieldName = Convert.ToString(rng.Cells[1, column].Value); // Get field name from first row
-                if (fieldName.Contains(" "))
-                    fieldName = $"[{fieldName}]";
-                string fieldValue = Convert.ToString(rng.Cells[row, column].Value); // Get field value from current row
+                var validValues = groupedValues.Where(v => v != null).Distinct().ToList();
+                sb.Append($"{indentation}(\n{indentation}\t{currentColumn.ColumnName} IN ({string.Join(", ", validValues.Select(v => $"'{v}'"))})");
 
-                rowFilterParts.Add($"{fieldName} IN ('{fieldValue}')");
+                if (groupedValues.Any(v => v == null))
+                {
+                    sb.Append($"\n{indentation}\tOR\n{indentation}\t{currentColumn.ColumnName} IS NULL");
+                }
+
+                sb.Append($"\n{indentation})");
+            }
+            else
+            {
+                // Only handle NULL values
+                sb.Append($"{indentation}(\n{indentation}\t{currentColumn.ColumnName} = ''\n{indentation}\tOR\n{indentation}\t{currentColumn.ColumnName} IS NULL\n{indentation})");
             }
 
-            filterParts.Add($"\t\t{string.Join("\n\t\tAND\n\t\t", rowFilterParts)}");
+            // Handle remaining columns recursively
+            if (remainingColumns.Any())
+            {
+                var remainingSql = BuildSql(remainingColumns, rows, indentationLevel + 1);
+                if (!string.IsNullOrWhiteSpace(remainingSql))
+                {
+                    sb.Append($"\n{indentation}AND\n{remainingSql}");
+                }
+            }
+
+            return sb.ToString();
         }
 
-        return $"\n(\n\t(\n{string.Join("\n\t)\n\tOR\n\t(\n", filterParts)}\n\t)\n)\n";
+        // Step 3: Generate the SQL filter
+        var sqlFilter = BuildSql(orderedColumns, table.AsEnumerable());
+
+        // Step 4: Wrap the filter in parentheses
+        return $"(\n{sqlFilter}\n)";
+    }
+
+    public static string GenerateSqlFilterFromExcelSelection(Excel.Range rng)
+    {
+        if (!rng.Valid() || rng.Areas.Cast<Excel.Range>().Sum(p => p.Rows.Count) < 2)
+            return string.Empty;
+
+        return Utils.GenerateSqlFilter(rng.GetDataTable(true));
+        //return GenerateSqlFilterFromRange(rng);
+
+        //var filterParts = new List<string>();
+
+        //int columnCount = rng.Columns.Count;
+        //int rowCount = rng.Rows.Count;
+
+        //for (int row = 2; row <= rowCount; row++) // Start from 2 to skip header row
+        //{
+        //    var rowFilterParts = new List<string>();
+
+        //    for (int column = 1; column <= columnCount; column++)
+        //    {
+        //        string fieldName = Convert.ToString(rng.Cells[1, column].Value); // Get field name from first row
+        //        if (fieldName.Contains(" "))
+        //            fieldName = $"[{fieldName}]";
+        //        string fieldValue = Convert.ToString(rng.Cells[row, column].Value); // Get field value from current row
+
+        //        rowFilterParts.Add($"{fieldName} IN ('{fieldValue}')");
+        //    }
+
+        //    filterParts.Add($"\t\t{string.Join("\n\t\tAND\n\t\t", rowFilterParts)}");
+        //}
+
+        //return $"\n(\n\t(\n{string.Join("\n\t)\n\tOR\n\t(\n", filterParts)}\n\t)\n)\n";
     }
 
     public static void Rename<T>(this T ws, string name, string append = "") where T : Excel.Worksheet
@@ -728,10 +800,36 @@ public static class UtilsExcel
     public static DataTable GetDataTable<T>(this T rng, bool dataHasHeaders = true) where T : Excel.Range
     {
         DataTable dt = new DataTable();
-        int rowCount = rng.Rows.Count;
+
+        if (!rng.Areas.Cast<Excel.Range>().All(p => p.Column == rng.Column))
+            return null;
+
+        int rowCount = rng.Areas.Cast<Excel.Range>().Sum(p => p.Rows.Count);
         int colCount = rng.Columns.Count;
 
-        object[,] cellValues = (object[,])rng.Value2;
+        object[,] cellValues;
+        if (rng.Areas.Count != 1)
+        {
+            cellValues = Utils.NewObject2DArray(rowCount, colCount);
+            long lastIndex = 1;
+            foreach (var ar in rng.Areas.Cast<Excel.Range>().OrderBy(p => p.Row).ToArray())
+            {
+                if (ar.Cells.Count == 1)
+                {
+                    cellValues[lastIndex, 1] = ar.Value2;
+                    lastIndex++;
+                }
+                else
+                {
+                    object[,] arCellValues = (object[,])ar.Value2;
+                    Array.Copy(arCellValues, 1, cellValues, lastIndex, arCellValues.LongLength);
+                    lastIndex += arCellValues.LongLength;
+                }
+            }
+        }
+        else
+            cellValues = (object[,])rng.Value2;
+
 
         // Add columns to DataTable
         for (int i = 1; i <= colCount; i++)

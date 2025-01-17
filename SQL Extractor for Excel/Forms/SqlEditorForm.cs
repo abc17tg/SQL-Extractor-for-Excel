@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
@@ -8,6 +9,7 @@ using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using ScintillaNET;
 using SQL_Extractor_for_Excel.Forms;
 using SQL_Extractor_for_Excel.Scripts;
 using static ScintillaNET.Style;
@@ -44,6 +46,7 @@ namespace SQL_Extractor_for_Excel
         private Dictionary<string, string> m_queriesDic;
         private bool m_selectionChangedByCode = false;
         private static readonly string m_sheetNameTextBoxPlaceholder = "Worksheet name";
+        private static readonly string m_listBoxFetchingText = "Fetching ...";
         private Dictionary<string, List<string>> m_variablesD = new Dictionary<string, List<string>>();
 
         public const Int32 WM_SYSCOMMAND = 0x112;
@@ -244,7 +247,7 @@ namespace SQL_Extractor_for_Excel
             this.Close();
         }
 
-        private void RefreshSserverTypeComboBox()
+        private void RefreshServerTypeComboBox()
         {
             serverTypeComboBox.Items.AddRange(Directory.EnumerateDirectories(FileManager.SqlQueriesPath).Select(p => Path.GetFileName(p)).ToArray());
         }
@@ -267,12 +270,6 @@ namespace SQL_Extractor_for_Excel
                     this.TopMost = false;
                     m_connDic = FileManager.GetOracleConnectionValues();
                     m_queriesDic = FileManager.GetOracleQueries();
-                    this.TopMost = true;
-                    break;
-                case SqlServerManager.ServerType.Excel:
-                    this.TopMost = false;
-                    m_connDic = null;
-                    m_queriesDic = FileManager.GetExcelQueries();
                     this.TopMost = true;
                     break;
                 default:
@@ -328,12 +325,14 @@ namespace SQL_Extractor_for_Excel
             if (string.IsNullOrWhiteSpace(sqlEditorScintilla.SelectedText))
             {
                 UtilsScintilla.SelectBlock(sqlEditorScintilla);
+                sqlEditorScintilla.Focus();
                 return;
             }
 
             if (new List<string> { sqlEditorScintilla.SelectedText, SqlConn?.ConnectionString(), serverComboBox.SelectedItem?.ToString(), serverTypeComboBox.SelectedItem?.ToString() }.Any(p => string.IsNullOrWhiteSpace(p)))
             {
                 MessageBox.Show("Missing server selections or query", "Run error");
+                sqlEditorScintilla.Focus();
                 return;
             }
 
@@ -351,6 +350,7 @@ namespace SQL_Extractor_for_Excel
                     MessageBox.Show(err);
                     break;
             }
+            sqlEditorScintilla.Focus();
         }
 
         private void PasteFromClipboard()
@@ -367,6 +367,7 @@ namespace SQL_Extractor_for_Excel
             Excel.Range rng = App.ActiveWindow.RangeSelection;
             if (rng.Valid())
                 sqlEditorScintilla.ReplaceSelection(UtilsExcel.FormatRangeToSqlPattern(rng));
+            sqlEditorScintilla.Focus();
         }
 
         private void pasteRngFilterBtn_Click(object sender, EventArgs e)
@@ -377,7 +378,35 @@ namespace SQL_Extractor_for_Excel
 
             string rngText = UtilsExcel.GenerateSqlFilterFromExcelSelection(rng);
             if (!string.IsNullOrEmpty(rngText))
+            {
+                // Get the indentation level from the current caret or selection start position
+                int position = sqlEditorScintilla.SelectionStart;
+                int lineNumber = sqlEditorScintilla.LineFromPosition(position);
+                int indentation = sqlEditorScintilla.Lines[lineNumber].Indentation;
+                rngText = rngText.UnifyLineEndings();
                 sqlEditorScintilla.ReplaceSelection(rngText);
+                int endPosition = position + rngText.Length + 1;
+                int lastLine = sqlEditorScintilla.LineFromPosition(endPosition);
+
+                for (int i = sqlEditorScintilla.LineFromPosition(position) + 1; i <= lastLine; i++)
+                {
+                    sqlEditorScintilla.Lines[i].Indentation = indentation + sqlEditorScintilla.Lines[i].Indentation;
+                    endPosition = sqlEditorScintilla.Lines[i].EndPosition;
+                }
+
+                sqlEditorScintilla.SetSelection(position, endPosition);
+
+                //string level = sqlEditorScintilla.GetIndentationLevel();
+                //if (level != string.Empty)
+                //{
+                //    string[] rngTextLines = rngText.Split('\n');
+                //    // Add indentation
+                //    rngText = $"{rngTextLines.First()}\n{string.Join("\n", rngTextLines.Skip(1).Select(p => $"{level}{p}"))}";
+                //}
+                //sqlEditorScintilla.ReplaceSelection(rngText);
+            }
+
+            sqlEditorScintilla.Focus();
         }
 
         private void runBtn_Click(object sender, EventArgs e)
@@ -393,6 +422,7 @@ namespace SQL_Extractor_for_Excel
             if (string.IsNullOrWhiteSpace(Query))
             {
                 UtilsScintilla.SelectBlock(sqlEditorScintilla);
+                sqlEditorScintilla.Focus();
                 return;
             }
 
@@ -577,6 +607,7 @@ namespace SQL_Extractor_for_Excel
             if (new List<string> { query, SqlConn?.ConnectionString(), serverComboBox.SelectedItem?.ToString(), serverTypeComboBox.SelectedItem?.ToString() }.Any(p => string.IsNullOrWhiteSpace(p)))
             {
                 MessageBox.Show("Missing server selections or query", "Run error");
+                sqlEditorScintilla.Focus();
                 return;
             }
 
@@ -732,6 +763,7 @@ namespace SQL_Extractor_for_Excel
         private void commentBtn_Click(object sender, EventArgs e)
         {
             UtilsScintilla.Comment(sqlEditorScintilla);
+            sqlEditorScintilla.Focus();
         }
 
         private void testConnBtn_Click(object sender, EventArgs e)
@@ -747,6 +779,7 @@ namespace SQL_Extractor_for_Excel
             }
             else
                 MessageBox.Show("Connection failed!");
+            sqlEditorScintilla.Focus();
         }
 
         private void saveQueryBtn_Click(object sender, EventArgs e)
@@ -769,9 +802,6 @@ namespace SQL_Extractor_for_Excel
                     break;
                 case SqlServerManager.ServerType.Oracle:
                     saveFileDialog.InitialDirectory = FileManager.OracleQueriesPath;
-                    break;
-                case SqlServerManager.ServerType.Excel:
-                    saveFileDialog.InitialDirectory = FileManager.ExcelQueriesPath;
                     break;
                 default:
                     break;
@@ -869,7 +899,7 @@ namespace SQL_Extractor_for_Excel
             m_fieldsListBoxAllItemsList.Clear();
             m_fieldsListBoxSelectedItemsList.Clear();
             fieldsListBox.Items.Clear();
-            fieldsListBox.Items.Add("Fetching...");
+            fieldsListBox.Items.Add(m_listBoxFetchingText);
             fieldsListBox.Update();
 
             bool tableNameIsQuery = tableName.Contains("select", StringComparison.OrdinalIgnoreCase);
@@ -889,7 +919,7 @@ namespace SQL_Extractor_for_Excel
             m_tablesListBoxAllItemsList.Clear();
             m_tablesListBoxSelectedItemsList.Clear();
             tablesListBox.Items.Clear();
-            tablesListBox.Items.Add("Fetching...");
+            tablesListBox.Items.Add(m_listBoxFetchingText);
             tablesListBox.Update();
 
             string query;
@@ -991,11 +1021,13 @@ namespace SQL_Extractor_for_Excel
         private void transferToQueryBtn_Click(object sender, EventArgs e)
         {
             TransferToQueryFromListbox();
+            sqlEditorScintilla.Focus();
         }
 
         private void wrapIntoBlockBtn_Click(object sender, EventArgs e)
         {
             UtilsScintilla.WrapIntoSqlBlock(sqlEditorScintilla);
+            sqlEditorScintilla.Focus();
         }
 
         private void openInNotepadBtn_Click(object sender, EventArgs e)
@@ -1095,6 +1127,8 @@ namespace SQL_Extractor_for_Excel
 
                 bool tables;
                 ListBox listBox;
+                TextBox textBox = sender as TextBox;
+
                 if (objectsAndVariablesTabControl.SelectedTab == tablesTabPage)
                 {
                     listBox = tablesListBox;
@@ -1117,10 +1151,19 @@ namespace SQL_Extractor_for_Excel
 
                 // Filter the items and add them to the ListBox
                 List<string> filteredItems;
+                Regex regx;
+                try
+                {
+                    regx = new Regex(textBox.Text, RegexOptions.IgnoreCase);
+                }
+                catch (Exception)
+                {
+                    regx = new Regex(Regex.Escape(textBox.Text), RegexOptions.IgnoreCase);
+                }
                 if (tables)
-                    filteredItems = m_tablesListBoxAllItemsList.Where(item => item.IndexOf(searchTablesTextBox.Text, StringComparison.OrdinalIgnoreCase) >= 0 || m_tablesListBoxSelectedItemsList.Contains(item)).ToList();
+                    filteredItems = m_tablesListBoxAllItemsList.Where(item => regx.IsMatch(item) || m_tablesListBoxSelectedItemsList.Contains(item)).ToList();
                 else
-                    filteredItems = m_fieldsListBoxAllItemsList.Where(item => item.IndexOf(searchFieldsTextBox.Text, StringComparison.OrdinalIgnoreCase) >= 0 || m_fieldsListBoxSelectedItemsList.Contains(item)).ToList();
+                    filteredItems = m_fieldsListBoxAllItemsList.Where(item => regx.IsMatch(item) || m_fieldsListBoxSelectedItemsList.Contains(item)).ToList();
 
                 listBox.Items.AddRange(filteredItems.ToArray());
                 listBox.Update();
@@ -1179,6 +1222,46 @@ namespace SQL_Extractor_for_Excel
                 TransferToQueryFromListbox();
         }
 
+        private void tablesListBox_DrawItem(object sender, DrawItemEventArgs e)
+        {
+            if (e.Index < 0) return;
+
+            ListBox listBox = (sender as ListBox);
+
+            // Get the item text
+            string itemText = listBox.Items[e.Index].ToString();
+
+            // Split the item into left and right parts
+            string[] parts = itemText.Split(new char[] { '.' }, 2);
+            string leftPart = parts.Length > 0 ? " (" + parts[0] + ")" : string.Empty;
+            string rightPart = parts.Length > 1 ? parts[1] : string.Empty;
+
+            if (itemText == m_listBoxFetchingText)
+            {
+                rightPart = m_listBoxFetchingText;
+                leftPart = string.Empty;
+            }
+
+            // Calculate alignment using monospaced font
+            float dotPositionX = TextRenderer.MeasureText(rightPart, e.Font).Width;
+
+            // Draw background
+            e.DrawBackground();
+
+            using (Brush leftBrush = rightPart.Length > 0 ? new SolidBrush(Color.DarkSlateGray) : new SolidBrush(Color.Black))
+            using (Brush rightBrush = new SolidBrush(Color.Black))
+            {
+                // Draw the left part (gray)
+                e.Graphics.DrawString(rightPart, e.Font, rightBrush, e.Bounds.Left, e.Bounds.Top);
+
+                // Draw the right part (black)
+                e.Graphics.DrawString(leftPart, e.Font, leftBrush, dotPositionX, e.Bounds.Top);
+            }
+
+            // Draw focus rectangle if needed
+            e.DrawFocusRectangle();
+        }
+
         private void SqlEditorForm_Activated(object sender, EventArgs e)
         {
             this.Opacity = 0.95;
@@ -1197,11 +1280,13 @@ namespace SQL_Extractor_for_Excel
         private void formatToSqlBtn_Click(object sender, EventArgs e)
         {
             UtilsScintilla.ReformatTextToSql(sqlEditorScintilla);
+            sqlEditorScintilla.Focus();
         }
 
         private void separateBtn_Click(object sender, EventArgs e)
         {
             sqlEditorScintilla.ReplaceSelection($"{Environment.NewLine}{m_querySeparator}{Environment.NewLine}");
+            sqlEditorScintilla.Focus();
         }
 
         private void objectsAndVariablesTabControl_TabIndexChanged(object sender, EventArgs e)
