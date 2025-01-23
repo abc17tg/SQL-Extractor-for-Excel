@@ -167,7 +167,9 @@ public static class UtilsExcel
         if (!rng.Valid() || rng.Areas.Cast<Excel.Range>().Sum(p => p.Rows.Count) < 2)
             return string.Empty;
 
-        return Utils.GenerateSqlFilter(rng.GetDataTable(true));
+        //return SqlFilter.GenerateSqlFilterFromExcelSelection(rng);
+        //return Utils.GenerateSqlFilterGPT(rng.GetDataTable(true));
+        return Utils.GenerateSqlFilterDS(rng.GetDataTable(true));
         //return GenerateSqlFilterFromRange(rng);
 
         //var filterParts = new List<string>();
