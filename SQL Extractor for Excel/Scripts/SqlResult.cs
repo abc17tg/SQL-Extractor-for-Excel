@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Data;
 using System.Linq;
 
@@ -7,15 +8,17 @@ namespace SQL_Extractor_for_Excel.Scripts
     public class SqlResult
     {
         public DataTable DataTable;
+        public SqlElement SqlElement;
         public string Errors;
         public bool HasErrors => !string.IsNullOrEmpty(Errors) || DataTable == null;
-        public bool Cancelled;
+        public bool Cancelled = false;
         
-        public SqlResult(DataTable dataTable, string errors, bool cancelled = false) 
+        public SqlResult(DataTable dataTable, string errors, SqlElement sqlElement) 
         { 
             DataTable = dataTable;
+            SqlElement = sqlElement;
             Errors = errors;
-            Cancelled = cancelled;
+            Cancelled = sqlElement?.Cancelled ?? false;
         }
 
         public static SqlResult MergeResults(List<SqlResult> results)

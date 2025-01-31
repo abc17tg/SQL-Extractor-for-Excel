@@ -31,15 +31,16 @@
             System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle1 = new System.Windows.Forms.DataGridViewCellStyle();
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(DataTableForm));
             this.dataGridView = new System.Windows.Forms.DataGridView();
-            this.parametersTableLayoutPanel = new System.Windows.Forms.TableLayoutPanel();
+            this.mainTableLayoutPanel = new System.Windows.Forms.TableLayoutPanel();
             this.headersCheckBox = new System.Windows.Forms.CheckBox();
             this.pasteButton = new System.Windows.Forms.Button();
             this.dataTableDimentionsLabel = new System.Windows.Forms.Label();
             this.queryLabel = new System.Windows.Forms.Label();
             this.saveButton = new System.Windows.Forms.Button();
             this.queryRichTextBox = new System.Windows.Forms.RichTextBox();
+            this.refreshButton = new System.Windows.Forms.Button();
             ((System.ComponentModel.ISupportInitialize)(this.dataGridView)).BeginInit();
-            this.parametersTableLayoutPanel.SuspendLayout();
+            this.mainTableLayoutPanel.SuspendLayout();
             this.SuspendLayout();
             // 
             // dataGridView
@@ -56,7 +57,7 @@
             dataGridViewCellStyle1.WrapMode = System.Windows.Forms.DataGridViewTriState.False;
             this.dataGridView.ColumnHeadersDefaultCellStyle = dataGridViewCellStyle1;
             this.dataGridView.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
-            this.parametersTableLayoutPanel.SetColumnSpan(this.dataGridView, 5);
+            this.mainTableLayoutPanel.SetColumnSpan(this.dataGridView, 6);
             this.dataGridView.Cursor = System.Windows.Forms.Cursors.Cross;
             this.dataGridView.Dock = System.Windows.Forms.DockStyle.Fill;
             this.dataGridView.EditMode = System.Windows.Forms.DataGridViewEditMode.EditOnF2;
@@ -66,31 +67,33 @@
             this.dataGridView.Size = new System.Drawing.Size(1025, 379);
             this.dataGridView.TabIndex = 0;
             // 
-            // parametersTableLayoutPanel
+            // mainTableLayoutPanel
             // 
-            this.parametersTableLayoutPanel.AutoSize = true;
-            this.parametersTableLayoutPanel.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
-            this.parametersTableLayoutPanel.ColumnCount = 5;
-            this.parametersTableLayoutPanel.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle());
-            this.parametersTableLayoutPanel.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle());
-            this.parametersTableLayoutPanel.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100F));
-            this.parametersTableLayoutPanel.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 120F));
-            this.parametersTableLayoutPanel.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 60F));
-            this.parametersTableLayoutPanel.Controls.Add(this.headersCheckBox, 0, 0);
-            this.parametersTableLayoutPanel.Controls.Add(this.dataGridView, 0, 1);
-            this.parametersTableLayoutPanel.Controls.Add(this.pasteButton, 2, 0);
-            this.parametersTableLayoutPanel.Controls.Add(this.dataTableDimentionsLabel, 1, 0);
-            this.parametersTableLayoutPanel.Controls.Add(this.queryLabel, 4, 0);
-            this.parametersTableLayoutPanel.Controls.Add(this.saveButton, 3, 0);
-            this.parametersTableLayoutPanel.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.parametersTableLayoutPanel.Location = new System.Drawing.Point(0, 0);
-            this.parametersTableLayoutPanel.MinimumSize = new System.Drawing.Size(0, 35);
-            this.parametersTableLayoutPanel.Name = "parametersTableLayoutPanel";
-            this.parametersTableLayoutPanel.RowCount = 2;
-            this.parametersTableLayoutPanel.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 30F));
-            this.parametersTableLayoutPanel.RowStyles.Add(new System.Windows.Forms.RowStyle());
-            this.parametersTableLayoutPanel.Size = new System.Drawing.Size(1031, 415);
-            this.parametersTableLayoutPanel.TabIndex = 32;
+            this.mainTableLayoutPanel.AutoSize = true;
+            this.mainTableLayoutPanel.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
+            this.mainTableLayoutPanel.ColumnCount = 6;
+            this.mainTableLayoutPanel.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle());
+            this.mainTableLayoutPanel.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle());
+            this.mainTableLayoutPanel.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100F));
+            this.mainTableLayoutPanel.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 120F));
+            this.mainTableLayoutPanel.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 30F));
+            this.mainTableLayoutPanel.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 60F));
+            this.mainTableLayoutPanel.Controls.Add(this.headersCheckBox, 0, 0);
+            this.mainTableLayoutPanel.Controls.Add(this.dataGridView, 0, 1);
+            this.mainTableLayoutPanel.Controls.Add(this.pasteButton, 2, 0);
+            this.mainTableLayoutPanel.Controls.Add(this.dataTableDimentionsLabel, 1, 0);
+            this.mainTableLayoutPanel.Controls.Add(this.queryLabel, 5, 0);
+            this.mainTableLayoutPanel.Controls.Add(this.saveButton, 3, 0);
+            this.mainTableLayoutPanel.Controls.Add(this.refreshButton, 4, 0);
+            this.mainTableLayoutPanel.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.mainTableLayoutPanel.Location = new System.Drawing.Point(0, 0);
+            this.mainTableLayoutPanel.MinimumSize = new System.Drawing.Size(0, 35);
+            this.mainTableLayoutPanel.Name = "mainTableLayoutPanel";
+            this.mainTableLayoutPanel.RowCount = 2;
+            this.mainTableLayoutPanel.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 30F));
+            this.mainTableLayoutPanel.RowStyles.Add(new System.Windows.Forms.RowStyle());
+            this.mainTableLayoutPanel.Size = new System.Drawing.Size(1031, 415);
+            this.mainTableLayoutPanel.TabIndex = 32;
             // 
             // headersCheckBox
             // 
@@ -114,7 +117,7 @@
             this.pasteButton.Location = new System.Drawing.Point(140, 3);
             this.pasteButton.MinimumSize = new System.Drawing.Size(150, 25);
             this.pasteButton.Name = "pasteButton";
-            this.pasteButton.Size = new System.Drawing.Size(708, 25);
+            this.pasteButton.Size = new System.Drawing.Size(678, 25);
             this.pasteButton.TabIndex = 30;
             this.pasteButton.Text = "Paste";
             this.pasteButton.UseVisualStyleBackColor = true;
@@ -146,7 +149,7 @@
             // saveButton
             // 
             this.saveButton.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.saveButton.Location = new System.Drawing.Point(854, 3);
+            this.saveButton.Location = new System.Drawing.Point(824, 3);
             this.saveButton.MinimumSize = new System.Drawing.Size(0, 25);
             this.saveButton.Name = "saveButton";
             this.saveButton.Size = new System.Drawing.Size(114, 25);
@@ -169,20 +172,31 @@
             this.queryRichTextBox.Visible = false;
             this.queryRichTextBox.DoubleClick += new System.EventHandler(this.queryRichTextBox_DoubleClick);
             // 
+            // refreshButton
+            // 
+            this.refreshButton.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.refreshButton.Location = new System.Drawing.Point(944, 3);
+            this.refreshButton.Name = "refreshButton";
+            this.refreshButton.Size = new System.Drawing.Size(24, 24);
+            this.refreshButton.TabIndex = 34;
+            this.refreshButton.Text = "♻";
+            this.refreshButton.UseVisualStyleBackColor = true;
+            this.refreshButton.Click += new System.EventHandler(this.refreshButton_Click);
+            // 
             // DataTableForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(1031, 415);
-            this.Controls.Add(this.parametersTableLayoutPanel);
+            this.Controls.Add(this.mainTableLayoutPanel);
             this.Controls.Add(this.queryRichTextBox);
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.Name = "DataTableForm";
             this.Text = "DataTable";
             this.Load += new System.EventHandler(this.DataTableForm_Load);
             ((System.ComponentModel.ISupportInitialize)(this.dataGridView)).EndInit();
-            this.parametersTableLayoutPanel.ResumeLayout(false);
-            this.parametersTableLayoutPanel.PerformLayout();
+            this.mainTableLayoutPanel.ResumeLayout(false);
+            this.mainTableLayoutPanel.PerformLayout();
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -191,12 +205,13 @@
         #endregion
 
         private System.Windows.Forms.DataGridView dataGridView;
-        private System.Windows.Forms.TableLayoutPanel parametersTableLayoutPanel;
+        private System.Windows.Forms.TableLayoutPanel mainTableLayoutPanel;
         private System.Windows.Forms.CheckBox headersCheckBox;
         private System.Windows.Forms.Button pasteButton;
         private System.Windows.Forms.Label dataTableDimentionsLabel;
         private System.Windows.Forms.Label queryLabel;
         private System.Windows.Forms.RichTextBox queryRichTextBox;
         private System.Windows.Forms.Button saveButton;
+        private System.Windows.Forms.Button refreshButton;
     }
 }

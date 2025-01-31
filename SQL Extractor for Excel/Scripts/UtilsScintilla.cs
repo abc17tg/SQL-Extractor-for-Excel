@@ -13,40 +13,46 @@ namespace SQL_Extractor_for_Excel.Scripts
     {
         public static void Comment(Scintilla editor, string commentSymbol = "--")
         {
-            int startLine = editor.LineFromPosition(editor.SelectionStart);
-            int endLine = editor.LineFromPosition(editor.SelectionEnd);
-            editor.SetSelection(editor.Lines[startLine].Position, editor.Lines[endLine].EndPosition - Environment.NewLine.Length);
-
-            string selectedText = editor.SelectedText;
-
-            if (!string.IsNullOrEmpty(selectedText))
+            using (new ScintillaPauseUpdatesBlock(editor))
             {
-                List<string> lines = selectedText.Split(new[] { Environment.NewLine }, StringSplitOptions.None).ToList();
+                int startLine = editor.LineFromPosition(editor.SelectionStart);
+                int endLine = editor.LineFromPosition(editor.SelectionEnd);
+                editor.SetSelection(editor.Lines[startLine].Position, editor.Lines[endLine].EndPosition - Environment.NewLine.Length);
 
-                if (lines.Where(p => p.Trim() != Environment.NewLine && p.Trim() != string.Empty).All(p => p.TrimStart().StartsWith(commentSymbol)))
-                {
-                    for (int i = 0; i < lines.Count; i++)
-                        if (lines[i].Trim() != Environment.NewLine && lines[i].Trim() != string.Empty)
-                            lines[i] = lines[i].Split(new[] { commentSymbol }, 2, StringSplitOptions.None)[1];
-                }
-                else
-                {
-                    for (int i = 0; i < lines.Count; i++)
-                        if (lines[i].Trim() != Environment.NewLine && lines[i].Trim() != string.Empty)
-                            lines[i] = commentSymbol + lines[i];
-                }
+                string selectedText = editor.SelectedText;
 
-                editor.ReplaceSelection(string.Join(Environment.NewLine, lines));
+                if (!string.IsNullOrEmpty(selectedText))
+                {
+                    List<string> lines = selectedText.Split(new[] { Environment.NewLine }, StringSplitOptions.None).ToList();
+
+                    if (lines.Where(p => p.Trim() != Environment.NewLine && p.Trim() != string.Empty).All(p => p.TrimStart().StartsWith(commentSymbol)))
+                    {
+                        for (int i = 0; i < lines.Count; i++)
+                            if (lines[i].Trim() != Environment.NewLine && lines[i].Trim() != string.Empty)
+                                lines[i] = lines[i].Split(new[] { commentSymbol }, 2, StringSplitOptions.None)[1];
+                    }
+                    else
+                    {
+                        for (int i = 0; i < lines.Count; i++)
+                            if (lines[i].Trim() != Environment.NewLine && lines[i].Trim() != string.Empty)
+                                lines[i] = commentSymbol + lines[i];
+                    }
+
+                    editor.ReplaceSelection(string.Join(Environment.NewLine, lines));
+                }
+                editor.SetSelection(editor.Lines[startLine].Position, editor.Lines[endLine].EndPosition - (editor.Lines[endLine].Text.EndsWith(Environment.NewLine) ? Environment.NewLine.Length : 0));
             }
-            editor.SetSelection(editor.Lines[startLine].Position, editor.Lines[endLine].EndPosition - (editor.Lines[endLine].Text.EndsWith(Environment.NewLine) ? Environment.NewLine.Length : 0));
         }
 
         public static void IndentAfterReturn(Scintilla editor)
         {
-            int currentPos = editor.CurrentPosition;
-            int currentLine = editor.LineFromPosition(currentPos);
-            editor.Lines[currentLine].Indentation = editor.Lines[currentLine - 1].Indentation;
-            editor.GotoPosition(editor.Lines[currentLine].EndPosition - (editor.Lines[currentLine].Text.EndsWith(Environment.NewLine) ? Environment.NewLine.Length : 0));
+            using (new ScintillaPauseUpdatesBlock(editor))
+            {
+                int currentPos = editor.CurrentPosition;
+                int currentLine = editor.LineFromPosition(currentPos);
+                editor.Lines[currentLine].Indentation = editor.Lines[currentLine - 1].Indentation;
+                editor.GotoPosition(editor.Lines[currentLine].EndPosition - (editor.Lines[currentLine].Text.EndsWith(Environment.NewLine) ? Environment.NewLine.Length : 0));
+            }
         }
 
         public static void ReformatTextToSql(Scintilla editor, string text = null)
@@ -87,23 +93,26 @@ namespace SQL_Extractor_for_Excel.Scripts
             editor.ReplaceSelection(text);
         }
 
-        public static string GetIndentationLevel(this Scintilla scintilla)
+        public static string GetIndentationLevel(this Scintilla scintilla, bool replaceOtherCharToSpace = false)
         {
             int position = scintilla.SelectionStart;
             int lineNumber = scintilla.LineFromPosition(position);
             int indentation = scintilla.Lines[lineNumber].Indentation;
             int lineStartPos = scintilla.Lines[lineNumber].Position;
-            
-            if (position == lineStartPos) 
+
+            if (position == lineStartPos)
                 return string.Empty;
 
             string lineText = scintilla.GetTextRange(lineStartPos, position - lineStartPos);
-            return new string(lineText.Select(p => char.IsWhiteSpace(p) ? p : ' ').ToArray());
-            
+            if (!replaceOtherCharToSpace)
+                return new string('\t', indentation);
+            else
+                return new string(lineText.Select(p => char.IsWhiteSpace(p) ? p : ' ').ToArray());
+
             //int position = scintilla.SelectionStart;
             //int lineNumber = scintilla.LineFromPosition(position);
             //int lineStartPos = scintilla.Lines[lineNumber].Position;
-            
+
             //if (position == lineStartPos) 
             //    return string.Empty;
 
@@ -152,55 +161,104 @@ namespace SQL_Extractor_for_Excel.Scripts
             editor.SetSelection(startPosition, endPosition);
         }
 
+        //public static void WrapIntoSqlBlock(Scintilla editor)
+        //{
+        //    using (new ScintillaPauseUpdatesBlock(editor))
+        //    {
+        //        int indentation = editor.Lines[editor.CurrentLine].Indentation;
+        //        int selStartPos = editor.SelectionStart;
+        //        int linesCount = editor.LineFromPosition(editor.SelectionEnd) - editor.LineFromPosition(selStartPos) + 1;
+        //        string text = $"(\n{editor.SelectedText}\n)";
+        //        editor.ReplaceSelection(text);
+        //        editor.Update();
+        //        editor.SetSelection(editor.Lines[editor.LineFromPosition(selStartPos) + 1].Position, editor.Lines[editor.LineFromPosition(selStartPos) - 1 + linesCount].EndPosition);
+        //        editor.Update();
+
+        //        editor.Lines[editor.LineFromPosition(selStartPos)].Indentation = indentation;
+        //        editor.Lines[editor.LineFromPosition(selStartPos) + linesCount + 1].Indentation = indentation;
+
+        //        for (int i = editor.LineFromPosition(editor.SelectionStart); i <= editor.LineFromPosition(editor.SelectionEnd); i++)
+        //            editor.Lines[i].Indentation = Math.Max(indentation, editor.Lines[i].Indentation) + editor.TabWidth;
+        //    }
+        //}
+
         public static void WrapIntoSqlBlock(Scintilla editor)
         {
-            int indentation = editor.Lines[editor.CurrentLine].Indentation;
-            int selStartPos = editor.SelectionStart;
-            int linesCount = editor.LineFromPosition(editor.SelectionEnd) - editor.LineFromPosition(selStartPos) + 1;
-            string text = $"(\n{editor.SelectedText}\n)";
-            editor.ReplaceSelection(text);
-            editor.Update();
-            editor.SetSelection(editor.Lines[editor.LineFromPosition(selStartPos) + 1].Position, editor.Lines[editor.LineFromPosition(selStartPos) - 1 + linesCount].EndPosition);
-            editor.Update();
+            using (new ScintillaPauseUpdatesBlock(editor))
+            {
+                string text = editor.SelectedText;
+                int indentation = editor.Lines[editor.CurrentLine].Indentation;
+                int selStartPos = editor.SelectionStart;
+                int selEndPos = editor.SelectionEnd;
+                int startLine = editor.LineFromPosition(selStartPos);
+                int endLine = editor.LineFromPosition(selEndPos);
+                int linesCount = endLine - startLine + 2;
 
-            editor.Lines[editor.LineFromPosition(selStartPos)].Indentation = indentation;
-            editor.Lines[editor.LineFromPosition(selStartPos) + linesCount + 1].Indentation = indentation;
+                // Wrap the selected text with parentheses and newlines
+                string newText = $"({Environment.NewLine}{text}{Environment.NewLine})";
+                editor.ReplaceSelection(newText);
 
-            for (int i = editor.LineFromPosition(editor.SelectionStart); i <= editor.LineFromPosition(editor.SelectionEnd); i++)
-                editor.Lines[i].Indentation = Math.Max(indentation, editor.Lines[i].Indentation) + editor.TabWidth;
+                // Calculate the new selection range
+                int newSelStart = editor.Lines[startLine].Position; // Start of the first line after "("
+                int newSelEnd = editor.Lines[startLine + linesCount].EndPosition - Environment.NewLine.Length; // End of the last line after ")"
+
+                // Set the new selection
+                editor.SetSelection(newSelStart, newSelEnd);
+
+                // Restore indentation for the first and last lines
+                editor.Lines[startLine].Indentation = indentation;
+                editor.Lines[startLine + linesCount].Indentation = indentation;
+
+                // Adjust indentation for the wrapped lines
+                for (int i = startLine + 1; i <= startLine + linesCount - 1; i++)
+                {
+                    editor.Lines[i].Indentation = Math.Max(indentation, editor.Lines[i].Indentation) + editor.TabWidth;
+                }
+
+                if (string.IsNullOrEmpty(text))
+                {
+                    editor.GotoPosition(editor.Lines[startLine + 1].EndPosition - Environment.NewLine.Length);
+                }
+            }
         }
 
         public static void MoveLineUp(Scintilla editor)
         {
-            int startLine = editor.LineFromPosition(editor.SelectionStart);
-            int endLine = editor.LineFromPosition(editor.SelectionEnd);
-            editor.SetSelection(editor.Lines[startLine].Position, editor.Lines[endLine].EndPosition - Environment.NewLine.Length);
-
-            string selectedText = editor.SelectedText;
-
-            if (startLine > 0)
+            using (new ScintillaPauseUpdatesBlock(editor))
             {
-                editor.DeleteRange(editor.Lines[startLine].Position, selectedText.Length + Environment.NewLine.Length);
-                editor.InsertText(editor.Lines[startLine - 1].Position, selectedText + Environment.NewLine);
+                int startLine = editor.LineFromPosition(editor.SelectionStart);
+                int endLine = editor.LineFromPosition(editor.SelectionEnd);
+                editor.SetSelection(editor.Lines[startLine].Position, editor.Lines[endLine].EndPosition - Environment.NewLine.Length);
 
-                editor.SetSelection(editor.Lines[startLine - 1].Position, editor.Lines[endLine - 1].EndPosition - (editor.Lines[endLine].Text.EndsWith(Environment.NewLine) ? Environment.NewLine.Length : 0));
+                string selectedText = editor.SelectedText;
+
+                if (startLine > 0)
+                {
+                    editor.DeleteRange(editor.Lines[startLine].Position, selectedText.Length + Environment.NewLine.Length);
+                    editor.InsertText(editor.Lines[startLine - 1].Position, selectedText + Environment.NewLine);
+
+                    editor.SetSelection(editor.Lines[startLine - 1].Position, editor.Lines[endLine - 1].EndPosition - (editor.Lines[endLine].Text.EndsWith(Environment.NewLine) ? Environment.NewLine.Length : 0));
+                }
             }
         }
 
         public static void MoveLineDown(Scintilla editor)
         {
-            int startLine = editor.LineFromPosition(editor.SelectionStart);
-            int endLine = editor.LineFromPosition(editor.SelectionEnd);
-            editor.SetSelection(editor.Lines[startLine].Position, editor.Lines[endLine].EndPosition - Environment.NewLine.Length);
-
-            string selectedText = editor.SelectedText;
-
-            if (endLine < editor.Lines.Count - 1)
+            using (new ScintillaPauseUpdatesBlock(editor))
             {
-                editor.DeleteRange(editor.Lines[startLine].Position, selectedText.Length + Environment.NewLine.Length);
-                editor.InsertText(editor.Lines[endLine - (endLine - startLine)].EndPosition, selectedText + Environment.NewLine);
+                int startLine = editor.LineFromPosition(editor.SelectionStart);
+                int endLine = editor.LineFromPosition(editor.SelectionEnd);
+                editor.SetSelection(editor.Lines[startLine].Position, editor.Lines[endLine].EndPosition - Environment.NewLine.Length);
 
-                editor.SetSelection(editor.Lines[startLine + 1].Position, editor.Lines[endLine + 1].EndPosition - (editor.Lines[endLine].Text.EndsWith(Environment.NewLine) ? Environment.NewLine.Length : 0));
+                string selectedText = editor.SelectedText;
+
+                if (endLine < editor.Lines.Count - 1)
+                {
+                    editor.DeleteRange(editor.Lines[startLine].Position, selectedText.Length + Environment.NewLine.Length);
+                    editor.InsertText(editor.Lines[endLine - (endLine - startLine)].EndPosition, selectedText + Environment.NewLine);
+
+                    editor.SetSelection(editor.Lines[startLine + 1].Position, editor.Lines[endLine + 1].EndPosition - (editor.Lines[endLine].Text.EndsWith(Environment.NewLine) ? Environment.NewLine.Length : 0));
+                }
             }
         }
 

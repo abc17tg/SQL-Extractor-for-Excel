@@ -272,20 +272,20 @@ namespace SQL_Extractor_for_Excel.Scripts
                             rdr.SuppressGetDecimalInvalidCastException = true;
                             dt.Load(rdr);
                             manager.OracleCommandFinished?.Invoke(cmd);
-                            return new SqlResult(dt, null);
+                            return new SqlResult(dt, null, sqlElement);
                         }
                     }
                     catch (OracleException ex)
                     {
                         manager.OracleCommandFinished?.Invoke(cmd);
-                        return new SqlResult(null, ex.Message, sqlElement?.Cancelled ?? false);
+                        return new SqlResult(null, ex.Message, sqlElement);
                     }
                 }
             }
             catch (OracleException ex)
             {
                 manager.OracleCommandFinished?.Invoke(null);
-                return new SqlResult(null, ex.Message);
+                return new SqlResult(null, ex.Message, null);
             }
         }
 
@@ -307,20 +307,20 @@ namespace SQL_Extractor_for_Excel.Scripts
                             DataTable dt = new DataTable();
                             dt.Load(rdr);
                             manager.SqlServerCommandFinished?.Invoke(cmd);
-                            return new SqlResult(dt, null);
+                            return new SqlResult(dt, null, sqlElement);
                         }
                     }
                     catch (SqlException ex)
                     {
                         manager.SqlServerCommandFinished?.Invoke(cmd);
-                        return new SqlResult(null, ex.Message, sqlElement?.Cancelled ?? false);
+                        return new SqlResult(null, ex.Message, sqlElement);
                     }
                 }
             }
             catch (SqlException ex)
             {
                 manager.SqlServerCommandFinished?.Invoke(null);
-                return new SqlResult(null, ex.Message);
+                return new SqlResult(null, ex.Message, null);
             }
         }
 

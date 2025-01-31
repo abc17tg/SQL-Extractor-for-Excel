@@ -11,6 +11,7 @@ using System.Text;
 using System.Threading.Tasks;
 using SQL_Extractor_for_Excel.Forms;
 using System.Text.RegularExpressions;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement.ProgressBar;
 
 public static class Utils
 {
@@ -44,6 +45,12 @@ public static class Utils
         }
         return default(char); // no delimiter found
     }
+
+    public static HashSet<Type> NumericTypes = new HashSet<Type>
+    {
+        typeof(int), typeof(long), typeof(double), typeof(decimal), typeof(float),
+        typeof(short), typeof(byte), typeof(sbyte), typeof(uint), typeof(ulong), typeof(ushort)
+    };
 
     public enum LineEndingType
     {
@@ -148,71 +155,16 @@ public static class Utils
                 return true;*/
     }
 
-    public static string GenerateSqlFilterGPT(DataTable table)
+    public static string GenerateSqlFilter(DataTable table)
     {
-        // Step 1: Order columns by unique element count
-        var orderedColumns = table.Columns
-            .Cast<DataColumn>()
-            .OrderBy(col => table.AsEnumerable()
-                .Select(row => row[col])
-                .Distinct()
-                .Count())
-            .ToList();
-
-        // Step 2: Build SQL filter tree recursively
-        string BuildSqlFilter(IEnumerable<DataRow> rows, List<DataColumn> columns, int level = 0)
-        {
-            if (!columns.Any())
-                return string.Empty;
-
-            var currentColumn = columns.First();
-            var remainingColumns = columns.Skip(1).ToList();
-            var groupedRows = rows.GroupBy(row => row[currentColumn]);
-
-            var sb = new StringBuilder();
-            string indent = new string('\t', level);
-
-            foreach (var group in groupedRows)
+        var orderedColumns = table.Columns.Cast<DataColumn>()
+            .Select(col => new
             {
-                string columnCondition;
-                if (group.Key == DBNull.Value || string.IsNullOrWhiteSpace(group.Key?.ToString()))
-                {
-                    columnCondition = $"( {currentColumn.ColumnName} IS NULL OR {currentColumn.ColumnName} = '' )";
-                }
-                else
-                {
-                    columnCondition = $"{currentColumn.ColumnName} = '{group.Key}'";
-                }
-
-                if (remainingColumns.Any())
-                {
-                    var childSql = BuildSqlFilter(group, remainingColumns, level + 1);
-                    if (!string.IsNullOrEmpty(childSql))
-                    {
-                        columnCondition += $"\n{indent}AND\n{childSql}";
-                    }
-                }
-
-                if (sb.Length > 0)
-                    sb.Append($"\n{indent}OR\n");
-                sb.Append($"{indent}(\n{indent}\t{columnCondition}\n{indent})");
-            }
-
-            return sb.ToString();
-        }
-
-        // Step 3: Generate final SQL filter
-        var filter = BuildSqlFilter(table.AsEnumerable(), orderedColumns);
-
-        // Step 4: Wrap the entire filter in parentheses
-        return $"(\n{filter}\n)";
-    }
-
-    public static string GenerateSqlFilterDS(DataTable table)
-    {
-        var orderedColumns = table.Columns
-            .Cast<DataColumn>()
-            .OrderBy(col => table.AsEnumerable().Select(row => row[col]).Distinct().Count())
+                Column = col,
+                Count = table.AsEnumerable().Select(row => row[col]).Distinct().Count()
+            })
+            .OrderBy(x => x.Count)
+            .Select(x => x.Column)
             .ToList();
 
         string BuildSql(List<DataColumn> columns, IEnumerable<DataRow> rows, int indentationLevel = 0)
@@ -220,6 +172,8 @@ public static class Utils
             if (!columns.Any()) return string.Empty;
 
             var currentColumn = columns.First();
+            string currentColumnName = currentColumn.ColumnName.Contains(' ') ? $"[{currentColumn.ColumnName}]" : currentColumn.ColumnName;
+            bool numeric = NumericTypes.Contains(currentColumn.DataType);
             var remainingColumns = columns.Skip(1).ToList();
             var groupedRows = rows.GroupBy(row => row[currentColumn.ColumnName]);
 
@@ -235,29 +189,61 @@ public static class Utils
                 // Handle NULL/empty values
                 if (key == DBNull.Value || string.IsNullOrWhiteSpace(key?.ToString()))
                 {
-                    condition = $"( {currentColumn.ColumnName} IS NULL OR {currentColumn.ColumnName} = '' )";
+                    condition = $"( {currentColumnName} IS NULL OR {currentColumnName} = '' )";
                 }
                 else
                 {
-                    condition = $"{currentColumn.ColumnName} = '{key}'";
+                    if (numeric)
+                        condition = $"{currentColumnName} = {key}";
+                    else
+                        condition = $"{currentColumnName} = '{key}'";
                 }
 
                 // Recursively build sub-conditions
                 string subSql = BuildSql(remainingColumns, group, indentationLevel + 1);
-                bool subSqlHasMultipleConditionsOR = subSql.Contains("\nOR\n");
-                bool subSqlHasMultipleConditions = subSqlHasMultipleConditionsOR || subSql.Contains("\nAND\n");
+                bool subSqlHasFreeORCondition = Regex.Matches(subSql, @"(?<=(^\s*\(\n*$)([\s\S]*?))(^\s*OR\n*$)(?=([\s\S]*?)(^\s*\)\n*$))", RegexOptions.Multiline).Count != Regex.Matches(subSql, @"^\s*OR\s*$", RegexOptions.Multiline).Count;
 
                 if (!string.IsNullOrEmpty(subSql))
                 {
-                    condition += $"\n{indentation}\tAND\n{(subSqlHasMultipleConditionsOR ? $"{indentation}(\n{subSql}\n{indentation}\t)" : subSql)}";
+                    if (subSqlHasFreeORCondition && Regex.Match(subSql, @"^\s*AND\s*$", RegexOptions.Multiline).Success)
+                        condition += $"\n{indentation}\tAND\n{indentation}\t(\n{indentation}\t\t(\n{string.Join("\n", subSql.Split('\n').Select(p => $"\t{p}"))}\n{indentation}\t\t)\n{indentation}\t)";
+                    else if (subSqlHasFreeORCondition)
+                        condition += $"\n{indentation}\tAND\n{indentation}\t(\n{subSql}\n{indentation}\t)";
+                    else if (isLeaf)
+                        condition += $"\n{indentation}\tAND\n{subSql}";
+                    else
+                        condition += $"\n{indentation}\tAND\n{string.Join("\n", subSql.Split('\n').Select(p => string.Join("", p.Skip(1))))}";
                 }
 
                 // Add to final output
-                if (sb.Length > 0)
+                bool multilineCondition = condition.Contains('\n');
+                bool containedCondition = false;
+                if (multilineCondition && Regex.Matches(condition, @"(?<=(^\s*\(\n*$)([\s\S]*?))(^\s*OR\n*$)(?=([\s\S]*?)(^\s*\)\n*$))", RegexOptions.Multiline).Count != Regex.Matches(condition, @"^\s*OR\s*$", RegexOptions.Multiline).Count)
                 {
-                    sb.Append($"\n{indentation}OR\n");
+                    condition = $"{indentation}(\n{indentation}\t{condition}\n{indentation})";
+                    containedCondition = true;
                 }
-                sb.Append($"{(condition.Contains("\n") || subSqlHasMultipleConditionsOR ? $"{indentation}(\n{indentation}\t{condition}\n{indentation})" : condition)}");
+                else
+                    condition = $"{indentation}\t{condition}";
+
+
+                string sbValue = sb.ToString();
+                if (sbValue != string.Empty)
+                {
+                    bool sbContained = (Regex.Match(sbValue, @"^\s*\([\s\S]*\)\s*$").Success && sbValue.Count(p => p == '(') == sbValue.Count(p => p == ')'));
+                    if ((sbContained && multilineCondition && containedCondition) || (sbContained && !multilineCondition))
+                        sb.Append($"\n{indentation}OR\n");
+                    else if (!sbContained && multilineCondition && containedCondition)
+                        sb.Append($"\n{indentation})\n{indentation}OR\n");
+                    else if ((sbContained || sbValue.EndsWith($"\n{indentation})")) && multilineCondition && !containedCondition)
+                        sb.Append($"\n{indentation}OR\n{indentation}(\n");
+                    else if (!sbContained && multilineCondition && !containedCondition)
+                        sb.Append($"\n{indentation})\n{indentation}OR\n{indentation}(\n");
+                    else
+                        sb.Append($"\n{indentation}OR\n"); //sb.Append($"\n{indentation})\n{indentation}OR\n{indentation}(\n");
+                }
+
+                sb.Append(condition);
             }
 
             // Handle IN clauses for leaf nodes
@@ -266,18 +252,21 @@ public static class Utils
                 var values = groupedRows.Select(g => g.Key.ToString()).Distinct().ToList();
                 if (values.Count > 1000)
                 {
-                    return string.Join($"\n{indentation}OR\n{indentation}", values.Split((int)Math.Ceiling((double)values.Count / 1000))
-                        .Select(chunk => $"{currentColumn.ColumnName} IN ({string.Join(", ", chunk.Select(v => $"'{v}'"))})"));
+                    string valuesSeparated = string.Join($"\n{indentation}\tOR\n{indentation}\t", values.Split((int)Math.Ceiling((double)values.Count / 1000)).Select(chunk => $"{currentColumnName} IN ({(numeric ? string.Join(", ", chunk.Select(v => $"{v}")) : string.Join(", ", chunk.Select(v => $"'{v}'")))})"));
+                    return $"{indentation}\t{valuesSeparated}";
                 }
-                return $"{indentation}{currentColumn.ColumnName} IN ({string.Join(", ", values.Select(v => $"'{v}'"))})";
+                return $"{indentation}\t{currentColumnName} IN ({(numeric ? string.Join(", ", values.Select(v => $"{v}")) : string.Join(", ", values.Select(v => $"'{v}'")))})";
             }
-
             return sb.ToString();
         }
 
         var sqlFilter = BuildSql(orderedColumns, table.AsEnumerable());
         //return $"(\n{sqlFilter}\n)";
-        return sqlFilter;
+
+        if (Regex.Match(sqlFilter.ToString(), @"^\s*\([\s\S]*\)\s*$").Success)
+            return sqlFilter;
+
+        return $"(\n{sqlFilter}\n)";
     }
 
     public static T Clamp<T>(this T val, T min, T max) where T : IComparable<T>
@@ -344,6 +333,7 @@ public static class Utils
             list[n] = value;
         }
     }
+
     public static IEnumerable<TSource> DistinctBy<TSource, TKey>(this IEnumerable<TSource> source, Func<TSource, TKey> keySelector)
     {
         HashSet<TKey> seenKeys = new HashSet<TKey>();

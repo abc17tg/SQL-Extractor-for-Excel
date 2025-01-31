@@ -81,121 +81,50 @@ public static class UtilsExcel
             return rng.Text.ToString();
 
         List<string> values = new List<string>();
-        foreach (Excel.Range c in rng.Cells.Cast<Excel.Range>())
-            if (c != null && !string.IsNullOrEmpty(c.Text) && !c.EntireRow.Hidden && !c.EntireColumn.Hidden)
-                values.Add(c.Text.ToString());
+        rng = rng.Cells.SpecialCellsOrDefault(Excel.XlCellType.xlCellTypeVisible);
+
+        if(rng == null)
+            return string.Empty;
+
+        foreach (var v in rng.Cells.Cast<Excel.Range>().Select(p => p.Text.ToString()).Where(p => !string.IsNullOrEmpty(p)).Cast<string>())
+            values.Add(v);
 
         if (values.Count < 1)
             return string.Empty;
 
-        if (rng.Cells.Count > 1 && rng.Rows.Count == 1)
+        if (rng.Cells.Count > 1 && rng.Cells.Cast<Excel.Range>().Select(p => p.Row).Distinct().Count() == 1)
             return string.Join(", ", values.Distinct().Select(p => p.Contains(" ") ? $"[{p}]" : p).ToList());
 
-        return $"('{string.Join("', '", values.Distinct())}')";
-    }
+        values = values.Distinct().ToList();
 
-    public static string GenerateSqlFilter2(DataTable table)
-    {
-        // Step 1: Order columns by the count of unique values
-        var orderedColumns = table.Columns
-            .Cast<DataColumn>()
-            .OrderBy(col => table.AsEnumerable().Select(row => row[col]).Distinct().Count())
-            .ToList();
-
-        // Step 2: Build the SQL filter string
-        string BuildSql(List<DataColumn> columns, IEnumerable<DataRow> rows, int indentationLevel = 1)
+        if (!rng.IsNumeric())
         {
-            if (!columns.Any())
-                return string.Empty;
-
-            var currentColumn = columns.First();
-            var remainingColumns = columns.Skip(1).ToList();
-            string indentation = new string('\t', indentationLevel);
-
-            // Group rows by the current column
-            var groupedRows = rows.GroupBy(row => row[currentColumn.ColumnName]);
-            var groupedValues = groupedRows
-                .Select(group => group.Key == DBNull.Value || string.IsNullOrWhiteSpace(group.Key?.ToString())
-                    ? null
-                    : group.Key.ToString())
-                .Distinct()
-                .ToList();
-
-            var sb = new StringBuilder();
-
-            // Handle `IN` clause for the current column
-            if (groupedValues.Any(v => v != null))
-            {
-                var validValues = groupedValues.Where(v => v != null).Distinct().ToList();
-                sb.Append($"{indentation}(\n{indentation}\t{currentColumn.ColumnName} IN ({string.Join(", ", validValues.Select(v => $"'{v}'"))})");
-
-                if (groupedValues.Any(v => v == null))
-                {
-                    sb.Append($"\n{indentation}\tOR\n{indentation}\t{currentColumn.ColumnName} IS NULL");
-                }
-
-                sb.Append($"\n{indentation})");
-            }
+            if (values.Count < 1001)
+                return $"('{string.Join("', '", values.Distinct())}')";
             else
-            {
-                // Only handle NULL values
-                sb.Append($"{indentation}(\n{indentation}\t{currentColumn.ColumnName} = ''\n{indentation}\tOR\n{indentation}\t{currentColumn.ColumnName} IS NULL\n{indentation})");
-            }
-
-            // Handle remaining columns recursively
-            if (remainingColumns.Any())
-            {
-                var remainingSql = BuildSql(remainingColumns, rows, indentationLevel + 1);
-                if (!string.IsNullOrWhiteSpace(remainingSql))
-                {
-                    sb.Append($"\n{indentation}AND\n{remainingSql}");
-                }
-            }
-
-            return sb.ToString();
+                return string.Join("\n", values.Split((int)Math.Ceiling((double)values.Count / 1000)).Select(p => $"('{string.Join("', '", p)}')"));
         }
-
-        // Step 3: Generate the SQL filter
-        var sqlFilter = BuildSql(orderedColumns, table.AsEnumerable());
-
-        // Step 4: Wrap the filter in parentheses
-        return $"(\n{sqlFilter}\n)";
+        else
+        {
+            if (values.Count < 1001)
+                return $"({string.Join(", ", values.Distinct())})";
+            else
+                return string.Join("\n", values.Split((int)Math.Ceiling((double)values.Count / 1000)).Select(p => $"({string.Join(", ", p)})"));
+        }
     }
 
-    public static string GenerateSqlFilterFromExcelSelection(Excel.Range rng)
+    public static bool IsNumeric<T>(this T rng) where T : Excel.Range
     {
-        if (!rng.Valid() || rng.Areas.Cast<Excel.Range>().Sum(p => p.Rows.Count) < 2)
-            return string.Empty;
-
-        //return SqlFilter.GenerateSqlFilterFromExcelSelection(rng);
-        //return Utils.GenerateSqlFilterGPT(rng.GetDataTable(true));
-        return Utils.GenerateSqlFilterDS(rng.GetDataTable(true));
-        //return GenerateSqlFilterFromRange(rng);
-
-        //var filterParts = new List<string>();
-
-        //int columnCount = rng.Columns.Count;
-        //int rowCount = rng.Rows.Count;
-
-        //for (int row = 2; row <= rowCount; row++) // Start from 2 to skip header row
-        //{
-        //    var rowFilterParts = new List<string>();
-
-        //    for (int column = 1; column <= columnCount; column++)
-        //    {
-        //        string fieldName = Convert.ToString(rng.Cells[1, column].Value); // Get field name from first row
-        //        if (fieldName.Contains(" "))
-        //            fieldName = $"[{fieldName}]";
-        //        string fieldValue = Convert.ToString(rng.Cells[row, column].Value); // Get field value from current row
-
-        //        rowFilterParts.Add($"{fieldName} IN ('{fieldValue}')");
-        //    }
-
-        //    filterParts.Add($"\t\t{string.Join("\n\t\tAND\n\t\t", rowFilterParts)}");
-        //}
-
-        //return $"\n(\n\t(\n{string.Join("\n\t)\n\tOR\n\t(\n", filterParts)}\n\t)\n)\n";
+        try
+        {
+            return (rng.Cells.Count - rng.Application.WorksheetFunction.Count(rng)) == 0;
+        }
+        catch (COMException)
+        {
+            return false;
+        }
     }
+
 
     public static void Rename<T>(this T ws, string name, string append = "") where T : Excel.Worksheet
     {

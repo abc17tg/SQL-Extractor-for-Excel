@@ -346,6 +346,14 @@ Network Trash Folder
 Temporary Items
 .apdisk
 
+# Example .gitignore entries for Python
+**/__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+venv/
+.env/
+
 # Passwords
 *.psswd
 ExcelAddInByMarcinOlszewski/Properties Files/

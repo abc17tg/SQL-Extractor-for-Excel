@@ -12,6 +12,7 @@ namespace SQL_Extractor_for_Excel.Forms
     {
         public DataTable DataTable;
         public string Query;
+        public string DisplayQuery;
         Excel.Application ExcelApp;
 
         private NumberFormatInfo m_nfi;
@@ -27,15 +28,17 @@ namespace SQL_Extractor_for_Excel.Forms
         private static extern bool InsertMenu(IntPtr hMenu, Int32 wPosition, Int32 wFlags, Int32 wIDNewItem, string lpNewItem);
 
 
-        public DataTableForm(DataTable dataTable, string query, Excel.Application app)
+        public DataTableForm(DataTable dataTable, string query, Excel.Application app, string name = null, string displayQuery = null)
         {
             InitializeComponent();
             m_nfi = new CultureInfo("en-US", false).NumberFormat;
             m_nfi.NumberGroupSeparator = " ";
+            Text = name ?? "DataTable";
             DataTable = dataTable;
             Query = query;
+            DisplayQuery = !string.IsNullOrEmpty(displayQuery) ? displayQuery : !string.IsNullOrEmpty(query) ? query : "Query missing.";
             ExcelApp = app;
-            queryRichTextBox.Text = query;
+            queryRichTextBox.Text = DisplayQuery;
             dataGridView.AutoGenerateColumns = true;
             dataGridView.DataSource = DataTable;
             dataGridView.RowPostPaint += dataGridView_RowPostPaint;
@@ -155,6 +158,11 @@ namespace SQL_Extractor_for_Excel.Forms
         private void saveButton_Click(object sender, EventArgs e)
         {
             DataTable.SaveAsTabDelimited();
+        }
+
+        private void refreshButton_Click(object sender, EventArgs e)
+        {
+
         }
     }
 }

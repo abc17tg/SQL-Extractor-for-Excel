@@ -20,6 +20,9 @@ namespace SQL_Extractor_for_Excel.Scripts
         public static string ExcelQueriesPath => Path.Combine(SqlQueriesPath, "Excel");
         public static string ResourcesPath => Path.Combine(BasePath, "Resources");
         public static string DownloadsPath => Microsoft.Win32.Registry.GetValue(@"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders", "{374DE290-123F-4565-9164-39C4925E467B}", String.Empty).ToString();
+        public static string PythonDir => Path.Combine(FileManager.BasePath, "Python");
+        public static string PythonExe => Path.Combine(PythonDir, "python.exe");
+        public static string PythonFormatSqlScriptPath => Path.Combine(PythonDir, "format_sql.py");
 
         public static bool EnsureDirectoryExists(string path)
         {
