@@ -299,25 +299,34 @@ namespace SQL_Extractor_for_Excel
 
         private void FormatSelectionUsingSqlFluff()
         {
+            string formattedText = null;
             try
             {
+                sqlEditorScintilla.Enabled = false;
+                sqlEditorScintilla.ReadOnly = true;
+                this.UseWaitCursor = true;
                 switch (ServerType)
                 {
-                    case SqlServerManager.ServerType.Excel:
-                        sqlEditorScintilla.ReplaceSelection(SqlFormatter.Format(sqlEditorScintilla.SelectedText, SqlFormatter.SqlDialect.TSql) ?? "Formatting failed");
-                        break;
                     case SqlServerManager.ServerType.Oracle:
-                        sqlEditorScintilla.ReplaceSelection(SqlFormatter.Format(sqlEditorScintilla.SelectedText, SqlFormatter.SqlDialect.Oracle) ?? "Formatting failed");
+                        formattedText = SqlFormatter.Format(sqlEditorScintilla.SelectedText, SqlFormatter.SqlDialect.Oracle) ?? "Formatting failed";
                         break;
                     case SqlServerManager.ServerType.SqlServer:
+                        formattedText = SqlFormatter.Format(sqlEditorScintilla.SelectedText, SqlFormatter.SqlDialect.TSql) ?? "Formatting failed";
                         break;
                     default:
-                        sqlEditorScintilla.ReplaceSelection(SqlFormatter.Format(sqlEditorScintilla.SelectedText) ?? "Formatting failed");
+                        formattedText = SqlFormatter.Format(sqlEditorScintilla.SelectedText) ?? "Formatting failed";
                         break;
                 }
             }
             catch (Exception)
             { }
+            finally
+            {
+                sqlEditorScintilla.Enabled = true;
+                sqlEditorScintilla.ReadOnly = false;
+                sqlEditorScintilla.ReplaceSelection(formattedText ?? "Formatting failed");
+                this.UseWaitCursor = false;
+            }
         }
 
         private void validateBtn_Click(object sender, EventArgs e)

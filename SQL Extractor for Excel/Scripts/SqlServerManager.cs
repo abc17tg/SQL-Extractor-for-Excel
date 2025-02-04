@@ -5,6 +5,7 @@ using System.Data.OleDb;
 using System.Data.SqlClient;
 using System.Linq;
 using System.Windows.Forms;
+using Microsoft.CSharp.RuntimeBinder;
 using Oracle.ManagedDataAccess.Client;
 using Excel = Microsoft.Office.Interop.Excel;
 
@@ -107,6 +108,111 @@ namespace SQL_Extractor_for_Excel.Scripts
                 MessageBox.Show(ex.Message.ToString());
             }
             return result;
+        }
+
+        public void CreateWbConnectionAndRunBackgroundQuery(Excel.Range destinationRange, string sqlQuery, string dbName)
+        {
+            // Get the Excel application and active workbook.
+            Excel.Application app = Globals.ThisAddIn.Application;
+            Excel.Workbook workbook = app.ActiveWorkbook;
+
+            // Define a name for the query.
+            string queryName = "Query1";
+
+            // Build the M (Power Query) formula.
+            string mFormula = "let\r\n" +
+                              $"    Source = Oracle.Database(\"{dbName}\", " +
+                              "[HierarchicalNavigation=true, " +
+                              $"Query=\"{sqlQuery}\", " +
+                              "CreateNavigationProperties=false])\r\n" +
+                              "in\r\n" +
+                              "    Source";
+
+            // Use dynamic to access the Queries collection.
+            // (Note: The Queries property is not part of the primary interop assembly.)
+            dynamic wbDynamic = workbook;
+            dynamic queries = null;
+            try
+            {
+                // Attempt to get the Queries property using dynamic.
+                queries = wbDynamic.Queries;
+            }
+            catch (RuntimeBinderException ex)
+            {
+                throw new Exception("Could not access the Queries collection. Ensure that your Excel version supports Power Query.", ex);
+            }
+
+            // Remove any existing query with the same name (optional).
+            try
+            {
+                // Loop through the queries (using dynamic enumeration)
+                foreach (dynamic query in queries)
+                {
+                    if (query.Name == queryName)
+                    {
+                        query.Delete();
+                        break;
+                    }
+                }
+            }
+            catch (Exception)
+            {
+                // Ignore if query doesn't exist.
+            }
+
+            // Add the new query.
+            try
+            {
+                queries.Add(queryName, mFormula);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("Error adding the query.", ex);
+            }
+
+            // Use the provided destinationRange or add a new worksheet if needed.
+            Excel.Worksheet ws;
+            Excel.Range dest;
+            if (destinationRange != null)
+            {
+                dest = destinationRange;
+                ws = destinationRange.Worksheet;
+            }
+            else
+            {
+                ws = workbook.Worksheets.Add();
+                dest = ws.Range["A1"];
+            }
+
+            // Create the connection string for the query using the Microsoft Mashup OLE DB provider.
+            string connectionString = $"OLEDB;Provider=Microsoft.Mashup.OleDb.1;Data Source=$Workbook$;Location={queryName};Extended Properties=\"\"";
+
+            // Add a ListObject (table) with a QueryTable based on the query.
+            Excel.ListObject listObj = ws.ListObjects.Add(
+                SourceType: Excel.XlListObjectSourceType.xlSrcQuery,
+                Source: connectionString,
+                Destination: dest,
+                XlListObjectHasHeaders: Excel.XlYesNoGuess.xlYes);
+
+            // Configure the QueryTable.
+            Excel.QueryTable queryTable = listObj.QueryTable;
+            queryTable.CommandType = Excel.XlCmdType.xlCmdSql;
+            queryTable.CommandText = new object[] { $"SELECT * FROM [{queryName}]" };
+            queryTable.RowNumbers = false;
+            queryTable.FillAdjacentFormulas = false;
+            queryTable.PreserveFormatting = true;
+            queryTable.RefreshOnFileOpen = false;
+            queryTable.BackgroundQuery = true;
+            queryTable.RefreshStyle = Excel.XlCellInsertionMode.xlInsertDeleteCells;
+            queryTable.SavePassword = false;
+            queryTable.SaveData = true;
+            queryTable.AdjustColumnWidth = true;
+            queryTable.RefreshPeriod = 0;
+            queryTable.PreserveColumnInfo = true;
+            listObj.Name = queryName;
+
+            // Refresh the query table in the background.
+            queryTable.Refresh(true);
         }
 
         public static (SqlResult, bool OperationSuccessfullyCompleted) GetDataFromServerToExcelRange(SqlServerManager manager, string query, SqlConn sqlConn, Excel.Range rng, bool headers = true, int timeout = -1)

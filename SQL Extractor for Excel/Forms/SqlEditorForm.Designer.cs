@@ -98,6 +98,7 @@ namespace SQL_Extractor_for_Excel
             this.savedQueriesComboBox = new System.Windows.Forms.ComboBox();
             this.saveQueryBtn = new System.Windows.Forms.Button();
             this.runBtn = new System.Windows.Forms.Button();
+            this.mainSplitContainer = new System.Windows.Forms.SplitContainer();
             this.mainTableLayoutPanel.SuspendLayout();
             this.upperTableLayoutPanel.SuspendLayout();
             this.objectsAndVariablesTabControl.SuspendLayout();
@@ -114,6 +115,10 @@ namespace SQL_Extractor_for_Excel
             this.parametersTableLayoutPanel.SuspendLayout();
             this.worksheetTableLayoutPanel.SuspendLayout();
             this.buttonsTableLayoutPanel.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.mainSplitContainer)).BeginInit();
+            this.mainSplitContainer.Panel1.SuspendLayout();
+            this.mainSplitContainer.Panel2.SuspendLayout();
+            this.mainSplitContainer.SuspendLayout();
             this.SuspendLayout();
             // 
             // sqlEditorScintilla
@@ -125,7 +130,7 @@ namespace SQL_Extractor_for_Excel
             this.sqlEditorScintilla.Lexer = ScintillaNET.Lexer.Sql;
             this.sqlEditorScintilla.Location = new System.Drawing.Point(3, 48);
             this.sqlEditorScintilla.Name = "sqlEditorScintilla";
-            this.sqlEditorScintilla.Size = new System.Drawing.Size(732, 622);
+            this.sqlEditorScintilla.Size = new System.Drawing.Size(734, 616);
             this.sqlEditorScintilla.TabIndex = 9;
             this.sqlEditorScintilla.Text = "SELECT * FROM";
             this.sqlEditorScintilla.UseTabs = true;
@@ -142,7 +147,7 @@ namespace SQL_Extractor_for_Excel
             this.transferTablesToQueryBtn.Location = new System.Drawing.Point(3, 3);
             this.transferTablesToQueryBtn.MinimumSize = new System.Drawing.Size(0, 25);
             this.transferTablesToQueryBtn.Name = "transferTablesToQueryBtn";
-            this.transferTablesToQueryBtn.Size = new System.Drawing.Size(53, 26);
+            this.transferTablesToQueryBtn.Size = new System.Drawing.Size(49, 26);
             this.transferTablesToQueryBtn.TabIndex = 19;
             this.transferTablesToQueryBtn.Text = "←";
             this.transferTablesToQueryBtn.UseVisualStyleBackColor = true;
@@ -151,10 +156,10 @@ namespace SQL_Extractor_for_Excel
             // fetchTablesBtn
             // 
             this.fetchTablesBtn.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.fetchTablesBtn.Location = new System.Drawing.Point(62, 3);
+            this.fetchTablesBtn.Location = new System.Drawing.Point(58, 3);
             this.fetchTablesBtn.MinimumSize = new System.Drawing.Size(0, 25);
             this.fetchTablesBtn.Name = "fetchTablesBtn";
-            this.fetchTablesBtn.Size = new System.Drawing.Size(174, 26);
+            this.fetchTablesBtn.Size = new System.Drawing.Size(162, 26);
             this.fetchTablesBtn.TabIndex = 18;
             this.fetchTablesBtn.Text = "Fetch";
             this.fetchTablesBtn.UseVisualStyleBackColor = true;
@@ -171,7 +176,7 @@ namespace SQL_Extractor_for_Excel
             this.tablesListBox.Location = new System.Drawing.Point(3, 30);
             this.tablesListBox.Name = "tablesListBox";
             this.tablesListBox.SelectionMode = System.Windows.Forms.SelectionMode.MultiExtended;
-            this.tablesListBox.Size = new System.Drawing.Size(233, 576);
+            this.tablesListBox.Size = new System.Drawing.Size(217, 573);
             this.tablesListBox.TabIndex = 20;
             this.tablesListBox.DrawItem += new System.Windows.Forms.DrawItemEventHandler(this.tablesListBox_DrawItem);
             this.tablesListBox.SelectedIndexChanged += new System.EventHandler(this.objectsListBox_SelectedIndexChanged);
@@ -184,7 +189,7 @@ namespace SQL_Extractor_for_Excel
             this.searchTablesTextBox.Font = new System.Drawing.Font("Microsoft Sans Serif", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.searchTablesTextBox.Location = new System.Drawing.Point(3, 3);
             this.searchTablesTextBox.Name = "searchTablesTextBox";
-            this.searchTablesTextBox.Size = new System.Drawing.Size(233, 21);
+            this.searchTablesTextBox.Size = new System.Drawing.Size(217, 21);
             this.searchTablesTextBox.TabIndex = 24;
             this.searchTablesTextBox.Text = "Search";
             this.searchTablesTextBox.WordWrap = false;
@@ -248,7 +253,7 @@ namespace SQL_Extractor_for_Excel
             this.clearEditorLabel.Location = new System.Drawing.Point(703, 0);
             this.clearEditorLabel.Name = "clearEditorLabel";
             this.clearEditorLabel.RightToLeft = System.Windows.Forms.RightToLeft.Yes;
-            this.clearEditorLabel.Size = new System.Drawing.Size(26, 39);
+            this.clearEditorLabel.Size = new System.Drawing.Size(28, 39);
             this.clearEditorLabel.TabIndex = 29;
             this.clearEditorLabel.Text = "❌";
             this.clearEditorLabel.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
@@ -259,10 +264,11 @@ namespace SQL_Extractor_for_Excel
             this.mainTableLayoutPanel.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
             this.mainTableLayoutPanel.ColumnCount = 1;
             this.mainTableLayoutPanel.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100F));
-            this.mainTableLayoutPanel.Controls.Add(this.upperTableLayoutPanel, 0, 0);
+            this.mainTableLayoutPanel.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 20F));
             this.mainTableLayoutPanel.Controls.Add(this.buttonsTableLayoutPanel, 0, 1);
+            this.mainTableLayoutPanel.Controls.Add(this.mainSplitContainer, 0, 0);
             this.mainTableLayoutPanel.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.mainTableLayoutPanel.GrowStyle = System.Windows.Forms.TableLayoutPanelGrowStyle.FixedSize;
+            this.mainTableLayoutPanel.GrowStyle = System.Windows.Forms.TableLayoutPanelGrowStyle.AddColumns;
             this.mainTableLayoutPanel.Location = new System.Drawing.Point(0, 0);
             this.mainTableLayoutPanel.Name = "mainTableLayoutPanel";
             this.mainTableLayoutPanel.RowCount = 2;
@@ -274,10 +280,9 @@ namespace SQL_Extractor_for_Excel
             // upperTableLayoutPanel
             // 
             this.upperTableLayoutPanel.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
-            this.upperTableLayoutPanel.ColumnCount = 2;
-            this.upperTableLayoutPanel.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 75F));
-            this.upperTableLayoutPanel.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 25F));
-            this.upperTableLayoutPanel.Controls.Add(this.objectsAndVariablesTabControl, 1, 0);
+            this.upperTableLayoutPanel.ColumnCount = 1;
+            this.upperTableLayoutPanel.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100F));
+            this.upperTableLayoutPanel.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 20F));
             this.upperTableLayoutPanel.Controls.Add(this.parametersTableLayoutPanel, 0, 0);
             this.upperTableLayoutPanel.Controls.Add(this.sqlEditorScintilla, 0, 1);
             this.upperTableLayoutPanel.Dock = System.Windows.Forms.DockStyle.Fill;
@@ -288,7 +293,7 @@ namespace SQL_Extractor_for_Excel
             this.upperTableLayoutPanel.RowCount = 2;
             this.upperTableLayoutPanel.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 45F));
             this.upperTableLayoutPanel.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100F));
-            this.upperTableLayoutPanel.Size = new System.Drawing.Size(985, 673);
+            this.upperTableLayoutPanel.Size = new System.Drawing.Size(740, 667);
             this.upperTableLayoutPanel.TabIndex = 32;
             // 
             // objectsAndVariablesTabControl
@@ -298,13 +303,13 @@ namespace SQL_Extractor_for_Excel
             this.objectsAndVariablesTabControl.Controls.Add(this.variablesTabPage);
             this.objectsAndVariablesTabControl.Controls.Add(this.runningQueriesTabPage);
             this.objectsAndVariablesTabControl.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.objectsAndVariablesTabControl.Location = new System.Drawing.Point(738, 3);
+            this.objectsAndVariablesTabControl.Location = new System.Drawing.Point(0, 0);
             this.objectsAndVariablesTabControl.Margin = new System.Windows.Forms.Padding(0, 3, 0, 0);
             this.objectsAndVariablesTabControl.Name = "objectsAndVariablesTabControl";
-            this.upperTableLayoutPanel.SetRowSpan(this.objectsAndVariablesTabControl, 2);
             this.objectsAndVariablesTabControl.SelectedIndex = 0;
-            this.objectsAndVariablesTabControl.Size = new System.Drawing.Size(247, 670);
+            this.objectsAndVariablesTabControl.Size = new System.Drawing.Size(231, 667);
             this.objectsAndVariablesTabControl.TabIndex = 31;
+            this.objectsAndVariablesTabControl.Visible = false;
             this.objectsAndVariablesTabControl.SelectedIndexChanged += new System.EventHandler(this.objectsAndVariablesTabControl_TabIndexChanged);
             this.objectsAndVariablesTabControl.TabIndexChanged += new System.EventHandler(this.objectsAndVariablesTabControl_TabIndexChanged);
             // 
@@ -315,7 +320,7 @@ namespace SQL_Extractor_for_Excel
             this.tablesTabPage.Margin = new System.Windows.Forms.Padding(0, 3, 0, 0);
             this.tablesTabPage.Name = "tablesTabPage";
             this.tablesTabPage.Padding = new System.Windows.Forms.Padding(0, 3, 0, 0);
-            this.tablesTabPage.Size = new System.Drawing.Size(239, 644);
+            this.tablesTabPage.Size = new System.Drawing.Size(223, 641);
             this.tablesTabPage.TabIndex = 0;
             this.tablesTabPage.Text = "Tables";
             this.tablesTabPage.UseVisualStyleBackColor = true;
@@ -336,7 +341,7 @@ namespace SQL_Extractor_for_Excel
             this.tablesTableLayoutPanel.RowStyles.Add(new System.Windows.Forms.RowStyle());
             this.tablesTableLayoutPanel.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100F));
             this.tablesTableLayoutPanel.RowStyles.Add(new System.Windows.Forms.RowStyle());
-            this.tablesTableLayoutPanel.Size = new System.Drawing.Size(239, 641);
+            this.tablesTableLayoutPanel.Size = new System.Drawing.Size(223, 638);
             this.tablesTableLayoutPanel.TabIndex = 32;
             // 
             // tablesButtonsTableLayoutPanel
@@ -348,12 +353,12 @@ namespace SQL_Extractor_for_Excel
             this.tablesButtonsTableLayoutPanel.Controls.Add(this.transferTablesToQueryBtn, 0, 0);
             this.tablesButtonsTableLayoutPanel.Controls.Add(this.fetchTablesBtn, 1, 0);
             this.tablesButtonsTableLayoutPanel.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.tablesButtonsTableLayoutPanel.Location = new System.Drawing.Point(0, 609);
+            this.tablesButtonsTableLayoutPanel.Location = new System.Drawing.Point(0, 606);
             this.tablesButtonsTableLayoutPanel.Margin = new System.Windows.Forms.Padding(0);
             this.tablesButtonsTableLayoutPanel.Name = "tablesButtonsTableLayoutPanel";
             this.tablesButtonsTableLayoutPanel.RowCount = 1;
             this.tablesButtonsTableLayoutPanel.RowStyles.Add(new System.Windows.Forms.RowStyle());
-            this.tablesButtonsTableLayoutPanel.Size = new System.Drawing.Size(239, 32);
+            this.tablesButtonsTableLayoutPanel.Size = new System.Drawing.Size(223, 32);
             this.tablesButtonsTableLayoutPanel.TabIndex = 31;
             // 
             // fieldsTabPage
@@ -363,7 +368,7 @@ namespace SQL_Extractor_for_Excel
             this.fieldsTabPage.Margin = new System.Windows.Forms.Padding(0, 3, 0, 0);
             this.fieldsTabPage.Name = "fieldsTabPage";
             this.fieldsTabPage.Padding = new System.Windows.Forms.Padding(0, 3, 0, 0);
-            this.fieldsTabPage.Size = new System.Drawing.Size(239, 644);
+            this.fieldsTabPage.Size = new System.Drawing.Size(234, 644);
             this.fieldsTabPage.TabIndex = 2;
             this.fieldsTabPage.Text = "Fields";
             this.fieldsTabPage.UseVisualStyleBackColor = true;
@@ -384,7 +389,7 @@ namespace SQL_Extractor_for_Excel
             this.fieldsTableLayoutPanel.RowStyles.Add(new System.Windows.Forms.RowStyle());
             this.fieldsTableLayoutPanel.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100F));
             this.fieldsTableLayoutPanel.RowStyles.Add(new System.Windows.Forms.RowStyle());
-            this.fieldsTableLayoutPanel.Size = new System.Drawing.Size(239, 641);
+            this.fieldsTableLayoutPanel.Size = new System.Drawing.Size(234, 641);
             this.fieldsTableLayoutPanel.TabIndex = 33;
             // 
             // searchFieldsTextBox
@@ -394,7 +399,7 @@ namespace SQL_Extractor_for_Excel
             this.searchFieldsTextBox.Font = new System.Drawing.Font("Microsoft Sans Serif", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.searchFieldsTextBox.Location = new System.Drawing.Point(3, 3);
             this.searchFieldsTextBox.Name = "searchFieldsTextBox";
-            this.searchFieldsTextBox.Size = new System.Drawing.Size(233, 21);
+            this.searchFieldsTextBox.Size = new System.Drawing.Size(228, 21);
             this.searchFieldsTextBox.TabIndex = 24;
             this.searchFieldsTextBox.Text = "Search";
             this.searchFieldsTextBox.WordWrap = false;
@@ -410,7 +415,7 @@ namespace SQL_Extractor_for_Excel
             this.fieldsListBox.Location = new System.Drawing.Point(3, 30);
             this.fieldsListBox.Name = "fieldsListBox";
             this.fieldsListBox.SelectionMode = System.Windows.Forms.SelectionMode.MultiExtended;
-            this.fieldsListBox.Size = new System.Drawing.Size(233, 576);
+            this.fieldsListBox.Size = new System.Drawing.Size(228, 576);
             this.fieldsListBox.TabIndex = 20;
             this.fieldsListBox.SelectedIndexChanged += new System.EventHandler(this.objectsListBox_SelectedIndexChanged);
             this.fieldsListBox.DoubleClick += new System.EventHandler(this.objectsListBox_DoubleClick);
@@ -429,7 +434,7 @@ namespace SQL_Extractor_for_Excel
             this.fieldsButtonsTableLayoutPanel.Name = "fieldsButtonsTableLayoutPanel";
             this.fieldsButtonsTableLayoutPanel.RowCount = 1;
             this.fieldsButtonsTableLayoutPanel.RowStyles.Add(new System.Windows.Forms.RowStyle());
-            this.fieldsButtonsTableLayoutPanel.Size = new System.Drawing.Size(239, 32);
+            this.fieldsButtonsTableLayoutPanel.Size = new System.Drawing.Size(234, 32);
             this.fieldsButtonsTableLayoutPanel.TabIndex = 31;
             // 
             // transferFieldsToQueryBtn
@@ -439,7 +444,7 @@ namespace SQL_Extractor_for_Excel
             this.transferFieldsToQueryBtn.Location = new System.Drawing.Point(3, 3);
             this.transferFieldsToQueryBtn.MinimumSize = new System.Drawing.Size(0, 25);
             this.transferFieldsToQueryBtn.Name = "transferFieldsToQueryBtn";
-            this.transferFieldsToQueryBtn.Size = new System.Drawing.Size(53, 26);
+            this.transferFieldsToQueryBtn.Size = new System.Drawing.Size(52, 26);
             this.transferFieldsToQueryBtn.TabIndex = 19;
             this.transferFieldsToQueryBtn.Text = "←";
             this.transferFieldsToQueryBtn.UseVisualStyleBackColor = true;
@@ -448,10 +453,10 @@ namespace SQL_Extractor_for_Excel
             // fetchFieldsBtn
             // 
             this.fetchFieldsBtn.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.fetchFieldsBtn.Location = new System.Drawing.Point(62, 3);
+            this.fetchFieldsBtn.Location = new System.Drawing.Point(61, 3);
             this.fetchFieldsBtn.MinimumSize = new System.Drawing.Size(0, 25);
             this.fetchFieldsBtn.Name = "fetchFieldsBtn";
-            this.fetchFieldsBtn.Size = new System.Drawing.Size(174, 26);
+            this.fetchFieldsBtn.Size = new System.Drawing.Size(170, 26);
             this.fetchFieldsBtn.TabIndex = 18;
             this.fetchFieldsBtn.Text = "Fetch";
             this.fetchFieldsBtn.UseVisualStyleBackColor = true;
@@ -464,7 +469,7 @@ namespace SQL_Extractor_for_Excel
             this.variablesTabPage.Margin = new System.Windows.Forms.Padding(0, 3, 0, 0);
             this.variablesTabPage.Name = "variablesTabPage";
             this.variablesTabPage.Padding = new System.Windows.Forms.Padding(0, 3, 0, 0);
-            this.variablesTabPage.Size = new System.Drawing.Size(239, 644);
+            this.variablesTabPage.Size = new System.Drawing.Size(223, 641);
             this.variablesTabPage.TabIndex = 1;
             this.variablesTabPage.Text = "Variables";
             this.variablesTabPage.UseVisualStyleBackColor = true;
@@ -506,7 +511,7 @@ namespace SQL_Extractor_for_Excel
             dataGridViewCellStyle8.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleCenter;
             this.variablesDataGridView.RowsDefaultCellStyle = dataGridViewCellStyle8;
             this.variablesDataGridView.RowTemplate.DefaultCellStyle.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleCenter;
-            this.variablesDataGridView.Size = new System.Drawing.Size(239, 641);
+            this.variablesDataGridView.Size = new System.Drawing.Size(223, 638);
             this.variablesDataGridView.TabIndex = 0;
             this.variablesDataGridView.TabStop = false;
             this.variablesDataGridView.CellContentClick += new System.Windows.Forms.DataGridViewCellEventHandler(this.variablesDataGridView_CellContentClick);
@@ -568,7 +573,7 @@ namespace SQL_Extractor_for_Excel
             this.runningQueriesTabPage.Location = new System.Drawing.Point(4, 22);
             this.runningQueriesTabPage.Name = "runningQueriesTabPage";
             this.runningQueriesTabPage.Padding = new System.Windows.Forms.Padding(3);
-            this.runningQueriesTabPage.Size = new System.Drawing.Size(239, 644);
+            this.runningQueriesTabPage.Size = new System.Drawing.Size(223, 641);
             this.runningQueriesTabPage.TabIndex = 3;
             this.runningQueriesTabPage.Text = "Running";
             this.runningQueriesTabPage.UseVisualStyleBackColor = true;
@@ -617,7 +622,7 @@ namespace SQL_Extractor_for_Excel
             dataGridViewCellStyle12.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleCenter;
             this.runningQueriesDataGridView.RowsDefaultCellStyle = dataGridViewCellStyle12;
             this.runningQueriesDataGridView.RowTemplate.DefaultCellStyle.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleCenter;
-            this.runningQueriesDataGridView.Size = new System.Drawing.Size(233, 638);
+            this.runningQueriesDataGridView.Size = new System.Drawing.Size(217, 635);
             this.runningQueriesDataGridView.TabIndex = 0;
             this.runningQueriesDataGridView.TabStop = false;
             this.runningQueriesDataGridView.CellClick += new System.Windows.Forms.DataGridViewCellEventHandler(this.runningQueriesDataGridView_CellClick);
@@ -672,9 +677,10 @@ namespace SQL_Extractor_for_Excel
             this.parametersTableLayoutPanel.Location = new System.Drawing.Point(3, 3);
             this.parametersTableLayoutPanel.MinimumSize = new System.Drawing.Size(0, 35);
             this.parametersTableLayoutPanel.Name = "parametersTableLayoutPanel";
-            this.parametersTableLayoutPanel.RowCount = 1;
+            this.parametersTableLayoutPanel.RowCount = 2;
             this.parametersTableLayoutPanel.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 39F));
-            this.parametersTableLayoutPanel.Size = new System.Drawing.Size(732, 39);
+            this.parametersTableLayoutPanel.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 20F));
+            this.parametersTableLayoutPanel.Size = new System.Drawing.Size(734, 39);
             this.parametersTableLayoutPanel.TabIndex = 31;
             // 
             // worksheetTableLayoutPanel
@@ -973,6 +979,27 @@ namespace SQL_Extractor_for_Excel
             this.runBtn.UseVisualStyleBackColor = true;
             this.runBtn.Click += new System.EventHandler(this.runBtn_Click);
             // 
+            // mainSplitContainer
+            // 
+            this.mainSplitContainer.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.mainSplitContainer.Location = new System.Drawing.Point(3, 3);
+            this.mainSplitContainer.Name = "mainSplitContainer";
+            // 
+            // mainSplitContainer.Panel1
+            // 
+            this.mainSplitContainer.Panel1.Controls.Add(this.upperTableLayoutPanel);
+            this.mainSplitContainer.Panel1MinSize = 250;
+            // 
+            // mainSplitContainer.Panel2
+            // 
+            this.mainSplitContainer.Panel2.Controls.Add(this.objectsAndVariablesTabControl);
+            this.mainSplitContainer.Panel2MinSize = 40;
+            this.mainSplitContainer.Size = new System.Drawing.Size(979, 667);
+            this.mainSplitContainer.SplitterDistance = 740;
+            this.mainSplitContainer.SplitterWidth = 8;
+            this.mainSplitContainer.TabIndex = 33;
+            this.mainSplitContainer.TabStop = false;
+            // 
             // SqlEditorForm
             // 
             this.AllowDrop = true;
@@ -1011,6 +1038,10 @@ namespace SQL_Extractor_for_Excel
             this.worksheetTableLayoutPanel.ResumeLayout(false);
             this.worksheetTableLayoutPanel.PerformLayout();
             this.buttonsTableLayoutPanel.ResumeLayout(false);
+            this.mainSplitContainer.Panel1.ResumeLayout(false);
+            this.mainSplitContainer.Panel2.ResumeLayout(false);
+            ((System.ComponentModel.ISupportInitialize)(this.mainSplitContainer)).EndInit();
+            this.mainSplitContainer.ResumeLayout(false);
             this.ResumeLayout(false);
 
         }
@@ -1072,5 +1103,6 @@ namespace SQL_Extractor_for_Excel
         private DataGridViewTextBoxColumn VariableNameColumn;
         private DataGridViewButtonColumn VariableValuesColumn;
         private DataGridViewTextBoxColumn VariableInstancesColumn;
+        private SplitContainer mainSplitContainer;
     }
 }
