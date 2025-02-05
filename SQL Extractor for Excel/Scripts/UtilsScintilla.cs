@@ -269,10 +269,10 @@ namespace SQL_Extractor_for_Excel.Scripts
             editor.DragEnter += Editor_DragEnter;
             editor.DragDrop += Editor_DragDrop;
             editor.DragOver += Editor_DragOver;
-            editor.Lexer = Lexer.Sql;
+            editor.LexerName = "sql";
 
             editor.StyleClearAll();
-            editor.CaretLineVisible = false;
+            editor.CaretLineBackColor = Color.FromArgb(35, 35, 35);
             editor.Styles[Style.Default].BackColor = Color.FromArgb(30, 30, 30);
             editor.Styles[Style.Default].Font = "Consolas";
             editor.Styles[Style.Default].Size = 10;
@@ -587,33 +587,81 @@ namespace SQL_Extractor_for_Excel.Scripts
             }
         }
 
+        private static Point? m_lastLineStart = null;
+        private static Point? m_lastLineEnd = null;
+
         private static void Editor_DragOver(object sender, DragEventArgs e)
         {
+            Scintilla editor = sender as Scintilla;
             if (Control.ModifierKeys == Keys.Control)
                 e.Effect = DragDropEffects.Copy;
             else
                 e.Effect = DragDropEffects.Move;
+            Point point = editor.PointToClient(new Point(e.X, e.Y));
+            int insertPos = editor.CharPositionFromPoint(point.X, point.Y);
+
+            Point posLocation = new Point(editor.PointXFromPosition(insertPos), editor.PointYFromPosition(insertPos));
+
+            // Convert that position to screen coordinates.
+            Point screenPoint = new Point(editor.PointToScreen(posLocation).X, editor.PointToScreen(Control.MousePosition).Y + (int)Math.Floor((double)(editor.TopLevelControl.Height - editor.TopLevelControl.ClientSize.Height) / 2));
+            Point newLineStart = new Point(screenPoint.X, screenPoint.Y + 10);
+            Point newLineEnd = new Point(screenPoint.X, screenPoint.Y - 15);
+
+            // If a line was previously drawn, erase it by drawing it again.
+            if (m_lastLineStart.HasValue && m_lastLineEnd.HasValue)
+            {
+                ControlPaint.DrawReversibleLine(m_lastLineStart.Value, m_lastLineEnd.Value, Color.White);
+            }
+
+            // Draw the new reversible line (choose a color that contrasts; here, Red).
+            ControlPaint.DrawReversibleLine(newLineStart, newLineEnd, Color.White);
+
+            // Update the stored endpoints.
+            m_lastLineStart = newLineStart;
+            m_lastLineEnd = newLineEnd;
+
+            var line = editor.Lines[editor.LineFromPosition(insertPos)];
+            if (editor.Selections.Count <= 1)
+                editor.AddSelection(line.Position, line.EndPosition);
+
+            editor.Selections[1].Caret = line.Position;
+            editor.Selections[1].Anchor = line.EndPosition;
+
+            editor.MainSelection = 0;
         }
 
         private static void Editor_DragEnter(object sender, DragEventArgs e)
         {
+            Scintilla editor = sender as Scintilla;
             if (Control.ModifierKeys == Keys.Control)
                 e.Effect = DragDropEffects.Copy;
             else
                 e.Effect = DragDropEffects.Move;
+            editor.MultipleSelection = true;
+            editor.SelectionAdditionalBackColor = Color.FromArgb(10, 10, 10);
         }
 
         private static void Editor_DragDrop(object sender, DragEventArgs e)
         {
             Scintilla editor = sender as Scintilla;
+            // Erase the reversible line if it exists.
+            if (m_lastLineStart.HasValue && m_lastLineEnd.HasValue)
+            {
+                ControlPaint.DrawReversibleLine(m_lastLineStart.Value, m_lastLineEnd.Value, Color.White);
+                m_lastLineStart = null;
+                m_lastLineEnd = null;
+            }
+
             Point point = editor.PointToClient(new Point(e.X, e.Y));
             int insertPos = editor.CharPositionFromPoint(point.X, point.Y);
-            string selectedText = editor.SelectedText;
-            int startSelection = editor.SelectionStart;
-            int endSelection = editor.SelectionEnd;
+            var selection = editor.Selections[editor.MainSelection];
+            int startSelection = selection.Start;
+            int endSelection = selection.End;
+            string selectedText = editor.GetTextRange(startSelection, endSelection - startSelection);
 
             // Insert the selected text at the new position
             editor.InsertText(insertPos, selectedText);
+            editor.MultipleSelection = false;
 
             if (Control.ModifierKeys == Keys.Control)
                 return;

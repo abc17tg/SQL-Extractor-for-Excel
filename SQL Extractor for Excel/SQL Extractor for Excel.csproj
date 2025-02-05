@@ -97,6 +97,8 @@
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
     <DefineConstants>$(DefineConstants);DEBUG;TRACE</DefineConstants>
     <WarningLevel>4</WarningLevel>
+    <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
+    <CodeAnalysisIgnoreGeneratedCode>true</CodeAnalysisIgnoreGeneratedCode>
   </PropertyGroup>
   <!--
     This section defines properties that are set when the "Release" configuration is selected.
@@ -127,9 +129,6 @@
   -->
   <ItemGroup>
     <Reference Include="Accessibility" />
-    <Reference Include="AutocompleteMenu-ScintillaNET, Version=1.6.2.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\AutoCompleteMenu-ScintillaNET.2.1.1\lib\net45\AutocompleteMenu-ScintillaNET.dll</HintPath>
-    </Reference>
     <Reference Include="Azure.Core, Version=1.44.1.0, Culture=neutral, PublicKeyToken=92742159e12e44c8, processorArchitecture=MSIL">
       <HintPath>..\packages\Azure.Core.1.44.1\lib\net472\Azure.Core.dll</HintPath>
     </Reference>
@@ -198,8 +197,8 @@
     <Reference Include="Oracle.ManagedDataAccess, Version=4.122.23.1, Culture=neutral, PublicKeyToken=89b483f429c47342, processorArchitecture=MSIL">
       <HintPath>..\packages\Oracle.ManagedDataAccess.23.6.1\lib\net472\Oracle.ManagedDataAccess.dll</HintPath>
     </Reference>
-    <Reference Include="ScintillaNET, Version=3.6.3.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\jacobslusser.ScintillaNET.3.6.3\lib\net40\ScintillaNET.dll</HintPath>
+    <Reference Include="Scintilla.NET, Version=5.6.5.0, Culture=neutral, PublicKeyToken=0221e70ba618311e, processorArchitecture=MSIL">
+      <HintPath>..\packages\Scintilla5.NET.5.6.5\lib\net462\Scintilla.NET.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Buffers, Version=4.0.4.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
@@ -568,13 +567,16 @@
     <None Include="app.config" />
     <None Include="Oracle.DataAccess.Common.Configuration.Section.xsd">
       <SubType>Designer</SubType>
-    </None>    <None Include="Oracle.ManagedDataAccess.Client.Configuration.Section.xsd">
+    </None>
+    <None Include="Oracle.ManagedDataAccess.Client.Configuration.Section.xsd">
       <SubType>Designer</SubType>
-    </None>    <None Include="packages.config" />
+    </None>
+    <None Include="packages.config" />
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>
-    </None>    <Compile Include="Properties\Settings.Designer.cs">
+    </None>
+    <Compile Include="Properties\Settings.Designer.cs">
       <AutoGen>True</AutoGen>
       <DependentUpon>Settings.settings</DependentUpon>
     </Compile>
@@ -582,6 +584,7 @@
     <Compile Include="Scripts\ExcelExecutionBlock.cs" />
     <Compile Include="Scripts\FileManager.cs" />
     <Compile Include="Scripts\Macro.cs" />
+    <Compile Include="Scripts\ScintillaFix.cs" />
     <Compile Include="Scripts\ScintillaPauseUpdatesBlock.cs" />
     <Compile Include="Scripts\SqlConn.cs" />
     <Compile Include="Scripts\SqlElement.cs" />
@@ -6381,54 +6384,78 @@
     </None>
     <None Include="Python\pyexpat.pyd">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>    <None Include="Python\python.cat">
+    </None>
+    <None Include="Python\python.cat">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>    <None Include="Python\python313.zip">
+    </None>
+    <None Include="Python\python313.zip">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>    <None Include="Python\python313._pth">
+    </None>
+    <None Include="Python\python313._pth">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>    <None Include="Python\select.pyd">
+    </None>
+    <None Include="Python\select.pyd">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>    <None Include="Python\unicodedata.pyd">
+    </None>
+    <None Include="Python\unicodedata.pyd">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>    <None Include="Python\winsound.pyd">
+    </None>
+    <None Include="Python\winsound.pyd">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>    <None Include="Python\_asyncio.pyd">
+    </None>
+    <None Include="Python\_asyncio.pyd">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>    <None Include="Python\_bz2.pyd">
+    </None>
+    <None Include="Python\_bz2.pyd">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>    <None Include="Python\_ctypes.pyd">
+    </None>
+    <None Include="Python\_ctypes.pyd">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>    <None Include="Python\_decimal.pyd">
+    </None>
+    <None Include="Python\_decimal.pyd">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>    <None Include="Python\_elementtree.pyd">
+    </None>
+    <None Include="Python\_elementtree.pyd">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>    <None Include="Python\_hashlib.pyd">
+    </None>
+    <None Include="Python\_hashlib.pyd">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>    <None Include="Python\_lzma.pyd">
+    </None>
+    <None Include="Python\_lzma.pyd">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>    <None Include="Python\_multiprocessing.pyd">
+    </None>
+    <None Include="Python\_multiprocessing.pyd">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>    <None Include="Python\_overlapped.pyd">
+    </None>
+    <None Include="Python\_overlapped.pyd">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>    <None Include="Python\_queue.pyd">
+    </None>
+    <None Include="Python\_queue.pyd">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>    <None Include="Python\_socket.pyd">
+    </None>
+    <None Include="Python\_socket.pyd">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>    <None Include="Python\_sqlite3.pyd">
+    </None>
+    <None Include="Python\_sqlite3.pyd">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>    <None Include="Python\_ssl.pyd">
+    </None>
+    <None Include="Python\_ssl.pyd">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>    <None Include="Python\_uuid.pyd">
+    </None>
+    <None Include="Python\_uuid.pyd">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>    <None Include="Python\_wmi.pyd">
+    </None>
+    <None Include="Python\_wmi.pyd">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>    <None Include="Python\_zoneinfo.pyd">
+    </None>
+    <None Include="Python\_zoneinfo.pyd">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>    <None Include="SQL Extractor for Excel_TemporaryKey.pfx" />
+    </None>
+    <None Include="SQL Extractor for Excel_TemporaryKey.pfx" />
     <None Include="ThisAddIn.Designer.xml">
       <DependentUpon>ThisAddIn.cs</DependentUpon>
-    </None>    <Compile Include="ThisAddIn.Designer.cs">
+    </None>
+    <Compile Include="ThisAddIn.Designer.cs">
       <DependentUpon>ThisAddIn.Designer.xml</DependentUpon>
     </Compile>
     <AppDesigner Include="Properties\" />
@@ -11835,7 +11862,7 @@
     </PropertyGroup>
     <Error Condition="!Exists('..\packages\Microsoft.Data.SqlClient.SNI.5.2.0\build\net462\Microsoft.Data.SqlClient.SNI.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Microsoft.Data.SqlClient.SNI.5.2.0\build\net462\Microsoft.Data.SqlClient.SNI.targets'))" />
     <Error Condition="!Exists('..\packages\Microsoft.SqlServer.Types.160.1000.6\build\net462\Microsoft.SqlServer.Types.props')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Microsoft.SqlServer.Types.160.1000.6\build\net462\Microsoft.SqlServer.Types.props'))" />
-    <Error Condition="!Exists('..\packages\Scintilla.NET.5.3.2.9\build\scintilla.net.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Scintilla.NET.5.3.2.9\build\scintilla.net.targets'))" />
+    <Error Condition="!Exists('..\packages\Scintilla5.NET.5.6.5\build\scintilla5.net.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Scintilla5.NET.5.6.5\build\scintilla5.net.targets'))" />
   </Target>
-  <Import Project="..\packages\Scintilla.NET.5.3.2.9\build\scintilla.net.targets" Condition="Exists('..\packages\Scintilla.NET.5.3.2.9\build\scintilla.net.targets')" />
+  <Import Project="..\packages\Scintilla5.NET.5.6.5\build\scintilla5.net.targets" Condition="Exists('..\packages\Scintilla5.NET.5.6.5\build\scintilla5.net.targets')" />
 </Project>

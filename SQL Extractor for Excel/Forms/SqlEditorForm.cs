@@ -70,6 +70,7 @@ namespace SQL_Extractor_for_Excel
 
         public SqlEditorForm(Excel.Application app, string saveFile = null)
         {
+            ScintillaFix.CopyNativeFolderIfNotExistOrDifferentFixForScintillaBug();
             InitializeComponent();
             m_guid = Guid.NewGuid().ToString();
             m_backupName = $"{Text}_{m_guid}.json";

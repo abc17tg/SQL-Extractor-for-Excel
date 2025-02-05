@@ -37,8 +37,8 @@
             this.dataTableDimentionsLabel = new System.Windows.Forms.Label();
             this.queryLabel = new System.Windows.Forms.Label();
             this.saveButton = new System.Windows.Forms.Button();
-            this.queryRichTextBox = new System.Windows.Forms.RichTextBox();
             this.refreshButton = new System.Windows.Forms.Button();
+            this.queryRichTextBox = new System.Windows.Forms.RichTextBox();
             ((System.ComponentModel.ISupportInitialize)(this.dataGridView)).BeginInit();
             this.mainTableLayoutPanel.SuspendLayout();
             this.SuspendLayout();
@@ -158,6 +158,17 @@
             this.saveButton.UseVisualStyleBackColor = true;
             this.saveButton.Click += new System.EventHandler(this.saveButton_Click);
             // 
+            // refreshButton
+            // 
+            this.refreshButton.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.refreshButton.Location = new System.Drawing.Point(944, 3);
+            this.refreshButton.Name = "refreshButton";
+            this.refreshButton.Size = new System.Drawing.Size(24, 24);
+            this.refreshButton.TabIndex = 34;
+            this.refreshButton.Text = "♻";
+            this.refreshButton.UseVisualStyleBackColor = true;
+            this.refreshButton.Click += new System.EventHandler(this.refreshButton_Click);
+            // 
             // queryRichTextBox
             // 
             this.queryRichTextBox.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
@@ -171,17 +182,6 @@
             this.queryRichTextBox.Text = "";
             this.queryRichTextBox.Visible = false;
             this.queryRichTextBox.DoubleClick += new System.EventHandler(this.queryRichTextBox_DoubleClick);
-            // 
-            // refreshButton
-            // 
-            this.refreshButton.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.refreshButton.Location = new System.Drawing.Point(944, 3);
-            this.refreshButton.Name = "refreshButton";
-            this.refreshButton.Size = new System.Drawing.Size(24, 24);
-            this.refreshButton.TabIndex = 34;
-            this.refreshButton.Text = "♻";
-            this.refreshButton.UseVisualStyleBackColor = true;
-            this.refreshButton.Click += new System.EventHandler(this.refreshButton_Click);
             // 
             // DataTableForm
             // 
