@@ -603,9 +603,9 @@ namespace SQL_Extractor_for_Excel.Scripts
             Point posLocation = new Point(editor.PointXFromPosition(insertPos), editor.PointYFromPosition(insertPos));
 
             // Convert that position to screen coordinates.
-            Point screenPoint = new Point(editor.PointToScreen(posLocation).X, editor.PointToScreen(Control.MousePosition).Y + (int)Math.Floor((double)(editor.TopLevelControl.Height - editor.TopLevelControl.ClientSize.Height) / 2));
-            Point newLineStart = new Point(screenPoint.X, screenPoint.Y + 10);
-            Point newLineEnd = new Point(screenPoint.X, screenPoint.Y - 15);
+            Point screenPoint = editor.PointToScreen(posLocation);
+            Point newLineStart = new Point(screenPoint.X, screenPoint.Y + 15);
+            Point newLineEnd = new Point(screenPoint.X, screenPoint.Y - 5);
 
             // If a line was previously drawn, erase it by drawing it again.
             if (m_lastLineStart.HasValue && m_lastLineEnd.HasValue)
@@ -638,7 +638,7 @@ namespace SQL_Extractor_for_Excel.Scripts
             else
                 e.Effect = DragDropEffects.Move;
             editor.MultipleSelection = true;
-            editor.SelectionAdditionalBackColor = Color.FromArgb(10, 10, 10);
+            editor.SelectionAdditionalBackColor = Color.FromArgb(60, 60, 60);
         }
 
         private static void Editor_DragDrop(object sender, DragEventArgs e)
