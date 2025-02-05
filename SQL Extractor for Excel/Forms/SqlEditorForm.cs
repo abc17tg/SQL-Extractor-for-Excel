@@ -13,6 +13,7 @@ using System.Windows.Forms;
 using System.Xml;
 using System.Xml.Linq;
 using ScintillaNET;
+using ScintillaNET_FindReplaceDialog;
 using SQL_Extractor_for_Excel.Forms;
 using SQL_Extractor_for_Excel.Scripts;
 using static ScintillaNET.Style;
@@ -81,7 +82,6 @@ namespace SQL_Extractor_for_Excel
             m_timer = new Timer();
             /*app.WindowActivate += (_, w) => this.TopMost = true;
             app.WindowDeactivate += (_, w) => this.TopMost = false;*/
-
 
             serverTypeComboBox.Items.AddRange(Directory.EnumerateDirectories(FileManager.SqlQueriesPath).Select(p => Path.GetFileName(p)).ToArray());
 
@@ -790,6 +790,17 @@ namespace SQL_Extractor_for_Excel
             if (e.Control && e.Shift && (e.KeyCode == Keys.Divide || e.KeyCode == Keys.Oem2))
             {
                 UtilsScintilla.Comment(sqlEditorScintilla);
+                e.SuppressKeyPress = true;
+            }
+
+            if (e.Control && (e.KeyCode == Keys.H || e.KeyCode == Keys.F))
+            {
+                FindReplace findReplace = new FindReplace(sqlEditorScintilla);
+                if(e.KeyCode == Keys.F)
+                    findReplace.ShowFind();
+                else
+                    findReplace.ShowReplace();
+                findReplace.Window.FormClosed += (o, ea)=> sqlEditorScintilla.MultipleSelection = false;
                 e.SuppressKeyPress = true;
             }
 

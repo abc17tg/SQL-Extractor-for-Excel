@@ -6,6 +6,7 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using ScintillaNET;
+using ScintillaNET_FindReplaceDialog;
 
 namespace SQL_Extractor_for_Excel.Scripts
 {
@@ -331,6 +332,8 @@ namespace SQL_Extractor_for_Excel.Scripts
             // Set SQL keywords
             editor.SetKeywords(0, FileManager.SqlKeywords);
 
+            editor.ClearCmdKey(Keys.Control | Keys.F);
+            editor.ClearCmdKey(Keys.Control | Keys.H);
             editor.ClearCmdKey(Keys.Control | Keys.Oem2);
             editor.ClearCmdKey(Keys.Control | Keys.Divide);
             editor.ClearCmdKey(Keys.Shift | Keys.Control | Keys.Divide);
@@ -366,7 +369,7 @@ namespace SQL_Extractor_for_Excel.Scripts
                  switch (e.Change)
                  {
                      case UpdateChange.Content:
-                         foreach (var ind in editor.Indicators.Select(p => p.Index))
+                         foreach (var ind in editor.Indicators.Select(p => p.Index).Where(p=>p != FindReplace.IndicatorIndex))
                          {
                              editor.IndicatorCurrent = ind;
                              editor.IndicatorClearRange(0, editor.TextLength);
@@ -388,7 +391,7 @@ namespace SQL_Extractor_for_Excel.Scripts
                          break;
 
                      case UpdateChange.Selection:
-                         foreach (var ind in editor.Indicators.Select(p => p.Index))
+                         foreach (var ind in editor.Indicators.Select(p => p.Index).Where(p => p != FindReplace.IndicatorIndex))
                          {
                              editor.IndicatorCurrent = ind;
                              editor.IndicatorClearRange(0, editor.TextLength);
@@ -609,11 +612,8 @@ namespace SQL_Extractor_for_Excel.Scripts
 
             // If a line was previously drawn, erase it by drawing it again.
             if (m_lastLineStart.HasValue && m_lastLineEnd.HasValue)
-            {
                 ControlPaint.DrawReversibleLine(m_lastLineStart.Value, m_lastLineEnd.Value, Color.White);
-            }
 
-            // Draw the new reversible line (choose a color that contrasts; here, Red).
             ControlPaint.DrawReversibleLine(newLineStart, newLineEnd, Color.White);
 
             // Update the stored endpoints.
