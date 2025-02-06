@@ -568,7 +568,7 @@ namespace SQL_Extractor_for_Excel
                         return;
                     }
                     string formName = $"DataTable [ET: {Math.Floor((DateTime.Now.Subtract((DateTime)sqlResult.SqlElement.m_startTime).TotalMinutes))} min]";
-                    DataTableForm form = new DataTableForm(sqlResult.DataTable, query, App, formName, FormatQueryDetailsMessage(sqlResult.SqlElement));
+                    DataTableForm form = new DataTableForm(sqlResult, query, App, formName, SqlElement.FormatQueryDetailsMessage(sqlResult.SqlElement));
                     form.Show();
                     form.Activate();
                 }));
@@ -629,7 +629,7 @@ namespace SQL_Extractor_for_Excel
                         {
                             SqlResult sqlResult = runQueryWithResult.Result.Item1;
                             string formName = $"DataTable [ET: {Math.Floor((DateTime.Now.Subtract((DateTime)sqlResult.SqlElement.m_startTime).TotalMinutes))} min]";
-                            DataTableForm form = new DataTableForm(sqlResult.DataTable, query, App, formName, FormatQueryDetailsMessage(sqlResult.SqlElement));
+                            DataTableForm form = new DataTableForm(sqlResult, query, App, formName, SqlElement.FormatQueryDetailsMessage(sqlResult.SqlElement));
                             form.Show();
                             form.Activate();
                         }
@@ -796,11 +796,11 @@ namespace SQL_Extractor_for_Excel
             if (e.Control && (e.KeyCode == Keys.H || e.KeyCode == Keys.F))
             {
                 FindReplace findReplace = new FindReplace(sqlEditorScintilla);
-                if(e.KeyCode == Keys.F)
+                if (e.KeyCode == Keys.F)
                     findReplace.ShowFind();
                 else
                     findReplace.ShowReplace();
-                findReplace.Window.FormClosed += (o, ea)=> sqlEditorScintilla.MultipleSelection = false;
+                findReplace.Window.FormClosed += (o, ea) => sqlEditorScintilla.MultipleSelection = false;
                 e.SuppressKeyPress = true;
             }
 
@@ -1297,28 +1297,10 @@ namespace SQL_Extractor_for_Excel
             }
             else if (e.ColumnIndex == 3 && runningQueriesDataGridView.RowCount == m_sqlManager.SqlElements.Count)
             {
-                string msg = FormatQueryDetailsMessage(m_sqlManager.SqlElements[e.RowIndex]);
+                string msg = SqlElement.FormatQueryDetailsMessage(m_sqlManager.SqlElements[e.RowIndex]);
                 MessageBoxForm messageBox = new MessageBoxForm(msg, "Query", true);
                 messageBox.Show();
             }
-        }
-
-        private string FormatQueryDetailsMessage(SqlElement sqlElement)
-        {
-            // Use string interpolation and better formatting for readability
-            string message = $@"
-    Server Type: {sqlElement.ServerType}
-    Database: 
-{sqlElement.Name}
-    Elapsed Time: {Math.Floor((DateTime.Now.Subtract((DateTime)sqlElement.m_startTime).TotalMinutes))} minutes
-
-    {m_querySeparator}
-
-    -- Query:
-
-    {((string)sqlElement.Cmd.CommandText).RemoveLeadingTabsMultiline()}";
-
-            return message; // Remove any trailing newlines or whitespace
         }
 
         private void AutoSaveEditorState()
