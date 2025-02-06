@@ -3,17 +3,23 @@ using System.Data;
 using System.Drawing;
 using System.Globalization;
 using System.Runtime.InteropServices;
+using System.Threading.Tasks;
 using System.Windows.Forms;
+using SQL_Extractor_for_Excel.Scripts;
 using Excel = Microsoft.Office.Interop.Excel;
 
 namespace SQL_Extractor_for_Excel.Forms
 {
     public partial class DataTableForm : Form
     {
+        public string FormName;
+        public SqlResult SqlResult = null;
         public DataTable DataTable;
         public string Query;
         public string DisplayQuery;
         Excel.Application ExcelApp;
+        public const string REFRESHING_STRING_VALUE = "[Refreshing]";
+        public const string ERROR_STRING_VALUE = "[Error]";
 
         private NumberFormatInfo m_nfi;
 
@@ -33,8 +39,30 @@ namespace SQL_Extractor_for_Excel.Forms
             InitializeComponent();
             m_nfi = new CultureInfo("en-US", false).NumberFormat;
             m_nfi.NumberGroupSeparator = " ";
-            Text = name ?? "DataTable";
+            FormName = name ?? "DataTable";
+            Text = FormName;
             DataTable = dataTable;
+            Query = query;
+            DisplayQuery = !string.IsNullOrEmpty(displayQuery) ? displayQuery : !string.IsNullOrEmpty(query) ? query : "Query missing.";
+            ExcelApp = app;
+            queryRichTextBox.Text = DisplayQuery;
+            dataGridView.AutoGenerateColumns = true;
+            dataGridView.DataSource = DataTable;
+            dataGridView.RowPostPaint += dataGridView_RowPostPaint;
+            dataGridView.ReadOnly = false;
+            refreshButton.Enabled = false;
+            RefreshDimentions();
+        }
+
+        public DataTableForm(SqlResult sqlResult, string query, Excel.Application app, string name = null, string displayQuery = null)
+        {
+            InitializeComponent();
+            m_nfi = new CultureInfo("en-US", false).NumberFormat;
+            m_nfi.NumberGroupSeparator = " ";
+            FormName = name ?? "DataTable";
+            Text = FormName;
+            SqlResult = sqlResult;
+            DataTable = sqlResult.DataTable;
             Query = query;
             DisplayQuery = !string.IsNullOrEmpty(displayQuery) ? displayQuery : !string.IsNullOrEmpty(query) ? query : "Query missing.";
             ExcelApp = app;
@@ -53,9 +81,9 @@ namespace SQL_Extractor_for_Excel.Forms
             InsertMenu(MenuHandle, 6, MF_BYPOSITION, CenterFormMenuItem, "Center window");
         }
 
-        ~DataTableForm() 
+        ~DataTableForm()
         {
-            DataTable.Dispose(); 
+            DataTable?.Dispose();
         }
 
         protected override void WndProc(ref Message msg)
@@ -147,7 +175,10 @@ namespace SQL_Extractor_for_Excel.Forms
 
         private void RefreshDimentions()
         {
-            dataTableDimentionsLabel.Text = $"{(headersCheckBox.Checked ? "Rows with headers" : "Rows")}: {(DataTable.Rows.Count + (headersCheckBox.Checked ? 1 : 0)).ToString("N0", m_nfi)}\nColumns: {DataTable.Columns.Count.ToString("N0", m_nfi)}";
+            if (DataTable == null)
+                dataTableDimentionsLabel.Text = string.Empty;
+            else
+                dataTableDimentionsLabel.Text = $"{(headersCheckBox.Checked ? "Rows with headers" : "Rows")}: {(DataTable.Rows.Count + (headersCheckBox.Checked ? 1 : 0)).ToString("N0", m_nfi)}\nColumns: {DataTable.Columns.Count.ToString("N0", m_nfi)}";
         }
 
         private void headersCheckBox_CheckedChanged(object sender, EventArgs e)
@@ -162,7 +193,66 @@ namespace SQL_Extractor_for_Excel.Forms
 
         private void refreshButton_Click(object sender, EventArgs e)
         {
+            Task<(SqlResult, bool)> runQueryWithResult = new Task<(SqlResult, bool)>(() => (SqlServerManager.GetDataFromServer(new SqlServerManager(), Query, SqlResult.SqlConn, 0), true));
 
+            runQueryWithResult.GetAwaiter().OnCompleted(() =>
+            {
+                if (this.IsDisposed || this.Disposing || this == null)
+                    return;
+
+                this.Invoke(new Action(() =>
+                {
+                    if (this.Text.Contains(REFRESHING_STRING_VALUE))
+                        this.Text = FormName;
+
+                    SqlResult sqlResult = runQueryWithResult.Result.Item1;
+                    try
+                    {
+                        FormName = $"DataTable [ET: {Math.Floor((DateTime.Now.Subtract((DateTime)sqlResult.SqlElement.m_startTime).TotalMinutes))} min]";
+                    }
+                    catch (Exception)
+                    {
+                        FormName = "DataTable";
+                    }
+
+                    if (sqlResult.HasErrors)
+                    {
+                        this.Text = $"{FormName} {ERROR_STRING_VALUE}";
+                        DataTable = null;
+                        dataGridView.DataSource = DataTable;
+                        RefreshDimentions();
+                        pasteButton.Enabled = false;
+                        saveButton.Enabled = false;
+                        headersCheckBox.Enabled = false;
+                        DisplayQuery =  $"Query finished with errors:\n\n{sqlResult.Errors}\n\nQuery:\n\n{Query}";
+                        queryRichTextBox.Text = DisplayQuery;
+                        this.Show();
+                        this.Activate();
+                        this.UseWaitCursor = false;
+                        return;
+                    }
+
+                    DataTable = sqlResult.DataTable;
+                    dataGridView.DataSource = DataTable;
+                    RefreshDimentions();
+                    pasteButton.Enabled = true;
+                    saveButton.Enabled = true;
+                    headersCheckBox.Enabled = true;
+                    DisplayQuery = SqlElement.FormatQueryDetailsMessage(sqlResult.SqlElement);
+                    queryRichTextBox.Text = DisplayQuery;
+                    this.Show();
+                    this.Activate();
+                    this.UseWaitCursor = false;
+                    return;
+                }));
+            });
+
+
+            if (!this.Text.Contains(REFRESHING_STRING_VALUE))
+                this.Text = $"{FormName} {REFRESHING_STRING_VALUE}";
+
+            runQueryWithResult.Start();
+            this.UseWaitCursor = true;
         }
     }
 }

@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Data;
-using System.Data.OleDb;
 using System.Data.SqlClient;
 using System.Linq;
 using System.Windows.Forms;
@@ -44,7 +43,7 @@ namespace SQL_Extractor_for_Excel.Scripts
             {
                 SqlElements.RemoveAll(p => p.Cmd == null);
             }
-            CommandFinished.Invoke();
+            CommandFinished?.Invoke();
         }
 
         public void CancelCmd(dynamic cmd)
@@ -378,20 +377,20 @@ namespace SQL_Extractor_for_Excel.Scripts
                             rdr.SuppressGetDecimalInvalidCastException = true;
                             dt.Load(rdr);
                             manager.OracleCommandFinished?.Invoke(cmd);
-                            return new SqlResult(dt, null, sqlElement);
+                            return new SqlResult(dt, null, sqlElement, sqlConn);
                         }
                     }
                     catch (OracleException ex)
                     {
                         manager.OracleCommandFinished?.Invoke(cmd);
-                        return new SqlResult(null, ex.Message, sqlElement);
+                        return new SqlResult(null, ex.Message, sqlElement, sqlConn);
                     }
                 }
             }
             catch (OracleException ex)
             {
                 manager.OracleCommandFinished?.Invoke(null);
-                return new SqlResult(null, ex.Message, null);
+                return new SqlResult(null, ex.Message, null, null);
             }
         }
 
@@ -413,20 +412,20 @@ namespace SQL_Extractor_for_Excel.Scripts
                             DataTable dt = new DataTable();
                             dt.Load(rdr);
                             manager.SqlServerCommandFinished?.Invoke(cmd);
-                            return new SqlResult(dt, null, sqlElement);
+                            return new SqlResult(dt, null, sqlElement, sqlConn);
                         }
                     }
                     catch (SqlException ex)
                     {
                         manager.SqlServerCommandFinished?.Invoke(cmd);
-                        return new SqlResult(null, ex.Message, sqlElement);
+                        return new SqlResult(null, ex.Message, sqlElement, sqlConn);
                     }
                 }
             }
             catch (SqlException ex)
             {
                 manager.SqlServerCommandFinished?.Invoke(null);
-                return new SqlResult(null, ex.Message, null);
+                return new SqlResult(null, ex.Message, null, null);
             }
         }
 

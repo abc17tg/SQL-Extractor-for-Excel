@@ -160,12 +160,13 @@
             // 
             // refreshButton
             // 
+            this.refreshButton.BackgroundImage = ((System.Drawing.Image)(resources.GetObject("refreshButton.BackgroundImage")));
+            this.refreshButton.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Stretch;
             this.refreshButton.Dock = System.Windows.Forms.DockStyle.Fill;
             this.refreshButton.Location = new System.Drawing.Point(944, 3);
             this.refreshButton.Name = "refreshButton";
             this.refreshButton.Size = new System.Drawing.Size(24, 24);
             this.refreshButton.TabIndex = 34;
-            this.refreshButton.Text = "♻";
             this.refreshButton.UseVisualStyleBackColor = true;
             this.refreshButton.Click += new System.EventHandler(this.refreshButton_Click);
             // 

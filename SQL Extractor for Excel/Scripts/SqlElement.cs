@@ -18,13 +18,13 @@ namespace SQL_Extractor_for_Excel.Scripts
         public SqlServerManager.ServerType ServerType => m_serverType;
         public string DbName => m_dbName;
 
-/*        public SqlElement(object cmd, SqlServerManager.ServerType serverType, string name = "query", DateTime? startTime = null)
-        {
-            m_cmd = cmd;
-            m_serverType = serverType;
-            Name = name;
-            m_startTime = startTime ?? DateTime.Now;
-        }*/
+        /*        public SqlElement(object cmd, SqlServerManager.ServerType serverType, string name = "query", DateTime? startTime = null)
+                {
+                    m_cmd = cmd;
+                    m_serverType = serverType;
+                    Name = name;
+                    m_startTime = startTime ?? DateTime.Now;
+                }*/
 
         public SqlElement(object cmd, SqlServerManager.ServerType serverType, string dbName, string name = "query", DateTime? startTime = null)
         {
@@ -33,6 +33,32 @@ namespace SQL_Extractor_for_Excel.Scripts
             m_dbName = dbName;
             Name = name;
             m_startTime = startTime ?? DateTime.Now;
+        }
+
+        public static string FormatQueryDetailsMessage(SqlElement sqlElement)
+        {
+            string message;
+            if (sqlElement != null)
+                message = $@"
+    Server Type: {sqlElement.ServerType}
+    Database: 
+        {sqlElement.Name}
+    Elapsed Time: {Math.Floor((DateTime.Now.Subtract((DateTime)sqlElement.m_startTime).TotalMinutes))} minutes
+
+    --------------------------------------
+
+    Query:
+
+    {((string)sqlElement.Cmd.CommandText).RemoveLeadingTabsMultiline()}";
+            else
+                message = $@"
+    Server Type: -
+    Database: -
+    Elapsed Time: -
+    --------------------------------------
+    Query: -";
+
+            return message;
         }
 
         public bool TryToCancelQuery()

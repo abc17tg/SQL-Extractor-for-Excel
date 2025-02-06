@@ -9,14 +9,16 @@ namespace SQL_Extractor_for_Excel.Scripts
     {
         public DataTable DataTable;
         public SqlElement SqlElement;
+        public SqlConn SqlConn;
         public string Errors;
         public bool HasErrors => !string.IsNullOrEmpty(Errors) || DataTable == null;
         public bool Cancelled = false;
         
-        public SqlResult(DataTable dataTable, string errors, SqlElement sqlElement) 
+        public SqlResult(DataTable dataTable, string errors, SqlElement sqlElement, SqlConn sqlConn) 
         { 
             DataTable = dataTable;
             SqlElement = sqlElement;
+            SqlConn = sqlConn;
             Errors = errors;
             Cancelled = sqlElement?.Cancelled ?? false;
         }
