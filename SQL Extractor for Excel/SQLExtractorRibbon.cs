@@ -1,20 +1,12 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
-using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
-using System.Text;
 using SQL_Extractor_for_Excel.Scripts;
-using SQL_Extractor_for_Excel.Properties;
 using Office = Microsoft.Office.Core;
-using Excel = Microsoft.Office.Interop.Excel;
-using Microsoft.Office.Tools.Ribbon;
 using System.Diagnostics;
-using static ScintillaNET.Style;
-using System.Threading;
-using System.Windows.Forms;
+using ScintillaNET;
 
 // TODO:  Follow these steps to enable the Ribbon (XML) item:
 
