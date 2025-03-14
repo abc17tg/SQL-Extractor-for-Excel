@@ -15,7 +15,7 @@ namespace SQL_Extractor_for_Excel.Scripts
             string relativeFolder = Path.Combine("runtimes", architecture, "native");
 
             // Source folder is based on the application's base directory
-            string sourceFolder = Path.Combine(FileManager.BasePath, relativeFolder);
+            string sourceFolder = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, relativeFolder);
 
             // Get the entry assembly location and then its directory
             string entryAssemblyLocation = Assembly.GetAssembly(typeof(Scintilla)).Location;

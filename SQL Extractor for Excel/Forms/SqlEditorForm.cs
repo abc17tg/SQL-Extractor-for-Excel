@@ -75,6 +75,9 @@ namespace SQL_Extractor_for_Excel
             InitializeComponent();
             m_guid = Guid.NewGuid().ToString();
             m_backupName = $"{Text}_{m_guid}.json";
+            Version version = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version;
+            string versionString = $"{version.Major}.{version.Minor}.{version.Build}";
+            Text = $"{Text} v{versionString}";
             FormTitle = Text;
             m_sqlManager = new SqlServerManager();
             App = app;
@@ -411,16 +414,8 @@ namespace SQL_Extractor_for_Excel
             sqlEditorScintilla.Focus();
         }
 
-        private void pasteRngFilterBtn_Click(object sender, EventArgs e)
+        private void PasteRngAsFilter(Excel.Range rng)
         {
-            Excel.Range rng = App.ActiveWindow.RangeSelection;
-
-            if (!rng.Valid() || rng.Areas.Cast<Excel.Range>().Sum(p => p.Rows.Count) < 2)
-            {
-                sqlEditorScintilla.ReplaceSelection(string.Empty);
-                return;
-            }
-
             // Get DataTable on UI thread (COM requires this)
             DataTable dataTable = rng.GetDataTable(true);
 
@@ -493,6 +488,19 @@ namespace SQL_Extractor_for_Excel
             sqlEditorScintilla.Enabled = false;
             UseWaitCursor = true;
             generateSqlFilterResult.Start();
+        }
+
+        private void pasteRngFilterBtn_Click(object sender, EventArgs e)
+        {
+            Excel.Range rng = App.ActiveWindow.RangeSelection;
+
+            if (!rng.Valid() || rng.Areas.Cast<Excel.Range>().Sum(p => p.Rows.Count) < 2)
+            {
+                sqlEditorScintilla.ReplaceSelection(string.Empty);
+                return;
+            }
+
+            PasteRngAsFilter(rng);
         }
 
         private void runBtn_Click(object sender, EventArgs e)
@@ -787,27 +795,99 @@ namespace SQL_Extractor_for_Excel
 
         private void sqlEditorScintilla_KeyUp(object sender, KeyEventArgs e)
         {
-            if (e.Control && e.Shift && (e.KeyCode == Keys.Divide || e.KeyCode == Keys.Oem2))
+            if (e.Control)
             {
-                UtilsScintilla.Comment(sqlEditorScintilla);
-                e.SuppressKeyPress = true;
-            }
+                if (e.Shift)
+                {
+                    if (e.KeyCode == Keys.Divide || e.KeyCode == Keys.Oem2)
+                    {
+                        UtilsScintilla.Comment(sqlEditorScintilla);
+                        e.SuppressKeyPress = true;
+                    }
 
-            if (e.Control && (e.KeyCode == Keys.H || e.KeyCode == Keys.F))
-            {
-                FindReplace findReplace = new FindReplace(sqlEditorScintilla);
-                if (e.KeyCode == Keys.F)
-                    findReplace.ShowFind();
+                    if (e.KeyCode == Keys.V)
+                    {
+                        Excel.Range rng = App.ActiveWindow.RangeSelection;
+                        if (rng.Valid())
+                        {
+                            string indentation = UtilsScintilla.GetIndentationLevel(sqlEditorScintilla);
+                            sqlEditorScintilla.ReplaceSelection(string.Join($"\n{indentation}", UtilsExcel.FormatRangeToSqlPattern(rng).Split('\n')));
+                        }
+                        sqlEditorScintilla.Focus();
+                        e.SuppressKeyPress = true;
+                    }
+
+                    if (e.KeyCode == Keys.R)
+                    {
+                        Query = sqlEditorScintilla.SelectedText;
+
+                        if (string.IsNullOrWhiteSpace(Query))
+                        {
+                            UtilsScintilla.SelectBlock(sqlEditorScintilla);
+                            sqlEditorScintilla.Focus();
+                        }
+                        else
+                        {
+                            Run(Query);
+                        }
+                        e.SuppressKeyPress = true;
+                    }
+
+                    if (e.KeyCode == Keys.B)
+                    {
+                        UtilsScintilla.WrapIntoSqlBlock(sqlEditorScintilla);
+                        sqlEditorScintilla.Focus();
+                        e.SuppressKeyPress = true;
+                    }
+
+                    if (e.KeyCode == Keys.F)
+                    {
+                        Excel.Range rng = App.ActiveWindow.RangeSelection;
+
+                        if (!rng.Valid() || rng.Areas.Cast<Excel.Range>().Sum(p => p.Rows.Count) < 2)
+                        {
+                            sqlEditorScintilla.ReplaceSelection(string.Empty);
+                            e.SuppressKeyPress = true;
+                            return;
+                        }
+
+                        PasteRngAsFilter(rng);
+                        e.SuppressKeyPress = true;
+                    }
+                }
                 else
-                    findReplace.ShowReplace();
-                findReplace.Window.FormClosed += (o, ea) => sqlEditorScintilla.MultipleSelection = false;
-                e.SuppressKeyPress = true;
-            }
+                {
+                    if (e.KeyCode == Keys.H || e.KeyCode == Keys.F)
+                    {
+                        FindReplace findReplace = new FindReplace(sqlEditorScintilla);
+                        if (e.KeyCode == Keys.F)
+                            findReplace.ShowFind();
+                        else
+                            findReplace.ShowReplace();
+                        findReplace.Window.FormClosed += (o, ea) => sqlEditorScintilla.MultipleSelection = false;
+                        e.SuppressKeyPress = true;
+                    }
 
-            if (e.Control && e.KeyCode == Keys.R)
-            {
-                UtilsScintilla.ReformatTextToSql(sqlEditorScintilla);
-                e.Handled = true; //e.SuppressKeyPress = true;
+                    if (e.KeyCode == Keys.OemMinus)
+                    {
+                        sqlEditorScintilla.ReplaceSelection($"{Environment.NewLine}{m_querySeparator}{Environment.NewLine}");
+                        sqlEditorScintilla.Focus();
+                        e.SuppressKeyPress = true;
+                    }
+
+                    if (e.KeyCode == Keys.Q)
+                    {
+                        UtilsScintilla.ReformatTextToSql(sqlEditorScintilla);
+                        e.SuppressKeyPress = true;
+                    }
+
+                    if (e.KeyCode == Keys.R)
+                    {
+                        Query = sqlEditorScintilla.Text;
+                        Run(Query);
+                        e.SuppressKeyPress = true;
+                    }
+                }
             }
 
             if (e.Alt)
@@ -839,7 +919,7 @@ namespace SQL_Extractor_for_Excel
             if (!sqlResult.HasErrors)
             {
                 fieldsListBox.Items.AddRange(sqlResult.DataTable.Columns.Cast<DataColumn>().Select(column => column.ColumnName).Distinct().ToArray());
-                m_fieldsListBoxAllItemsList.AddRange(fieldsListBox.Items.Cast<string>().ToList());
+                m_fieldsListBoxAllItemsList.AddRange(fieldsListBox.Items.Cast<string>());
             }
 
             objectsAndVariablesTabControl.SelectedTab = fieldsTabPage;
@@ -875,7 +955,7 @@ namespace SQL_Extractor_for_Excel
             if (!sqlResult.HasErrors)
             {
                 tablesListBox.Items.AddRange(sqlResult.DataTable.AsEnumerable().Select(row => row.Field<string>(0)).Distinct().ToArray() ?? new string[1]);
-                m_tablesListBoxAllItemsList.AddRange(tablesListBox.Items.Cast<string>().ToList());
+                m_tablesListBoxAllItemsList.AddRange(tablesListBox.Items.Cast<string>());
             }
 
             objectsAndVariablesTabControl.SelectedTab = tablesTabPage;
@@ -1237,7 +1317,7 @@ namespace SQL_Extractor_for_Excel
         private void RefreshVariables()
         {
             // Remove rows without variable name
-            foreach (var row in variablesDataGridView.Rows.Cast<DataGridViewRow>().Where(p => !p.IsNewRow && p.Visible && string.IsNullOrEmpty(p.Cells[1].Value?.ToString())).ToList())
+            foreach (var row in variablesDataGridView.Rows.Cast<DataGridViewRow>().Where(p => !p.IsNewRow && p.Visible && string.IsNullOrEmpty(p.Cells[1].Value?.ToString())))
                 variablesDataGridView.Rows.Remove(row);
 
             List<string> currentVariables = variablesDataGridView.Rows.Cast<DataGridViewRow>().Select(p => p.Cells[1].Value?.ToString()).Distinct().ToList();

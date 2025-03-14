@@ -77,7 +77,7 @@ namespace SQL_Extractor_for_Excel.Forms
 
             if (rng.Valid())
             {
-                UnformattedValues.AddRange(rng.Cells.Cast<Excel.Range>().Select(p => ((object)p.Value2)?.ToString() ?? "").Where(p => !string.IsNullOrEmpty(p)).ToList());
+                UnformattedValues.AddRange(rng.Cells.Cast<Excel.Range>().Select(p => ((object)p.Value2)?.ToString() ?? "").Where(p => !string.IsNullOrEmpty(p)));
                 dividerNumericUpDown.Maximum = Math.Max(UnformattedValues.Count, dividerNumericUpDown.Minimum);
             }
             else if (UnformattedValues.Count < 1)

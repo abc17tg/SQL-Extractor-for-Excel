@@ -30,19 +30,20 @@ namespace SQL_Extractor_for_Excel
         /// </summary>
         private void InitializeComponent()
         {
-            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle1 = new System.Windows.Forms.DataGridViewCellStyle();
-            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle2 = new System.Windows.Forms.DataGridViewCellStyle();
-            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle7 = new System.Windows.Forms.DataGridViewCellStyle();
-            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle8 = new System.Windows.Forms.DataGridViewCellStyle();
-            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle3 = new System.Windows.Forms.DataGridViewCellStyle();
-            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle4 = new System.Windows.Forms.DataGridViewCellStyle();
-            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle5 = new System.Windows.Forms.DataGridViewCellStyle();
-            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle6 = new System.Windows.Forms.DataGridViewCellStyle();
-            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle9 = new System.Windows.Forms.DataGridViewCellStyle();
-            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle10 = new System.Windows.Forms.DataGridViewCellStyle();
-            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle11 = new System.Windows.Forms.DataGridViewCellStyle();
-            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle12 = new System.Windows.Forms.DataGridViewCellStyle();
+            this.components = new System.ComponentModel.Container();
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(SqlEditorForm));
+            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle25 = new System.Windows.Forms.DataGridViewCellStyle();
+            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle26 = new System.Windows.Forms.DataGridViewCellStyle();
+            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle31 = new System.Windows.Forms.DataGridViewCellStyle();
+            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle32 = new System.Windows.Forms.DataGridViewCellStyle();
+            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle27 = new System.Windows.Forms.DataGridViewCellStyle();
+            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle28 = new System.Windows.Forms.DataGridViewCellStyle();
+            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle29 = new System.Windows.Forms.DataGridViewCellStyle();
+            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle30 = new System.Windows.Forms.DataGridViewCellStyle();
+            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle33 = new System.Windows.Forms.DataGridViewCellStyle();
+            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle34 = new System.Windows.Forms.DataGridViewCellStyle();
+            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle35 = new System.Windows.Forms.DataGridViewCellStyle();
+            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle36 = new System.Windows.Forms.DataGridViewCellStyle();
             this.sqlEditorScintilla = new ScintillaNET.Scintilla();
             this.transferTablesToQueryBtn = new System.Windows.Forms.Button();
             this.fetchTablesBtn = new System.Windows.Forms.Button();
@@ -99,6 +100,7 @@ namespace SQL_Extractor_for_Excel
             this.QueryNameColumn = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.TimeColumn = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.QueryColumn = new System.Windows.Forms.DataGridViewButtonColumn();
+            this.toolTip = new System.Windows.Forms.ToolTip(this.components);
             this.mainTableLayoutPanel.SuspendLayout();
             this.buttonsTableLayoutPanel.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.mainSplitContainer)).BeginInit();
@@ -150,6 +152,7 @@ namespace SQL_Extractor_for_Excel
             this.transferTablesToQueryBtn.Size = new System.Drawing.Size(49, 26);
             this.transferTablesToQueryBtn.TabIndex = 19;
             this.transferTablesToQueryBtn.Text = "←";
+            this.toolTip.SetToolTip(this.transferTablesToQueryBtn, "Paste to the selection selected tables from the list");
             this.transferTablesToQueryBtn.UseVisualStyleBackColor = true;
             this.transferTablesToQueryBtn.Click += new System.EventHandler(this.transferToQueryBtn_Click);
             // 
@@ -162,6 +165,7 @@ namespace SQL_Extractor_for_Excel
             this.fetchTablesBtn.Size = new System.Drawing.Size(162, 26);
             this.fetchTablesBtn.TabIndex = 18;
             this.fetchTablesBtn.Text = "Fetch";
+            this.toolTip.SetToolTip(this.fetchTablesBtn, "Fetch all tables and views from the given database (selection must be empty)");
             this.fetchTablesBtn.UseVisualStyleBackColor = true;
             this.fetchTablesBtn.Click += new System.EventHandler(this.fetchBtn_Click);
             // 
@@ -192,6 +196,7 @@ namespace SQL_Extractor_for_Excel
             this.searchTablesTextBox.Size = new System.Drawing.Size(217, 21);
             this.searchTablesTextBox.TabIndex = 24;
             this.searchTablesTextBox.Text = "Search";
+            this.toolTip.SetToolTip(this.searchTablesTextBox, "Search tables (you can use Regex) (selections on the list are preserved)");
             this.searchTablesTextBox.WordWrap = false;
             this.searchTablesTextBox.KeyDown += new System.Windows.Forms.KeyEventHandler(this.searchTextBox_KeyDown);
             // 
@@ -204,6 +209,8 @@ namespace SQL_Extractor_for_Excel
             this.pasteResultsToSelectionCheckBox.Size = new System.Drawing.Size(180, 33);
             this.pasteResultsToSelectionCheckBox.TabIndex = 25;
             this.pasteResultsToSelectionCheckBox.Text = "Paste result to selection";
+            this.toolTip.SetToolTip(this.pasteResultsToSelectionCheckBox, "When checked it will paste the result to cell that was selected when the query wa" +
+        "s run");
             this.pasteResultsToSelectionCheckBox.UseVisualStyleBackColor = true;
             this.pasteResultsToSelectionCheckBox.CheckedChanged += new System.EventHandler(this.pasteResultsToSelectionCheckBox_CheckedChanged);
             // 
@@ -217,6 +224,7 @@ namespace SQL_Extractor_for_Excel
             this.sheetNameTextBox.Size = new System.Drawing.Size(154, 21);
             this.sheetNameTextBox.TabIndex = 26;
             this.sheetNameTextBox.Text = "Worksheet name";
+            this.toolTip.SetToolTip(this.sheetNameTextBox, "Name of the worksheet that will be created after the query is run");
             this.sheetNameTextBox.Leave += new System.EventHandler(this.sheetNameTextBox_Leave);
             // 
             // fillSheetNameBtn
@@ -227,6 +235,7 @@ namespace SQL_Extractor_for_Excel
             this.fillSheetNameBtn.Size = new System.Drawing.Size(27, 23);
             this.fillSheetNameBtn.TabIndex = 27;
             this.fillSheetNameBtn.Text = "▲";
+            this.toolTip.SetToolTip(this.fillSheetNameBtn, "Get selected text as future worksheet name");
             this.fillSheetNameBtn.UseVisualStyleBackColor = true;
             this.fillSheetNameBtn.Click += new System.EventHandler(this.fillSheetNameBtn_Click);
             // 
@@ -241,6 +250,7 @@ namespace SQL_Extractor_for_Excel
             this.headersCheckBox.Size = new System.Drawing.Size(113, 33);
             this.headersCheckBox.TabIndex = 28;
             this.headersCheckBox.Text = "Headers";
+            this.toolTip.SetToolTip(this.headersCheckBox, "Preserve headers on paste to Excel");
             this.headersCheckBox.UseVisualStyleBackColor = true;
             // 
             // clearEditorLabel
@@ -257,6 +267,7 @@ namespace SQL_Extractor_for_Excel
             this.clearEditorLabel.TabIndex = 29;
             this.clearEditorLabel.Text = "❌";
             this.clearEditorLabel.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
+            this.toolTip.SetToolTip(this.clearEditorLabel, "Clear content of editor");
             this.clearEditorLabel.Click += new System.EventHandler(this.clearEditorLabel_Click);
             // 
             // mainTableLayoutPanel
@@ -328,6 +339,8 @@ namespace SQL_Extractor_for_Excel
             this.formatToSqlBtn.Size = new System.Drawing.Size(62, 25);
             this.formatToSqlBtn.TabIndex = 25;
             this.formatToSqlBtn.Text = "( \' \', \' \', ... )";
+            this.toolTip.SetToolTip(this.formatToSqlBtn, "(Ctrl + Q) Format the selection as a filter list (use on formatted text to change" +
+        " from text values to number values)");
             this.formatToSqlBtn.UseVisualStyleBackColor = true;
             this.formatToSqlBtn.Click += new System.EventHandler(this.formatToSqlBtn_Click);
             // 
@@ -341,6 +354,7 @@ namespace SQL_Extractor_for_Excel
             this.separateBtn.Size = new System.Drawing.Size(62, 25);
             this.separateBtn.TabIndex = 24;
             this.separateBtn.Text = "- - - - -";
+            this.toolTip.SetToolTip(this.separateBtn, "(Ctrl + -) Paste query separator into the selection");
             this.separateBtn.UseVisualStyleBackColor = true;
             this.separateBtn.Click += new System.EventHandler(this.separateBtn_Click);
             // 
@@ -354,6 +368,7 @@ namespace SQL_Extractor_for_Excel
             this.validateSelectionBtn.Size = new System.Drawing.Size(102, 25);
             this.validateSelectionBtn.TabIndex = 3;
             this.validateSelectionBtn.Text = "Validate selection";
+            this.toolTip.SetToolTip(this.validateSelectionBtn, "Validates editor\'s selection");
             this.validateSelectionBtn.UseVisualStyleBackColor = true;
             this.validateSelectionBtn.Click += new System.EventHandler(this.validateSelectionBtn_Click);
             // 
@@ -367,6 +382,8 @@ namespace SQL_Extractor_for_Excel
             this.pasteRngBtn.Size = new System.Drawing.Size(102, 25);
             this.pasteRngBtn.TabIndex = 5;
             this.pasteRngBtn.Text = "Paste range";
+            this.toolTip.SetToolTip(this.pasteRngBtn, "(Ctrl + Shift + V) Pastes to the editor\'s selection the selected cells from the a" +
+        "ctive workbook as a filter list (no header) or as headers separated by comma");
             this.pasteRngBtn.UseVisualStyleBackColor = true;
             this.pasteRngBtn.Click += new System.EventHandler(this.pasteRngBtn_Click);
             // 
@@ -380,6 +397,7 @@ namespace SQL_Extractor_for_Excel
             this.commentBtn.Size = new System.Drawing.Size(43, 25);
             this.commentBtn.TabIndex = 4;
             this.commentBtn.Text = "- - ...";
+            this.toolTip.SetToolTip(this.commentBtn, "(Ctrl + Shift + /) Comment/Uncomment selected lines");
             this.commentBtn.UseVisualStyleBackColor = true;
             this.commentBtn.Click += new System.EventHandler(this.commentBtn_Click);
             // 
@@ -398,6 +416,7 @@ namespace SQL_Extractor_for_Excel
             this.serverTypeComboBox.Name = "serverTypeComboBox";
             this.serverTypeComboBox.Size = new System.Drawing.Size(151, 23);
             this.serverTypeComboBox.TabIndex = 8;
+            this.toolTip.SetToolTip(this.serverTypeComboBox, "Choose server type (Right click to add server connection)");
             this.serverTypeComboBox.SelectedIndexChanged += new System.EventHandler(this.serverTypeComboBox_SelectedIndexChanged);
             // 
             // serverComboBox
@@ -415,6 +434,7 @@ namespace SQL_Extractor_for_Excel
             this.serverComboBox.Name = "serverComboBox";
             this.serverComboBox.Size = new System.Drawing.Size(161, 23);
             this.serverComboBox.TabIndex = 16;
+            this.toolTip.SetToolTip(this.serverComboBox, "Choose server connection (Right click to add server connection)");
             this.serverComboBox.SelectedIndexChanged += new System.EventHandler(this.serverComboBox_SelectedIndexChanged);
             // 
             // testConnBtn
@@ -427,6 +447,7 @@ namespace SQL_Extractor_for_Excel
             this.testConnBtn.Size = new System.Drawing.Size(102, 25);
             this.testConnBtn.TabIndex = 7;
             this.testConnBtn.Text = "Test connection";
+            this.toolTip.SetToolTip(this.testConnBtn, "Test connection with database");
             this.testConnBtn.UseVisualStyleBackColor = true;
             this.testConnBtn.Click += new System.EventHandler(this.testConnBtn_Click);
             // 
@@ -440,6 +461,7 @@ namespace SQL_Extractor_for_Excel
             this.openInNotepadBtn.Size = new System.Drawing.Size(102, 25);
             this.openInNotepadBtn.TabIndex = 23;
             this.openInNotepadBtn.Text = "Notepad";
+            this.toolTip.SetToolTip(this.openInNotepadBtn, "Open editor\'s text in the Notepad");
             this.openInNotepadBtn.UseVisualStyleBackColor = true;
             this.openInNotepadBtn.Click += new System.EventHandler(this.openInNotepadBtn_Click);
             // 
@@ -453,6 +475,7 @@ namespace SQL_Extractor_for_Excel
             this.runSelectionBtn.Size = new System.Drawing.Size(106, 25);
             this.runSelectionBtn.TabIndex = 2;
             this.runSelectionBtn.Text = "Run selection";
+            this.toolTip.SetToolTip(this.runSelectionBtn, "(Ctrl + Shift + R) Run selection (without selection it selects block)");
             this.runSelectionBtn.UseVisualStyleBackColor = true;
             this.runSelectionBtn.Click += new System.EventHandler(this.runSelectionBtn_Click);
             // 
@@ -466,6 +489,7 @@ namespace SQL_Extractor_for_Excel
             this.validateBtn.Size = new System.Drawing.Size(102, 25);
             this.validateBtn.TabIndex = 11;
             this.validateBtn.Text = "Validate";
+            this.toolTip.SetToolTip(this.validateBtn, "Validates editor\'s text as one query");
             this.validateBtn.UseVisualStyleBackColor = true;
             this.validateBtn.Click += new System.EventHandler(this.validateBtn_Click);
             // 
@@ -480,6 +504,7 @@ namespace SQL_Extractor_for_Excel
             this.pasteRngFilterBtn.Size = new System.Drawing.Size(102, 25);
             this.pasteRngFilterBtn.TabIndex = 13;
             this.pasteRngFilterBtn.Text = "Range as filter";
+            this.toolTip.SetToolTip(this.pasteRngFilterBtn, resources.GetString("pasteRngFilterBtn.ToolTip"));
             this.pasteRngFilterBtn.UseVisualStyleBackColor = true;
             this.pasteRngFilterBtn.Click += new System.EventHandler(this.pasteRngFilterBtn_Click);
             // 
@@ -493,6 +518,7 @@ namespace SQL_Extractor_for_Excel
             this.wrapIntoBlockBtn.Size = new System.Drawing.Size(43, 25);
             this.wrapIntoBlockBtn.TabIndex = 22;
             this.wrapIntoBlockBtn.Text = "( ... )";
+            this.toolTip.SetToolTip(this.wrapIntoBlockBtn, "(Ctrl + Shift + B) Wrap the selection into ( ... ) block");
             this.wrapIntoBlockBtn.UseVisualStyleBackColor = true;
             this.wrapIntoBlockBtn.Click += new System.EventHandler(this.wrapIntoBlockBtn_Click);
             // 
@@ -512,6 +538,7 @@ namespace SQL_Extractor_for_Excel
             this.savedQueriesComboBox.Name = "savedQueriesComboBox";
             this.savedQueriesComboBox.Size = new System.Drawing.Size(426, 23);
             this.savedQueriesComboBox.TabIndex = 15;
+            this.toolTip.SetToolTip(this.savedQueriesComboBox, "Choose saved query");
             this.savedQueriesComboBox.SelectedIndexChanged += new System.EventHandler(this.savedQueriesComboBox_SelectedIndexChanged);
             // 
             // saveQueryBtn
@@ -524,6 +551,7 @@ namespace SQL_Extractor_for_Excel
             this.saveQueryBtn.Size = new System.Drawing.Size(102, 25);
             this.saveQueryBtn.TabIndex = 14;
             this.saveQueryBtn.Text = "Save query";
+            this.toolTip.SetToolTip(this.saveQueryBtn, "Save editor\'s text as a query");
             this.saveQueryBtn.UseVisualStyleBackColor = true;
             this.saveQueryBtn.Click += new System.EventHandler(this.saveQueryBtn_Click);
             // 
@@ -537,6 +565,7 @@ namespace SQL_Extractor_for_Excel
             this.runBtn.Size = new System.Drawing.Size(106, 25);
             this.runBtn.TabIndex = 10;
             this.runBtn.Text = "Run";
+            this.toolTip.SetToolTip(this.runBtn, "(Ctrl + R) Run editor\'s text as one query");
             this.runBtn.UseVisualStyleBackColor = true;
             this.runBtn.Click += new System.EventHandler(this.runBtn_Click);
             // 
@@ -634,6 +663,8 @@ namespace SQL_Extractor_for_Excel
             this.pasteToDataTableCheckBox.Size = new System.Drawing.Size(180, 33);
             this.pasteToDataTableCheckBox.TabIndex = 33;
             this.pasteToDataTableCheckBox.Text = "Paste result to data table";
+            this.toolTip.SetToolTip(this.pasteToDataTableCheckBox, "When checked it will paste the result into extra window with a visible table that" +
+        " can be later pasted to Excel or discarded (recommended)");
             this.pasteToDataTableCheckBox.UseVisualStyleBackColor = true;
             this.pasteToDataTableCheckBox.CheckedChanged += new System.EventHandler(this.pasteToDataTableCheckBox_CheckedChanged);
             // 
@@ -742,6 +773,7 @@ namespace SQL_Extractor_for_Excel
             this.searchFieldsTextBox.Size = new System.Drawing.Size(217, 21);
             this.searchFieldsTextBox.TabIndex = 24;
             this.searchFieldsTextBox.Text = "Search";
+            this.toolTip.SetToolTip(this.searchFieldsTextBox, "Search fields (you can use Regex) (selections on the list are preserved)");
             this.searchFieldsTextBox.WordWrap = false;
             this.searchFieldsTextBox.KeyDown += new System.Windows.Forms.KeyEventHandler(this.searchTextBox_KeyDown);
             // 
@@ -787,6 +819,7 @@ namespace SQL_Extractor_for_Excel
             this.transferFieldsToQueryBtn.Size = new System.Drawing.Size(49, 26);
             this.transferFieldsToQueryBtn.TabIndex = 19;
             this.transferFieldsToQueryBtn.Text = "←";
+            this.toolTip.SetToolTip(this.transferFieldsToQueryBtn, "Paste to the selection selected fields from the list separated by comma");
             this.transferFieldsToQueryBtn.UseVisualStyleBackColor = true;
             this.transferFieldsToQueryBtn.Click += new System.EventHandler(this.transferToQueryBtn_Click);
             // 
@@ -799,6 +832,7 @@ namespace SQL_Extractor_for_Excel
             this.fetchFieldsBtn.Size = new System.Drawing.Size(162, 26);
             this.fetchFieldsBtn.TabIndex = 18;
             this.fetchFieldsBtn.Text = "Fetch";
+            this.toolTip.SetToolTip(this.fetchFieldsBtn, "Fetch all fields from the given table (selection must include table name)");
             this.fetchFieldsBtn.UseVisualStyleBackColor = true;
             this.fetchFieldsBtn.Click += new System.EventHandler(this.fetchBtn_Click);
             // 
@@ -817,17 +851,17 @@ namespace SQL_Extractor_for_Excel
             // variablesDataGridView
             // 
             this.variablesDataGridView.AllowUserToResizeRows = false;
-            dataGridViewCellStyle1.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleCenter;
-            this.variablesDataGridView.AlternatingRowsDefaultCellStyle = dataGridViewCellStyle1;
+            dataGridViewCellStyle25.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleCenter;
+            this.variablesDataGridView.AlternatingRowsDefaultCellStyle = dataGridViewCellStyle25;
             this.variablesDataGridView.AutoSizeColumnsMode = System.Windows.Forms.DataGridViewAutoSizeColumnsMode.Fill;
-            dataGridViewCellStyle2.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleCenter;
-            dataGridViewCellStyle2.BackColor = System.Drawing.SystemColors.Control;
-            dataGridViewCellStyle2.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            dataGridViewCellStyle2.ForeColor = System.Drawing.SystemColors.WindowText;
-            dataGridViewCellStyle2.SelectionBackColor = System.Drawing.SystemColors.Highlight;
-            dataGridViewCellStyle2.SelectionForeColor = System.Drawing.SystemColors.HighlightText;
-            dataGridViewCellStyle2.WrapMode = System.Windows.Forms.DataGridViewTriState.False;
-            this.variablesDataGridView.ColumnHeadersDefaultCellStyle = dataGridViewCellStyle2;
+            dataGridViewCellStyle26.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleCenter;
+            dataGridViewCellStyle26.BackColor = System.Drawing.SystemColors.Control;
+            dataGridViewCellStyle26.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            dataGridViewCellStyle26.ForeColor = System.Drawing.SystemColors.WindowText;
+            dataGridViewCellStyle26.SelectionBackColor = System.Drawing.SystemColors.Highlight;
+            dataGridViewCellStyle26.SelectionForeColor = System.Drawing.SystemColors.HighlightText;
+            dataGridViewCellStyle26.WrapMode = System.Windows.Forms.DataGridViewTriState.False;
+            this.variablesDataGridView.ColumnHeadersDefaultCellStyle = dataGridViewCellStyle26;
             this.variablesDataGridView.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
             this.variablesDataGridView.Columns.AddRange(new System.Windows.Forms.DataGridViewColumn[] {
             this.variableValuesCountColumn,
@@ -839,17 +873,17 @@ namespace SQL_Extractor_for_Excel
             this.variablesDataGridView.Location = new System.Drawing.Point(0, 3);
             this.variablesDataGridView.MultiSelect = false;
             this.variablesDataGridView.Name = "variablesDataGridView";
-            dataGridViewCellStyle7.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleCenter;
-            dataGridViewCellStyle7.BackColor = System.Drawing.SystemColors.Control;
-            dataGridViewCellStyle7.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            dataGridViewCellStyle7.ForeColor = System.Drawing.SystemColors.WindowText;
-            dataGridViewCellStyle7.SelectionBackColor = System.Drawing.SystemColors.Highlight;
-            dataGridViewCellStyle7.SelectionForeColor = System.Drawing.SystemColors.HighlightText;
-            dataGridViewCellStyle7.WrapMode = System.Windows.Forms.DataGridViewTriState.True;
-            this.variablesDataGridView.RowHeadersDefaultCellStyle = dataGridViewCellStyle7;
+            dataGridViewCellStyle31.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleCenter;
+            dataGridViewCellStyle31.BackColor = System.Drawing.SystemColors.Control;
+            dataGridViewCellStyle31.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            dataGridViewCellStyle31.ForeColor = System.Drawing.SystemColors.WindowText;
+            dataGridViewCellStyle31.SelectionBackColor = System.Drawing.SystemColors.Highlight;
+            dataGridViewCellStyle31.SelectionForeColor = System.Drawing.SystemColors.HighlightText;
+            dataGridViewCellStyle31.WrapMode = System.Windows.Forms.DataGridViewTriState.True;
+            this.variablesDataGridView.RowHeadersDefaultCellStyle = dataGridViewCellStyle31;
             this.variablesDataGridView.RowHeadersVisible = false;
-            dataGridViewCellStyle8.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleCenter;
-            this.variablesDataGridView.RowsDefaultCellStyle = dataGridViewCellStyle8;
+            dataGridViewCellStyle32.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleCenter;
+            this.variablesDataGridView.RowsDefaultCellStyle = dataGridViewCellStyle32;
             this.variablesDataGridView.RowTemplate.DefaultCellStyle.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleCenter;
             this.variablesDataGridView.Size = new System.Drawing.Size(223, 638);
             this.variablesDataGridView.TabIndex = 0;
@@ -859,10 +893,10 @@ namespace SQL_Extractor_for_Excel
             // variableValuesCountColumn
             // 
             this.variableValuesCountColumn.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.AllCells;
-            dataGridViewCellStyle3.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleCenter;
-            dataGridViewCellStyle3.Format = "N0";
-            dataGridViewCellStyle3.NullValue = "0";
-            this.variableValuesCountColumn.DefaultCellStyle = dataGridViewCellStyle3;
+            dataGridViewCellStyle27.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleCenter;
+            dataGridViewCellStyle27.Format = "N0";
+            dataGridViewCellStyle27.NullValue = "0";
+            this.variableValuesCountColumn.DefaultCellStyle = dataGridViewCellStyle27;
             this.variableValuesCountColumn.HeaderText = "Count";
             this.variableValuesCountColumn.Name = "variableValuesCountColumn";
             this.variableValuesCountColumn.ReadOnly = true;
@@ -872,8 +906,8 @@ namespace SQL_Extractor_for_Excel
             // 
             // VariableNameColumn
             // 
-            dataGridViewCellStyle4.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleLeft;
-            this.VariableNameColumn.DefaultCellStyle = dataGridViewCellStyle4;
+            dataGridViewCellStyle28.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleLeft;
+            this.VariableNameColumn.DefaultCellStyle = dataGridViewCellStyle28;
             this.VariableNameColumn.HeaderText = "Variable";
             this.VariableNameColumn.MaxInputLength = 40;
             this.VariableNameColumn.Name = "VariableNameColumn";
@@ -883,9 +917,9 @@ namespace SQL_Extractor_for_Excel
             // VariableValuesColumn
             // 
             this.VariableValuesColumn.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.ColumnHeader;
-            dataGridViewCellStyle5.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleCenter;
-            dataGridViewCellStyle5.NullValue = "Edit";
-            this.VariableValuesColumn.DefaultCellStyle = dataGridViewCellStyle5;
+            dataGridViewCellStyle29.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleCenter;
+            dataGridViewCellStyle29.NullValue = "Edit";
+            this.VariableValuesColumn.DefaultCellStyle = dataGridViewCellStyle29;
             this.VariableValuesColumn.HeaderText = "Values";
             this.VariableValuesColumn.Name = "VariableValuesColumn";
             this.VariableValuesColumn.Text = "Values";
@@ -895,10 +929,10 @@ namespace SQL_Extractor_for_Excel
             // VariableInstancesColumn
             // 
             this.VariableInstancesColumn.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.AllCells;
-            dataGridViewCellStyle6.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleCenter;
-            dataGridViewCellStyle6.Format = "N0";
-            dataGridViewCellStyle6.NullValue = "0";
-            this.VariableInstancesColumn.DefaultCellStyle = dataGridViewCellStyle6;
+            dataGridViewCellStyle30.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleCenter;
+            dataGridViewCellStyle30.Format = "N0";
+            dataGridViewCellStyle30.NullValue = "0";
+            this.VariableInstancesColumn.DefaultCellStyle = dataGridViewCellStyle30;
             this.VariableInstancesColumn.HeaderText = "i";
             this.VariableInstancesColumn.MaxInputLength = 3;
             this.VariableInstancesColumn.MinimumWidth = 15;
@@ -924,43 +958,43 @@ namespace SQL_Extractor_for_Excel
             this.runningQueriesDataGridView.AllowUserToDeleteRows = false;
             this.runningQueriesDataGridView.AllowUserToResizeRows = false;
             this.runningQueriesDataGridView.AutoSizeColumnsMode = System.Windows.Forms.DataGridViewAutoSizeColumnsMode.Fill;
-            dataGridViewCellStyle9.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleCenter;
-            dataGridViewCellStyle9.BackColor = System.Drawing.SystemColors.Control;
-            dataGridViewCellStyle9.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            dataGridViewCellStyle9.ForeColor = System.Drawing.SystemColors.WindowText;
-            dataGridViewCellStyle9.SelectionBackColor = System.Drawing.SystemColors.Highlight;
-            dataGridViewCellStyle9.SelectionForeColor = System.Drawing.SystemColors.HighlightText;
-            dataGridViewCellStyle9.WrapMode = System.Windows.Forms.DataGridViewTriState.True;
-            this.runningQueriesDataGridView.ColumnHeadersDefaultCellStyle = dataGridViewCellStyle9;
+            dataGridViewCellStyle33.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleCenter;
+            dataGridViewCellStyle33.BackColor = System.Drawing.SystemColors.Control;
+            dataGridViewCellStyle33.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            dataGridViewCellStyle33.ForeColor = System.Drawing.SystemColors.WindowText;
+            dataGridViewCellStyle33.SelectionBackColor = System.Drawing.SystemColors.Highlight;
+            dataGridViewCellStyle33.SelectionForeColor = System.Drawing.SystemColors.HighlightText;
+            dataGridViewCellStyle33.WrapMode = System.Windows.Forms.DataGridViewTriState.True;
+            this.runningQueriesDataGridView.ColumnHeadersDefaultCellStyle = dataGridViewCellStyle33;
             this.runningQueriesDataGridView.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
             this.runningQueriesDataGridView.Columns.AddRange(new System.Windows.Forms.DataGridViewColumn[] {
             this.CancelQueryColumn,
             this.QueryNameColumn,
             this.TimeColumn,
             this.QueryColumn});
-            dataGridViewCellStyle10.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleCenter;
-            dataGridViewCellStyle10.BackColor = System.Drawing.SystemColors.Window;
-            dataGridViewCellStyle10.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            dataGridViewCellStyle10.ForeColor = System.Drawing.SystemColors.ControlText;
-            dataGridViewCellStyle10.SelectionBackColor = System.Drawing.SystemColors.Highlight;
-            dataGridViewCellStyle10.SelectionForeColor = System.Drawing.SystemColors.HighlightText;
-            dataGridViewCellStyle10.WrapMode = System.Windows.Forms.DataGridViewTriState.False;
-            this.runningQueriesDataGridView.DefaultCellStyle = dataGridViewCellStyle10;
+            dataGridViewCellStyle34.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleCenter;
+            dataGridViewCellStyle34.BackColor = System.Drawing.SystemColors.Window;
+            dataGridViewCellStyle34.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            dataGridViewCellStyle34.ForeColor = System.Drawing.SystemColors.ControlText;
+            dataGridViewCellStyle34.SelectionBackColor = System.Drawing.SystemColors.Highlight;
+            dataGridViewCellStyle34.SelectionForeColor = System.Drawing.SystemColors.HighlightText;
+            dataGridViewCellStyle34.WrapMode = System.Windows.Forms.DataGridViewTriState.False;
+            this.runningQueriesDataGridView.DefaultCellStyle = dataGridViewCellStyle34;
             this.runningQueriesDataGridView.Dock = System.Windows.Forms.DockStyle.Fill;
             this.runningQueriesDataGridView.EditMode = System.Windows.Forms.DataGridViewEditMode.EditProgrammatically;
             this.runningQueriesDataGridView.Location = new System.Drawing.Point(3, 3);
             this.runningQueriesDataGridView.Name = "runningQueriesDataGridView";
-            dataGridViewCellStyle11.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleCenter;
-            dataGridViewCellStyle11.BackColor = System.Drawing.SystemColors.Control;
-            dataGridViewCellStyle11.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            dataGridViewCellStyle11.ForeColor = System.Drawing.SystemColors.WindowText;
-            dataGridViewCellStyle11.SelectionBackColor = System.Drawing.SystemColors.Highlight;
-            dataGridViewCellStyle11.SelectionForeColor = System.Drawing.SystemColors.HighlightText;
-            dataGridViewCellStyle11.WrapMode = System.Windows.Forms.DataGridViewTriState.True;
-            this.runningQueriesDataGridView.RowHeadersDefaultCellStyle = dataGridViewCellStyle11;
+            dataGridViewCellStyle35.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleCenter;
+            dataGridViewCellStyle35.BackColor = System.Drawing.SystemColors.Control;
+            dataGridViewCellStyle35.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            dataGridViewCellStyle35.ForeColor = System.Drawing.SystemColors.WindowText;
+            dataGridViewCellStyle35.SelectionBackColor = System.Drawing.SystemColors.Highlight;
+            dataGridViewCellStyle35.SelectionForeColor = System.Drawing.SystemColors.HighlightText;
+            dataGridViewCellStyle35.WrapMode = System.Windows.Forms.DataGridViewTriState.True;
+            this.runningQueriesDataGridView.RowHeadersDefaultCellStyle = dataGridViewCellStyle35;
             this.runningQueriesDataGridView.RowHeadersVisible = false;
-            dataGridViewCellStyle12.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleCenter;
-            this.runningQueriesDataGridView.RowsDefaultCellStyle = dataGridViewCellStyle12;
+            dataGridViewCellStyle36.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleCenter;
+            this.runningQueriesDataGridView.RowsDefaultCellStyle = dataGridViewCellStyle36;
             this.runningQueriesDataGridView.RowTemplate.DefaultCellStyle.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleCenter;
             this.runningQueriesDataGridView.Size = new System.Drawing.Size(217, 635);
             this.runningQueriesDataGridView.TabIndex = 0;
@@ -998,6 +1032,10 @@ namespace SQL_Extractor_for_Excel
             this.QueryColumn.MinimumWidth = 30;
             this.QueryColumn.Name = "QueryColumn";
             this.QueryColumn.Width = 41;
+            // 
+            // toolTip
+            // 
+            this.toolTip.BackColor = System.Drawing.SystemColors.GradientInactiveCaption;
             // 
             // SqlEditorForm
             // 
@@ -1103,5 +1141,6 @@ namespace SQL_Extractor_for_Excel
         private DataGridViewButtonColumn VariableValuesColumn;
         private DataGridViewTextBoxColumn VariableInstancesColumn;
         private SplitContainer mainSplitContainer;
+        private ToolTip toolTip;
     }
 }

@@ -40,7 +40,7 @@ public static class Utils
                 else
                     break;
             }
-            if (foundDelimiters.Where(p => p != default(char)).ToArray().Length > 0 && foundDelimiters.Where(p => p != default(char)).All(p => p.Equals(foundDelimiters[0])))
+            if (foundDelimiters.Where(p => p != default(char)).Count() > 0 && foundDelimiters.Where(p => p != default(char)).All(p => p.Equals(foundDelimiters[0])))
                 return foundDelimiters[0];
         }
         return default(char); // no delimiter found

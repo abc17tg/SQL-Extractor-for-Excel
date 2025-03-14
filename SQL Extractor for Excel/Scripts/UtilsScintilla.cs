@@ -334,8 +334,15 @@ namespace SQL_Extractor_for_Excel.Scripts
 
             editor.ClearCmdKey(Keys.Control | Keys.F);
             editor.ClearCmdKey(Keys.Control | Keys.H);
+            editor.ClearCmdKey(Keys.Control | Keys.R);
+            editor.ClearCmdKey(Keys.Control | Keys.Q);
             editor.ClearCmdKey(Keys.Control | Keys.Oem2);
+            editor.ClearCmdKey(Keys.Control | Keys.OemMinus);
             editor.ClearCmdKey(Keys.Control | Keys.Divide);
+            editor.ClearCmdKey(Keys.Shift | Keys.Control | Keys.R);
+            editor.ClearCmdKey(Keys.Shift | Keys.Control | Keys.B);
+            editor.ClearCmdKey(Keys.Shift | Keys.Control | Keys.F);
+            editor.ClearCmdKey(Keys.Shift | Keys.Control | Keys.V);
             editor.ClearCmdKey(Keys.Shift | Keys.Control | Keys.Divide);
             editor.ClearCmdKey(Keys.Shift | Keys.Control | Keys.Oem2);
 

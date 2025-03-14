@@ -81,9 +81,10 @@ public static class UtilsExcel
             return rng.Text.ToString();
 
         List<string> values = new List<string>();
-        rng = rng.Cells.SpecialCellsOrDefault(Excel.XlCellType.xlCellTypeVisible);
+        if (rng.Cells.Count > 1)
+            rng = rng.Cells.SpecialCellsOrDefault(Excel.XlCellType.xlCellTypeVisible);
 
-        if(rng == null)
+        if (rng == null)
             return string.Empty;
 
         foreach (var v in rng.Cells.Cast<Excel.Range>().Select(p => p.Text.ToString()).Where(p => !string.IsNullOrEmpty(p)).Cast<string>())
@@ -743,7 +744,7 @@ public static class UtilsExcel
         {
             cellValues = Utils.NewObject2DArray(rowCount, colCount);
             long lastIndex = 1;
-            foreach (var ar in rng.Areas.Cast<Excel.Range>().OrderBy(p => p.Row).ToArray())
+            foreach (var ar in rng.Areas.Cast<Excel.Range>().OrderBy(p => p.Row))
             {
                 if (ar.Cells.Count == 1)
                 {
