@@ -473,6 +473,158 @@ namespace SQL_Extractor_for_Excel.Scripts
 
         }
 
+        public static void SetupSqlEditorReadOnly(Scintilla editor)
+        {
+            editor.InsertCheck += Editor_InsertCheck;
+            editor.TextChanged += Editor_TextChanged;
+            editor.LexerName = "sql";
+
+            editor.StyleClearAll();
+            editor.CaretLineBackColor = Color.FromArgb(35, 35, 35);
+            editor.ReadOnly = true;
+            editor.CaretForeColor = Color.White;
+            editor.WrapIndentMode = WrapIndentMode.Indent;
+            editor.WrapMode = WrapMode.Word;
+            editor.Styles[Style.Default].BackColor = Color.FromArgb(30, 30, 30);
+            editor.Styles[Style.Default].Font = "Consolas";
+            editor.Styles[Style.Default].Size = 10;
+            editor.Styles[Style.Default].Bold = true;
+            editor.Margins[0].Width = 25;
+            editor.Margins[1].Width = 8;
+
+            // Set SQL syntax highlighting styles similar to Visual Studio Dark Theme
+            editor.Styles[Style.Sql.Default].ForeColor = Color.FromArgb(240, 240, 240); // Almost white
+            editor.Styles[Style.Sql.Comment].ForeColor = Color.FromArgb(100, 100, 100); // Gray
+            editor.Styles[Style.Sql.CommentLine].ForeColor = Color.FromArgb(100, 100, 100); // Gray
+            editor.Styles[Style.Sql.CommentDoc].ForeColor = Color.FromArgb(100, 100, 100); // Gray
+            editor.Styles[Style.Sql.Number].ForeColor = Color.FromArgb(214, 157, 133); // Orange
+            editor.Styles[Style.Sql.Word].ForeColor = Color.FromArgb(86, 156, 214); // Blue
+            editor.Styles[Style.Sql.Word2].ForeColor = Color.FromArgb(86, 156, 214); // Blue
+            editor.Styles[Style.Sql.String].ForeColor = Color.FromArgb(181, 220, 168); // Light green
+            editor.Styles[Style.Sql.Character].ForeColor = Color.FromArgb(181, 220, 168); // Light green
+            editor.Styles[Style.Sql.Operator].ForeColor = Color.FromArgb(240, 240, 240); // Almost white
+            editor.Styles[Style.Sql.Identifier].ForeColor = Color.FromArgb(240, 240, 240); // Almost white
+            editor.Styles[Style.LineNumber].ForeColor = Color.FromArgb(100, 100, 100); // Gray
+            editor.Styles[Style.BraceLight].ForeColor = Color.Yellow;
+            editor.Styles[Style.BraceBad].ForeColor = Color.LightGoldenrodYellow;
+
+            editor.Styles[Style.Sql.Default].BackColor = Color.FromArgb(30, 30, 30);
+            editor.Styles[Style.Sql.Comment].BackColor = editor.Styles[Style.Default].BackColor;
+            editor.Styles[Style.Sql.CommentLine].BackColor = editor.Styles[Style.Default].BackColor;
+            editor.Styles[Style.Sql.CommentDoc].BackColor = editor.Styles[Style.Default].BackColor;
+            editor.Styles[Style.Sql.Number].BackColor = editor.Styles[Style.Default].BackColor;
+            editor.Styles[Style.Sql.Word].BackColor = editor.Styles[Style.Default].BackColor;
+            editor.Styles[Style.Sql.Word2].BackColor = editor.Styles[Style.Default].BackColor;
+            editor.Styles[Style.Sql.String].BackColor = editor.Styles[Style.Default].BackColor;
+            editor.Styles[Style.Sql.Character].BackColor = editor.Styles[Style.Default].BackColor;
+            editor.Styles[Style.Sql.Operator].BackColor = editor.Styles[Style.Default].BackColor;
+            editor.Styles[Style.Sql.Identifier].BackColor = editor.Styles[Style.Default].BackColor;
+            editor.Styles[Style.LineNumber].BackColor = Color.FromArgb(15, 15, 15); ;
+            editor.Styles[Style.BraceLight].BackColor = Color.DarkGray;
+            editor.Styles[Style.BraceBad].BackColor = Color.Red;
+
+            editor.Styles[Style.Sql.Word].Case = StyleCase.Upper;
+            editor.Styles[Style.Sql.Word2].Case = StyleCase.Upper;
+
+            editor.Styles[Style.Sql.Default].Bold = true;
+            editor.Styles[Style.Sql.Comment].Bold = true;
+            editor.Styles[Style.Sql.CommentLine].Bold = true;
+            editor.Styles[Style.Sql.CommentDoc].Bold = true;
+            editor.Styles[Style.Sql.Number].Bold = true;
+            editor.Styles[Style.Sql.Word].Bold = true;
+            editor.Styles[Style.Sql.Word2].Bold = true;
+            editor.Styles[Style.Sql.String].Bold = true;
+            editor.Styles[Style.Sql.Character].Bold = true;
+            editor.Styles[Style.Sql.Operator].Bold = true;
+            editor.Styles[Style.Sql.Identifier].Bold = true;
+            editor.Styles[Style.BraceLight].Bold = true;
+            editor.Styles[Style.BraceBad].Bold = true;
+
+            // Set SQL keywords
+            editor.SetKeywords(0, FileManager.SqlKeywords);
+            editor.ClearCmdKey(Keys.Control | Keys.F);
+
+            // Set up an indicator for highlighting words starting with ':::'
+            int indicatorIndex = 8; // Choose an unused indicator index
+            editor.Indicators[indicatorIndex].Style = IndicatorStyle.RoundBox;
+            editor.Indicators[indicatorIndex].ForeColor = Color.Aquamarine;
+            editor.Indicators[indicatorIndex].Alpha = 45;
+            editor.Indicators[indicatorIndex].OutlineAlpha = 120;
+            editor.Indicators[indicatorIndex].Under = true; // Set to true to highlight under the text
+
+            // Set up an indicator for highlighting words case sensitive
+            int indicatorIndexForSelection = 9; // Choose an unused indicator index
+            editor.Indicators[indicatorIndexForSelection].Style = IndicatorStyle.RoundBox;
+            editor.Indicators[indicatorIndexForSelection].ForeColor = Color.GreenYellow;
+            editor.Indicators[indicatorIndexForSelection].Alpha = 40;
+            editor.Indicators[indicatorIndexForSelection].OutlineAlpha = 110;
+            editor.Indicators[indicatorIndexForSelection].Under = true; // Set to true to highlight under the text
+
+            // Set up an indicator for highlighting matching brackets
+            int indicatorIndexForBrackets = 10; // Choose an unused indicator index
+            editor.Indicators[indicatorIndexForBrackets].Style = IndicatorStyle.PointCharacter;
+            editor.Indicators[indicatorIndexForBrackets].ForeColor = Color.OrangeRed;
+            editor.Indicators[indicatorIndexForBrackets].Alpha = 255;
+            //editor.Indicators[indicatorIndexForBrackets].OutlineAlpha = 120;
+            //editor.Indicators[indicatorIndexForBrackets].Under = true; // Set to true to highlight under the text 
+
+            editor.UpdateUI += (sender, e) =>
+            {
+                int position, matchPos, currentChar;
+                switch (e.Change)
+                {
+                    case UpdateChange.Content:
+                        foreach (var ind in editor.Indicators.Select(p => p.Index).Where(p => p != FindReplace.IndicatorIndex))
+                        {
+                            editor.IndicatorCurrent = ind;
+                            editor.IndicatorClearRange(0, editor.TextLength);
+                        }
+                        //editor.IndicatorClearRange(0, editor.TextLength);
+                        HighlightVariables(editor, indicatorIndex);
+                        position = editor.CurrentPosition;
+                        matchPos = editor.BraceMatch(position);
+                        currentChar = editor.GetCharAt(position);
+                        if (matchPos != Scintilla.InvalidPosition)
+                            editor.BraceHighlight(position, matchPos); // Highlight matching brackets
+                        else if (currentChar == '(' || currentChar == ')')
+                        {
+                            editor.BraceHighlight(Scintilla.InvalidPosition, Scintilla.InvalidPosition);
+                            editor.BraceBadLight(position); // Highlight if there's a mismatched bracket
+                        }
+                        else
+                            editor.BraceHighlight(Scintilla.InvalidPosition, Scintilla.InvalidPosition);
+                        break;
+
+                    case UpdateChange.Selection:
+                        foreach (var ind in editor.Indicators.Select(p => p.Index).Where(p => p != FindReplace.IndicatorIndex))
+                        {
+                            editor.IndicatorCurrent = ind;
+                            editor.IndicatorClearRange(0, editor.TextLength);
+                        }
+                        //editor.IndicatorClearRange(0, editor.TextLength);
+                        HighlightVariables(editor, indicatorIndex);
+                        if (editor.TextLength < 50000) // to avoid slowness
+                            HighlightCustomWords(editor, indicatorIndexForSelection, editor.SelectedText);
+
+                        position = editor.CurrentPosition;
+                        matchPos = editor.BraceMatch(position);
+                        currentChar = editor.GetCharAt(position);
+                        if (matchPos != Scintilla.InvalidPosition)
+                            editor.BraceHighlight(position, matchPos); // Highlight matching brackets
+                        else if (currentChar == '(' || currentChar == ')')
+                        {
+                            editor.BraceHighlight(Scintilla.InvalidPosition, Scintilla.InvalidPosition);
+                            editor.BraceBadLight(position); // Highlight if there's a mismatched bracket
+                        }
+                        else
+                            editor.BraceHighlight(Scintilla.InvalidPosition, Scintilla.InvalidPosition);
+
+                        //HighlightMatchingBrackets(editor, indicatorIndexForBrackets);
+                        break;
+                }
+            };
+        }
+
         private static void Editor_TextChanged(object sender, EventArgs e)
         {
             Scintilla editor = sender as Scintilla;

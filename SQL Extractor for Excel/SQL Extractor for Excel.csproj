@@ -37,7 +37,7 @@
     <PublishUrl>C:\Users\olszewsm\Documents\Documents\SQLExtractorForExcel\Releases\SQLExtractorForExcel_v1.5.1\</PublishUrl>
     <InstallUrl />
     <TargetCulture>en</TargetCulture>
-    <ApplicationVersion>1.5.3.0</ApplicationVersion>
+    <ApplicationVersion>1.6.0.0</ApplicationVersion>
     <AutoIncrementApplicationRevision>true</AutoIncrementApplicationRevision>
     <UpdateEnabled>true</UpdateEnabled>
     <UpdateInterval>7</UpdateInterval>
@@ -559,6 +559,12 @@
     <Compile Include="Forms\MessageBoxForm.Designer.cs">
       <DependentUpon>MessageBoxForm.cs</DependentUpon>
     </Compile>
+    <Compile Include="Forms\QueryPickerForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Forms\QueryPickerForm.Designer.cs">
+      <DependentUpon>QueryPickerForm.cs</DependentUpon>
+    </Compile>
     <Compile Include="Forms\ServerConnectionForm.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -621,6 +627,9 @@
     </EmbeddedResource>
     <EmbeddedResource Include="Forms\MessageBoxForm.resx">
       <DependentUpon>MessageBoxForm.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Forms\QueryPickerForm.resx">
+      <DependentUpon>QueryPickerForm.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Forms\ServerConnectionForm.resx">
       <DependentUpon>ServerConnectionForm.cs</DependentUpon>

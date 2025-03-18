@@ -17,6 +17,7 @@ using ScintillaNET_FindReplaceDialog;
 using SQL_Extractor_for_Excel.Forms;
 using SQL_Extractor_for_Excel.Scripts;
 using static ScintillaNET.Style;
+using static SQL_Extractor_for_Excel.Forms.QueryPickerForm;
 using Excel = Microsoft.Office.Interop.Excel;
 using Timer = System.Windows.Forms.Timer;
 
@@ -69,14 +70,14 @@ namespace SQL_Extractor_for_Excel
         private static extern bool InsertMenu(IntPtr hMenu, Int32 wPosition, Int32 wFlags, Int32 wIDNewItem, string lpNewItem);
 
 
-        public SqlEditorForm(Excel.Application app, string saveFile = null)
+        public SqlEditorForm(Excel.Application app, string saveFile = null, string startQuery = null)
         {
             ScintillaFix.CopyNativeFolderIfNotExistOrDifferentFixForScintillaBug();
             InitializeComponent();
             m_guid = Guid.NewGuid().ToString();
             m_backupName = $"{Text}_{m_guid}.json";
             Version version = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version;
-            string versionString = $"{version.Major}.{version.Minor}.{version.Build}";
+            string versionString = $"{version.Major}" + ((version.Minor != 0 || version.Build != 0) ? $".{version.Minor}" + (version.Build != 0 ? $".{version.Build}" : string.Empty) : string.Empty);
             Text = $"{Text} v{versionString}";
             FormTitle = Text;
             m_sqlManager = new SqlServerManager();
@@ -89,6 +90,9 @@ namespace SQL_Extractor_for_Excel
             serverTypeComboBox.Items.AddRange(Directory.EnumerateDirectories(FileManager.SqlQueriesPath).Select(p => Path.GetFileName(p)).ToArray());
 
             UtilsScintilla.SetupSqlEditor(sqlEditorScintilla);
+
+            if (!string.IsNullOrWhiteSpace(startQuery))
+                sqlEditorScintilla.Text = startQuery;
 
             serverTypeComboBox.ContextMenuStrip = new ContextMenuStrip();
             serverTypeComboBox.ContextMenuStrip.Items.Add("Add Server Connection").Click += (sender, e) => SqlServerManager.AddSqlConnection();
@@ -248,6 +252,48 @@ namespace SQL_Extractor_for_Excel
         private void ToggleTopMost()
         {
             this.TopMost = !this.TopMost;
+        }
+
+        private void LaunchQueryPickerForm()
+        {
+            using (var form = new QueryPickerForm(FileManager.SqlQueriesPath, ServerType))
+            {
+                if (form.ShowDialog() == DialogResult.OK)
+                {
+                    string text = form.SelectedText;
+                    PasteType pasteType = form.SelectedPasteType;
+
+                    switch (pasteType)
+                    {
+                        case PasteType.PasteBelow:
+                            sqlEditorScintilla.Text = sqlEditorScintilla.Text.TrimEnd('\n', '\r', '\t', ' ');
+                            int position = sqlEditorScintilla.Lines.Last().Position;
+                            // Append the new query with separator
+                            sqlEditorScintilla.AppendText($"{Environment.NewLine}{m_querySeparator}{Environment.NewLine}{text}{Environment.NewLine}");
+                            sqlEditorScintilla.GotoPosition(position); // Move cursor
+                            break;
+
+                        case PasteType.Replace:
+                            sqlEditorScintilla.Text = text;
+                            sqlEditorScintilla.GotoPosition(0); // Move cursor to start
+                            break;
+
+                        case PasteType.PasteIntoSelection:
+                            sqlEditorScintilla.ReplaceSelection(text);
+                            break;
+
+                        case PasteType.OpenInNewWindow:
+                            SqlEditorForm newForm = new SqlEditorForm(App, startQuery: text);
+                            newForm.Show();
+                            break;
+
+                        case PasteType.Cancel:
+                        default:
+                            // Do nothing or show a message if needed
+                            break;
+                    }
+                }
+            }
         }
 
         private void cancelBtn_Click(object sender, EventArgs e)
@@ -766,7 +812,7 @@ namespace SQL_Extractor_for_Excel
                     case DialogResult.Yes:
                         sqlEditorScintilla.Text = sqlEditorScintilla.Text.TrimEnd('\n', '\r', '\t', ' ');
                         int position = sqlEditorScintilla.Lines.Last().Position;
-                        sqlEditorScintilla.AppendText($"{Environment.NewLine + Environment.NewLine}{new string('-', 50)}{Environment.NewLine + Environment.NewLine}{m_queriesDic[m_queriesDic.Keys.First(p => Path.GetFileName(p) == savedQueriesComboBox.SelectedItem.ToString())]}");
+                        sqlEditorScintilla.AppendText($"{Environment.NewLine + Environment.NewLine}{m_querySeparator}{Environment.NewLine + Environment.NewLine}{m_queriesDic[m_queriesDic.Keys.First(p => Path.GetFileName(p) == savedQueriesComboBox.SelectedItem.ToString())]}");
                         sqlEditorScintilla.GotoPosition(position);
                         break;
                     case DialogResult.No:
@@ -780,6 +826,12 @@ namespace SQL_Extractor_for_Excel
             }
             else
                 sqlEditorScintilla.Text = m_queriesDic[m_queriesDic.Keys.First(p => Path.GetFileName(p) == savedQueriesComboBox.SelectedItem.ToString())];
+        }
+
+        private void savedQueriesComboBox_MouseDown(object sender, MouseEventArgs e)
+        {
+            if (e.Button == MouseButtons.Right)
+                LaunchQueryPickerForm();
         }
 
         private void serverComboBox_SelectedIndexChanged(object sender, EventArgs e)
