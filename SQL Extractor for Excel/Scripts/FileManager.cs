@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
-using System.Reflection;
+using System.Linq;
 using System.Windows.Forms;
 using Shell32;
 
@@ -46,7 +46,25 @@ namespace SQL_Extractor_for_Excel.Scripts
             try
             {
                 string filePath = Path.Combine(PropertiesFilesPath, "SqlKeywords.txt");
-                return File.ReadAllText(filePath);
+                string content = File.ReadAllText(filePath);
+
+                // Split by spaces and newlines, filter out empty entries
+                var keywords = content
+                    .Split(new[] { ' ', '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries)
+                    .Distinct()           // Remove duplicates
+                    .OrderBy(k => k)      // Sort alphabetically
+                    .ToList();
+
+                try
+                {
+                    // Write back to file with newline separators
+                    File.WriteAllLines(filePath, keywords);
+                }
+                catch (IOException) { }
+                catch (Exception) { }
+
+                // Return joined with spaces
+                return string.Join(" ", keywords);
             }
             catch (IOException)
             {

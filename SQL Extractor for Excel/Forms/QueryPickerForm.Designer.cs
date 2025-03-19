@@ -31,6 +31,7 @@ namespace SQL_Extractor_for_Excel.Forms
         /// </summary>
         private void InitializeComponent()
         {
+            this.components = new System.ComponentModel.Container();
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(QueryPickerForm));
             this.mainTableLayoutPanel = new System.Windows.Forms.TableLayoutPanel();
             this.splitContainer = new System.Windows.Forms.SplitContainer();
@@ -42,6 +43,7 @@ namespace SQL_Extractor_for_Excel.Forms
             this.pasteQueryButton = new System.Windows.Forms.Button();
             this.replaceQueryButton = new System.Windows.Forms.Button();
             this.cancelButton = new System.Windows.Forms.Button();
+            this.toolTip = new System.Windows.Forms.ToolTip(this.components);
             this.mainTableLayoutPanel.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.splitContainer)).BeginInit();
             this.splitContainer.Panel1.SuspendLayout();
@@ -62,7 +64,7 @@ namespace SQL_Extractor_for_Excel.Forms
             this.mainTableLayoutPanel.Name = "mainTableLayoutPanel";
             this.mainTableLayoutPanel.RowCount = 2;
             this.mainTableLayoutPanel.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100F));
-            this.mainTableLayoutPanel.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 35F));
+            this.mainTableLayoutPanel.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 30F));
             this.mainTableLayoutPanel.Size = new System.Drawing.Size(592, 447);
             this.mainTableLayoutPanel.TabIndex = 0;
             // 
@@ -79,7 +81,7 @@ namespace SQL_Extractor_for_Excel.Forms
             // splitContainer.Panel2
             // 
             this.splitContainer.Panel2.Controls.Add(this.queryViewEditorScintilla);
-            this.splitContainer.Size = new System.Drawing.Size(586, 406);
+            this.splitContainer.Size = new System.Drawing.Size(586, 411);
             this.splitContainer.SplitterDistance = 272;
             this.splitContainer.TabIndex = 6;
             // 
@@ -87,25 +89,29 @@ namespace SQL_Extractor_for_Excel.Forms
             // 
             this.catalogTableLayoutPanel.ColumnCount = 1;
             this.catalogTableLayoutPanel.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100F));
-            this.catalogTableLayoutPanel.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 20F));
             this.catalogTableLayoutPanel.Controls.Add(this.searchTextBox, 0, 0);
             this.catalogTableLayoutPanel.Controls.Add(this.queriesTreeView, 0, 1);
             this.catalogTableLayoutPanel.Dock = System.Windows.Forms.DockStyle.Fill;
             this.catalogTableLayoutPanel.Location = new System.Drawing.Point(0, 0);
+            this.catalogTableLayoutPanel.Margin = new System.Windows.Forms.Padding(0);
             this.catalogTableLayoutPanel.Name = "catalogTableLayoutPanel";
             this.catalogTableLayoutPanel.RowCount = 2;
-            this.catalogTableLayoutPanel.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 30F));
+            this.catalogTableLayoutPanel.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 22F));
             this.catalogTableLayoutPanel.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100F));
-            this.catalogTableLayoutPanel.Size = new System.Drawing.Size(272, 406);
+            this.catalogTableLayoutPanel.Size = new System.Drawing.Size(272, 411);
             this.catalogTableLayoutPanel.TabIndex = 0;
             // 
             // searchTextBox
             // 
-            this.searchTextBox.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right)));
-            this.searchTextBox.Location = new System.Drawing.Point(3, 5);
+            this.searchTextBox.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
+            | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
+            this.searchTextBox.Location = new System.Drawing.Point(0, 0);
+            this.searchTextBox.Margin = new System.Windows.Forms.Padding(0);
             this.searchTextBox.Name = "searchTextBox";
-            this.searchTextBox.Size = new System.Drawing.Size(266, 20);
-            this.searchTextBox.TabIndex = 4;
+            this.searchTextBox.Size = new System.Drawing.Size(272, 20);
+            this.searchTextBox.TabIndex = 0;
+            this.toolTip.SetToolTip(this.searchTextBox, "Search queries\'s names (accepts Regex)");
             // 
             // queriesTreeView
             // 
@@ -113,10 +119,11 @@ namespace SQL_Extractor_for_Excel.Forms
             this.queriesTreeView.Dock = System.Windows.Forms.DockStyle.Fill;
             this.queriesTreeView.HideSelection = false;
             this.queriesTreeView.Indent = 15;
-            this.queriesTreeView.Location = new System.Drawing.Point(3, 33);
+            this.queriesTreeView.Location = new System.Drawing.Point(0, 22);
+            this.queriesTreeView.Margin = new System.Windows.Forms.Padding(0);
             this.queriesTreeView.Name = "queriesTreeView";
-            this.queriesTreeView.Size = new System.Drawing.Size(266, 370);
-            this.queriesTreeView.TabIndex = 5;
+            this.queriesTreeView.Size = new System.Drawing.Size(272, 389);
+            this.queriesTreeView.TabIndex = 2;
             // 
             // queryViewEditorScintilla
             // 
@@ -127,8 +134,8 @@ namespace SQL_Extractor_for_Excel.Forms
             this.queryViewEditorScintilla.Location = new System.Drawing.Point(0, 0);
             this.queryViewEditorScintilla.Name = "queryViewEditorScintilla";
             this.queryViewEditorScintilla.ReadOnly = true;
-            this.queryViewEditorScintilla.Size = new System.Drawing.Size(310, 406);
-            this.queryViewEditorScintilla.TabIndex = 3;
+            this.queryViewEditorScintilla.Size = new System.Drawing.Size(310, 411);
+            this.queryViewEditorScintilla.TabIndex = 5;
             this.queryViewEditorScintilla.UseTabs = true;
             this.queryViewEditorScintilla.WrapIndentMode = ScintillaNET.WrapIndentMode.Indent;
             this.queryViewEditorScintilla.WrapMode = ScintillaNET.WrapMode.Word;
@@ -140,20 +147,22 @@ namespace SQL_Extractor_for_Excel.Forms
             this.buttonsFlowLayoutPanel.Controls.Add(this.cancelButton);
             this.buttonsFlowLayoutPanel.Dock = System.Windows.Forms.DockStyle.Bottom;
             this.buttonsFlowLayoutPanel.FlowDirection = System.Windows.Forms.FlowDirection.RightToLeft;
-            this.buttonsFlowLayoutPanel.Location = new System.Drawing.Point(3, 415);
+            this.buttonsFlowLayoutPanel.Location = new System.Drawing.Point(0, 418);
+            this.buttonsFlowLayoutPanel.Margin = new System.Windows.Forms.Padding(0);
             this.buttonsFlowLayoutPanel.Name = "buttonsFlowLayoutPanel";
-            this.buttonsFlowLayoutPanel.Size = new System.Drawing.Size(586, 29);
+            this.buttonsFlowLayoutPanel.Size = new System.Drawing.Size(592, 29);
             this.buttonsFlowLayoutPanel.TabIndex = 7;
             // 
             // pasteQueryButton
             // 
             this.pasteQueryButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right)));
             this.pasteQueryButton.AutoSize = true;
-            this.pasteQueryButton.Location = new System.Drawing.Point(510, 3);
+            this.pasteQueryButton.Location = new System.Drawing.Point(516, 3);
             this.pasteQueryButton.Name = "pasteQueryButton";
             this.pasteQueryButton.Size = new System.Drawing.Size(73, 23);
-            this.pasteQueryButton.TabIndex = 2;
+            this.pasteQueryButton.TabIndex = 4;
             this.pasteQueryButton.Text = "Paste query";
+            this.toolTip.SetToolTip(this.pasteQueryButton, "Paste chosen query in the editor under text");
             this.pasteQueryButton.UseVisualStyleBackColor = true;
             this.pasteQueryButton.Click += new System.EventHandler(this.pasteQueryButton_Click);
             // 
@@ -161,11 +170,12 @@ namespace SQL_Extractor_for_Excel.Forms
             // 
             this.replaceQueryButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right)));
             this.replaceQueryButton.AutoSize = true;
-            this.replaceQueryButton.Location = new System.Drawing.Point(418, 3);
+            this.replaceQueryButton.Location = new System.Drawing.Point(424, 3);
             this.replaceQueryButton.Name = "replaceQueryButton";
             this.replaceQueryButton.Size = new System.Drawing.Size(86, 23);
-            this.replaceQueryButton.TabIndex = 1;
+            this.replaceQueryButton.TabIndex = 4;
             this.replaceQueryButton.Text = "Replace query";
+            this.toolTip.SetToolTip(this.replaceQueryButton, "Replace all text in the editor with chosen query");
             this.replaceQueryButton.UseVisualStyleBackColor = true;
             this.replaceQueryButton.Click += new System.EventHandler(this.replaceQueryButton_Click);
             // 
@@ -173,11 +183,12 @@ namespace SQL_Extractor_for_Excel.Forms
             // 
             this.cancelButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right)));
             this.cancelButton.AutoSize = true;
-            this.cancelButton.Location = new System.Drawing.Point(362, 3);
+            this.cancelButton.Location = new System.Drawing.Point(368, 3);
             this.cancelButton.Name = "cancelButton";
             this.cancelButton.Size = new System.Drawing.Size(50, 23);
-            this.cancelButton.TabIndex = 0;
+            this.cancelButton.TabIndex = 3;
             this.cancelButton.Text = "Cancel";
+            this.toolTip.SetToolTip(this.cancelButton, "Close");
             this.cancelButton.UseVisualStyleBackColor = true;
             this.cancelButton.Click += new System.EventHandler(this.cancelButton_Click);
             // 
@@ -192,6 +203,7 @@ namespace SQL_Extractor_for_Excel.Forms
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
             this.Text = "Query Picker Form";
             this.TopMost = true;
+            this.Load += new System.EventHandler(this.QueryPickerForm_Load);
             this.mainTableLayoutPanel.ResumeLayout(false);
             this.splitContainer.Panel1.ResumeLayout(false);
             this.splitContainer.Panel2.ResumeLayout(false);
@@ -217,5 +229,6 @@ namespace SQL_Extractor_for_Excel.Forms
         private System.Windows.Forms.SplitContainer splitContainer;
         private System.Windows.Forms.TableLayoutPanel catalogTableLayoutPanel;
         private System.Windows.Forms.FlowLayoutPanel buttonsFlowLayoutPanel;
+        private ToolTip toolTip;
     }
 }

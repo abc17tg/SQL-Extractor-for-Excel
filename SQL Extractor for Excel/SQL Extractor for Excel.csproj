@@ -34,10 +34,10 @@
     </NuGetPackageImportStamp>
     <IsWebBootstrapper>False</IsWebBootstrapper>
     <BootstrapperEnabled>true</BootstrapperEnabled>
-    <PublishUrl>C:\Users\olszewsm\Documents\Documents\SQLExtractorForExcel\Releases\SQLExtractorForExcel_v1.5.1\</PublishUrl>
+    <PublishUrl>C:\Users\olszewsm\Documents\Documents\SQLExtractorForExcel\Releases\SQLExtractorForExcel_v1.6\</PublishUrl>
     <InstallUrl />
     <TargetCulture>en</TargetCulture>
-    <ApplicationVersion>1.6.0.0</ApplicationVersion>
+    <ApplicationVersion>1.6.0.1</ApplicationVersion>
     <AutoIncrementApplicationRevision>true</AutoIncrementApplicationRevision>
     <UpdateEnabled>true</UpdateEnabled>
     <UpdateInterval>7</UpdateInterval>

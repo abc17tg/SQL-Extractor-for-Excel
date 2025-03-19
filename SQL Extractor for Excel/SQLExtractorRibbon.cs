@@ -6,7 +6,6 @@ using System.Runtime.InteropServices;
 using SQL_Extractor_for_Excel.Scripts;
 using Office = Microsoft.Office.Core;
 using System.Diagnostics;
-using ScintillaNET;
 
 // TODO:  Follow these steps to enable the Ribbon (XML) item:
 

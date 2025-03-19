@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Data;
 using System.Drawing;
@@ -10,13 +9,9 @@ using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Windows.Forms;
-using System.Xml;
-using System.Xml.Linq;
-using ScintillaNET;
 using ScintillaNET_FindReplaceDialog;
 using SQL_Extractor_for_Excel.Forms;
 using SQL_Extractor_for_Excel.Scripts;
-using static ScintillaNET.Style;
 using static SQL_Extractor_for_Excel.Forms.QueryPickerForm;
 using Excel = Microsoft.Office.Interop.Excel;
 using Timer = System.Windows.Forms.Timer;
@@ -29,7 +24,7 @@ namespace SQL_Extractor_for_Excel
         public string Query;
         public int RunningQueries = 0;
         public Excel.Application App;
-        public SqlServerManager.ServerType ServerType;
+        public SqlServerManager.ServerType? ServerType;
         public SqlConn SqlConn;
         public static string DefaultSheetName = "Sql Query";
         public static string NewSheetName;
@@ -289,7 +284,6 @@ namespace SQL_Extractor_for_Excel
 
                         case PasteType.Cancel:
                         default:
-                            // Do nothing or show a message if needed
                             break;
                     }
                 }

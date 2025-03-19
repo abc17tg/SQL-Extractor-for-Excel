@@ -11,7 +11,6 @@ using System.Text;
 using System.Threading.Tasks;
 using SQL_Extractor_for_Excel.Forms;
 using System.Text.RegularExpressions;
-using static System.Windows.Forms.VisualStyles.VisualStyleElement.ProgressBar;
 
 public static class Utils
 {

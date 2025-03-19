@@ -1,15 +1,11 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
 using System.Data;
-using System.Drawing;
 using System.IO;
 using System.Linq;
-using System.Text;
 using System.Text.RegularExpressions;
-using System.Threading.Tasks;
 using System.Windows.Forms;
 using SQL_Extractor_for_Excel.Scripts;
+using System.Runtime.InteropServices;
 
 namespace SQL_Extractor_for_Excel.Forms
 {
@@ -24,18 +20,31 @@ namespace SQL_Extractor_for_Excel.Forms
             Cancel
         }
 
+        private readonly string m_nodeTooltipText = "(Press N or right click to open in new window)";
         private readonly string m_directoryPath;
         private string m_selectedText;
         private PasteType m_pasteType;
 
+
+        public const Int32 WM_SYSCOMMAND = 0x112;
+        public const Int32 MF_BYPOSITION = 0x400;
+        public const Int32 ToggleTopMostMenuItem = 1000;
+        public const Int32 CenterFormMenuItem = 1001;
+
+        [DllImport("user32.dll")]
+        private static extern IntPtr GetSystemMenu(IntPtr hWnd, bool bRevert);
+        [DllImport("user32.dll")]
+        private static extern bool InsertMenu(IntPtr hMenu, Int32 wPosition, Int32 wFlags, Int32 wIDNewItem, string lpNewItem);
+
         public string SelectedText => m_selectedText;
         public PasteType SelectedPasteType => m_pasteType;
 
-        private SqlServerManager.ServerType m_serverType;
+        private SqlServerManager.ServerType? m_serverType;
 
-        public SqlServerManager.ServerType ServerType => m_serverType;
+        public SqlServerManager.ServerType? ServerType => m_serverType;
 
-        public QueryPickerForm(string directoryPath, SqlServerManager.ServerType serverType)
+
+        public QueryPickerForm(string directoryPath, SqlServerManager.ServerType? serverType)
         {
             m_directoryPath = directoryPath;
             m_serverType = serverType;
@@ -43,6 +52,38 @@ namespace SQL_Extractor_for_Excel.Forms
             InitializeComponent();
             SetupForm();
 
+        }
+
+        private void QueryPickerForm_Load(object sender, EventArgs e)
+        {
+            IntPtr MenuHandle = GetSystemMenu(this.Handle, false);
+            InsertMenu(MenuHandle, 5, MF_BYPOSITION, ToggleTopMostMenuItem, "Pin/Unpin this window");
+            InsertMenu(MenuHandle, 6, MF_BYPOSITION, CenterFormMenuItem, "Center window");
+        }
+
+        private void ToggleTopMost()
+        {
+            this.TopMost = !this.TopMost;
+        }
+
+
+        protected override void WndProc(ref Message msg)
+        {
+            if (msg.Msg == WM_SYSCOMMAND)
+            {
+                switch (msg.WParam.ToInt32())
+                {
+                    case ToggleTopMostMenuItem:
+                        ToggleTopMost();
+                        break;
+                    case CenterFormMenuItem:
+                        Utils.MoveFormToCenter(this);
+                        break;
+                    default:
+                        break;
+                }
+            }
+            base.WndProc(ref msg);
         }
 
         private void SetupForm()
@@ -70,7 +111,7 @@ namespace SQL_Extractor_for_Excel.Forms
 
             var toggleWrapMode = new ToolStripMenuItem("Toggle text wrap mode", null, (s, e) =>
             {
-                if (queryViewEditorScintilla.WrapMode == ScintillaNET.WrapMode.None) 
+                if (queryViewEditorScintilla.WrapMode == ScintillaNET.WrapMode.None)
                     queryViewEditorScintilla.WrapMode = ScintillaNET.WrapMode.Word;
                 else
                     queryViewEditorScintilla.WrapMode = ScintillaNET.WrapMode.None;
@@ -109,6 +150,7 @@ namespace SQL_Extractor_for_Excel.Forms
                 var dirInfo = new DirectoryInfo(dir);
                 var node = queriesTreeView.Nodes.Add(dirInfo.Name);
                 node.Tag = dirInfo.FullName;
+                node.ToolTipText = m_nodeTooltipText;
 
                 // Only expand the directory matching server type
                 if (dirInfo.Name.Equals(m_serverType.ToString(), StringComparison.Ordinal))
@@ -124,12 +166,73 @@ namespace SQL_Extractor_for_Excel.Forms
                 }
             }
 
-            queriesTreeView.BeforeExpand += QueriesTreeView_BeforeExpand;
-            queriesTreeView.AfterSelect += QueriesTreeView_AfterSelect;
-            queriesTreeView.NodeMouseClick += QueriesTreeView_NodeMouseClick;
+            queriesTreeView.ShowNodeToolTips = true;
+            queriesTreeView.BeforeExpand += queriesTreeView_BeforeExpand;
+            queriesTreeView.AfterExpand += QueriesTreeView_AfterExpand;
+            queriesTreeView.AfterSelect += queriesTreeView_AfterSelect;
+            queriesTreeView.NodeMouseClick += queriesTreeView_NodeMouseClick;
+            queriesTreeView.KeyDown += queriesTreeView_KeyDown;
         }
 
-        private void QueriesTreeView_BeforeExpand(object sender, TreeViewCancelEventArgs e)
+        private void QueriesTreeView_AfterExpand(object sender, TreeViewEventArgs e)
+        {
+            foreach (var node in e.Node.Nodes.Cast<TreeNode>())
+                if (node.Text == "Loading...")
+                    node.Remove();
+        }
+
+        private void queriesTreeView_KeyDown(object sender, KeyEventArgs e)
+        {
+            TreeNode selectedNode = queriesTreeView.SelectedNode;
+
+            if (selectedNode != null)
+            {
+                // Handle key combinations
+                if (e.Shift)
+                {
+                    switch (e.KeyCode)
+                    {
+                        case Keys.Right: // Shift + Right Arrow
+                        case Keys.Oemplus:   // Shift + =/+
+                            queriesTreeView.SelectedNode.ExpandAll();
+                            e.Handled = true;
+                            break;
+
+                        case Keys.Left:     // Shift + Left Arrow
+                        case Keys.OemMinus: // Shift + -/_
+                            queriesTreeView.CollapseAll();
+                            e.Handled = true;
+                            break;
+                    }
+                }
+                else // No Shift key
+                {
+                    switch (e.KeyCode)
+                    {
+                        case Keys.Oemplus: // =/+
+                        case Keys.Right: // Right arrow
+                            if (!selectedNode.IsExpanded)
+                                selectedNode.Expand();
+                            e.Handled = true;
+                            break;
+
+                        case Keys.OemMinus: // -/_
+                        case Keys.Left: // Left arrow
+                            if (selectedNode.IsExpanded)
+                                selectedNode.Collapse();
+                            else if (selectedNode.Level > 0)
+                                selectedNode.Parent.Collapse();
+                            e.Handled = true;
+                            break;
+                        case Keys.Space:
+                            selectedNode.Toggle();
+                            break;
+                    }
+                }
+            }
+        }
+
+        private void queriesTreeView_BeforeExpand(object sender, TreeViewCancelEventArgs e)
         {
             if (e.Node.Nodes.Count == 1 && e.Node.Nodes[0].Text == "Loading...")
             {
@@ -147,6 +250,7 @@ namespace SQL_Extractor_for_Excel.Forms
             {
                 var dirInfo = new DirectoryInfo(dir);
                 var node = parentNode.Nodes.Add(dirInfo.Name);
+                node.ToolTipText = m_nodeTooltipText;
                 node.Tag = dirInfo.FullName;
 
                 // Add dummy node if there are subdirectories or SQL files
@@ -154,6 +258,9 @@ namespace SQL_Extractor_for_Excel.Forms
                 {
                     node.Nodes.Add("Loading...");
                 }
+                else
+                    node.Remove();
+                //node.Nodes.Add("(empty)");
             }
 
             // Add SQL files
@@ -162,10 +269,11 @@ namespace SQL_Extractor_for_Excel.Forms
                 var fileInfo = new FileInfo(file);
                 var node = parentNode.Nodes.Add(fileInfo.Name);
                 node.Tag = fileInfo.FullName;
+                node.ToolTipText = m_nodeTooltipText;
             }
         }
 
-        private void QueriesTreeView_AfterSelect(object sender, TreeViewEventArgs e)
+        private void queriesTreeView_AfterSelect(object sender, TreeViewEventArgs e)
         {
             if (e.Node.Tag == null) return;
 
@@ -186,7 +294,7 @@ namespace SQL_Extractor_for_Excel.Forms
             }
         }
 
-        private void QueriesTreeView_NodeMouseClick(object sender, TreeNodeMouseClickEventArgs e)
+        private void queriesTreeView_NodeMouseClick(object sender, TreeNodeMouseClickEventArgs e)
         {
             if (e.Button == MouseButtons.Right && e.Node.Tag != null)
             {
@@ -197,6 +305,7 @@ namespace SQL_Extractor_for_Excel.Forms
                     {
                         m_selectedText = File.ReadAllText(path);
                         m_pasteType = PasteType.OpenInNewWindow;
+                        this.DialogResult = DialogResult.OK;
                         this.Close();
                     }
                     catch (Exception ex)
@@ -263,6 +372,7 @@ namespace SQL_Extractor_for_Excel.Forms
                 var dirInfo = new DirectoryInfo(dir);
                 var node = queriesTreeView.Nodes.Add(dirInfo.Name);
                 node.Tag = dirInfo.FullName;
+                node.ToolTipText = m_nodeTooltipText;
 
                 // Always search subdirectories, but mark if they have matches
                 bool hasMatches = SearchSubDirectory(dir, regex, node);
@@ -285,6 +395,7 @@ namespace SQL_Extractor_for_Excel.Forms
                 var dirInfo = new DirectoryInfo(dir);
                 var node = parentNode.Nodes.Add(dirInfo.Name);
                 node.Tag = dirInfo.FullName;
+                node.ToolTipText = m_nodeTooltipText;
 
                 bool subHasMatches = SearchSubDirectory(dir, regex, node);
                 if (subHasMatches || regex.IsMatch(dirInfo.Name))
@@ -305,6 +416,7 @@ namespace SQL_Extractor_for_Excel.Forms
                 {
                     var node = parentNode.Nodes.Add(fileInfo.Name);
                     node.Tag = fileInfo.FullName;
+                    node.ToolTipText = m_nodeTooltipText;
                     hasMatches = true;
                 }
             }

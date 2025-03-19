@@ -1,14 +1,9 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Xml.Linq;
 using Excel = Microsoft.Office.Interop.Excel;
 using Office = Microsoft.Office.Core;
 using SQL_Extractor_for_Excel.Scripts;
 using System.IO;
 using System.Windows.Forms;
-using static SQL_Extractor_for_Excel.SqlEditorForm;
 
 namespace SQL_Extractor_for_Excel
 {

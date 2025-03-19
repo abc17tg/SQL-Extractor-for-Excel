@@ -4,18 +4,13 @@ using System.IO;
 using System.Linq;
 using System.Windows.Forms;
 using Excel = Microsoft.Office.Interop.Excel;
-using ExcelVB = Microsoft.Vbe.Interop;
 using System.Runtime.InteropServices;
-using SQL_Extractor_for_Excel.Forms;
 using System.Data;
 using SQL_Extractor_for_Excel.Scripts;
 using System.Threading.Tasks;
 using System.Text.RegularExpressions;
 using System.Numerics;
-using System.Drawing;
 using System.Globalization;
-using SQL_Extractor_for_Excel;
-using System.Text;
 
 public static class UtilsExcel
 {
