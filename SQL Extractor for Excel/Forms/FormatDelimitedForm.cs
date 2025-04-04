@@ -202,5 +202,10 @@ namespace SQL_Extractor_for_Excel.Forms
             Format();
             UpdateCount();
         }
+
+        private void FormatDelimitedForm_Activated(object sender, EventArgs e)
+        {
+            Utils.EnsureWindowIsVisible(this);
+        }
     }
 }

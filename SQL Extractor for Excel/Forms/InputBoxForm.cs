@@ -78,5 +78,10 @@ namespace SQL_Extractor_for_Excel.Forms
             this.DialogResult = DialogResult.Cancel;
             this.Close();
         }
+
+        private void InputBoxForm_Activated(object sender, EventArgs e)
+        {
+
+        }
     }
 }

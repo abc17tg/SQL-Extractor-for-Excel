@@ -151,5 +151,9 @@ namespace SQL_Extractor_for_Excel.Forms
             }
         }
 
+        private void FileDropForm_Activated(object sender, EventArgs e)
+        {
+            Utils.EnsureWindowIsVisible(this);
+        }
     }
 }

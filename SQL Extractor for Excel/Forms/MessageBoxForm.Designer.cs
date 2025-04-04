@@ -87,7 +87,8 @@
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.Name = "MessageBoxForm";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
-            this.Text = "MessageBoxForm";
+            this.Text = "MessageBox";
+            this.Activated += new System.EventHandler(this.MessageBoxForm_Activated);
             this.Load += new System.EventHandler(this.MessageBoxForm_Load);
             this.tableLayoutPanel1.ResumeLayout(false);
             this.ResumeLayout(false);

@@ -111,7 +111,8 @@ namespace SQL_Extractor_for_Excel.Forms
             this.searchTextBox.Name = "searchTextBox";
             this.searchTextBox.Size = new System.Drawing.Size(272, 20);
             this.searchTextBox.TabIndex = 0;
-            this.toolTip.SetToolTip(this.searchTextBox, "Search queries\'s names (accepts Regex)");
+            this.toolTip.SetToolTip(this.searchTextBox, "Search queries\'s names (accepts Regex)\r\n(Enter for search)\r\n(Shift + Enter for se" +
+        "ach contents)");
             // 
             // queriesTreeView
             // 
@@ -136,6 +137,7 @@ namespace SQL_Extractor_for_Excel.Forms
             this.queryViewEditorScintilla.ReadOnly = true;
             this.queryViewEditorScintilla.Size = new System.Drawing.Size(310, 411);
             this.queryViewEditorScintilla.TabIndex = 5;
+            this.queryViewEditorScintilla.TabStop = false;
             this.queryViewEditorScintilla.UseTabs = true;
             this.queryViewEditorScintilla.WrapIndentMode = ScintillaNET.WrapIndentMode.Indent;
             this.queryViewEditorScintilla.WrapMode = ScintillaNET.WrapMode.Word;
@@ -203,6 +205,7 @@ namespace SQL_Extractor_for_Excel.Forms
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
             this.Text = "Query Picker Form";
             this.TopMost = true;
+            this.Activated += new System.EventHandler(this.QueryPickerForm_Activated);
             this.Load += new System.EventHandler(this.QueryPickerForm_Load);
             this.mainTableLayoutPanel.ResumeLayout(false);
             this.splitContainer.Panel1.ResumeLayout(false);

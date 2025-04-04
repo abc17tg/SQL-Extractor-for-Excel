@@ -19,6 +19,7 @@ namespace SQL_Extractor_for_Excel
             serverTypeComboBox_SelectedIndexChanged(null, null);
         }
 
+
         private void testBtn_Click(object sender, EventArgs e)
         {
             bool result;
@@ -102,6 +103,11 @@ namespace SQL_Extractor_for_Excel
                     okBtn.Enabled = false;
                     return;
             }
+        }
+
+        private void ServerConnectionForm_Activated(object sender, EventArgs e)
+        {
+            Utils.EnsureWindowIsVisible(this);
         }
     }
 }

@@ -91,6 +91,7 @@
             this.ShowIcon = false;
             this.Text = "Range input";
             this.TopMost = true;
+            this.Activated += new System.EventHandler(this.InputRangeForm_Activated);
             this.KeyDown += new System.Windows.Forms.KeyEventHandler(this.InputRangeForm_KeyDown);
             this.ResumeLayout(false);
             this.PerformLayout();

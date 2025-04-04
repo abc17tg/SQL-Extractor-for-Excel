@@ -61,5 +61,10 @@ namespace SQL_Extractor_for_Excel.Forms
             this.DialogResult = DialogResult.OK;
             this.Close();
         }
+
+        private void MessageBoxForm_Activated(object sender, EventArgs e)
+        {
+            Utils.EnsureWindowIsVisible(this);
+        }
     }
 }

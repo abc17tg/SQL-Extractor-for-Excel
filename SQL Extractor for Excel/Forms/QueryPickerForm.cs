@@ -6,6 +6,7 @@ using System.Text.RegularExpressions;
 using System.Windows.Forms;
 using SQL_Extractor_for_Excel.Scripts;
 using System.Runtime.InteropServices;
+using ScintillaNET;
 
 namespace SQL_Extractor_for_Excel.Forms
 {
@@ -91,50 +92,41 @@ namespace SQL_Extractor_for_Excel.Forms
             // Configure Scintilla
             UtilsScintilla.SetupSqlEditorReadOnly(queryViewEditorScintilla);
             queryViewEditorScintilla.Styles.AsEnumerable().ToList().ForEach(p => { p.Size = 7; p.Bold = true; });
-            queryViewEditorScintilla.ContextMenuStrip = CreateScintillaContextMenu();
+            CreateScintillaContextMenu(queryViewEditorScintilla);
 
             // Populate TreeView
             PopulateTreeView();
+
+            queriesTreeView.ShowNodeToolTips = true;
+            queriesTreeView.BeforeExpand += queriesTreeView_BeforeExpand;
+            queriesTreeView.AfterExpand += QueriesTreeView_AfterExpand;
+            queriesTreeView.AfterSelect += queriesTreeView_AfterSelect;
+            queriesTreeView.NodeMouseClick += queriesTreeView_NodeMouseClick;
+            queriesTreeView.KeyDown += queriesTreeView_KeyDown;
 
             // Setup search
             searchTextBox.KeyDown += SearchTextBox_KeyDown;
         }
 
-        private ContextMenuStrip CreateScintillaContextMenu()
+        private void CreateScintillaContextMenu(Scintilla editor)
         {
-            var contextMenu = new ContextMenuStrip();
 
-            var copy = new ToolStripMenuItem("Copy", null, (s, e) =>
-            {
-                queryViewEditorScintilla.Copy();
-            });
-
-            var toggleWrapMode = new ToolStripMenuItem("Toggle text wrap mode", null, (s, e) =>
-            {
-                if (queryViewEditorScintilla.WrapMode == ScintillaNET.WrapMode.None)
-                    queryViewEditorScintilla.WrapMode = ScintillaNET.WrapMode.Word;
-                else
-                    queryViewEditorScintilla.WrapMode = ScintillaNET.WrapMode.None;
-            });
-
-            var pasteIntoSelection = new ToolStripMenuItem("Paste into selection", null, (s, e) =>
-            {
+            ContextMenu cm = editor.ContextMenu ?? new ContextMenu();
+            MenuItem pasteIntoSelectionCMI = new MenuItem("Paste into selection", (o, e) => {
                 m_selectedText = queryViewEditorScintilla.SelectedText;
                 m_pasteType = PasteType.PasteIntoSelection;
                 this.DialogResult = DialogResult.OK;
                 this.Close();
             });
-
-            var pasteBelow = new ToolStripMenuItem("Paste below", null, (s, e) =>
-            {
+            MenuItem pasteBelowCMI = new MenuItem("Paste below", (o, e) => {
                 m_selectedText = queryViewEditorScintilla.SelectedText;
                 m_pasteType = PasteType.PasteBelow;
                 this.DialogResult = DialogResult.OK;
                 this.Close();
             });
-
-            contextMenu.Items.AddRange(new ToolStripItem[] { copy, pasteIntoSelection, pasteBelow, toggleWrapMode });
-            return contextMenu;
+            cm.MenuItems.Add(pasteIntoSelectionCMI);
+            cm.MenuItems.Add(pasteBelowCMI);
+            editor.ContextMenu = cm;
         }
 
         private void PopulateTreeView()
@@ -165,13 +157,6 @@ namespace SQL_Extractor_for_Excel.Forms
                     node.Nodes.Add("Loading...");
                 }
             }
-
-            queriesTreeView.ShowNodeToolTips = true;
-            queriesTreeView.BeforeExpand += queriesTreeView_BeforeExpand;
-            queriesTreeView.AfterExpand += QueriesTreeView_AfterExpand;
-            queriesTreeView.AfterSelect += queriesTreeView_AfterSelect;
-            queriesTreeView.NodeMouseClick += queriesTreeView_NodeMouseClick;
-            queriesTreeView.KeyDown += queriesTreeView_KeyDown;
         }
 
         private void QueriesTreeView_AfterExpand(object sender, TreeViewEventArgs e)
@@ -321,47 +306,146 @@ namespace SQL_Extractor_for_Excel.Forms
         {
             if (e.KeyCode == Keys.Enter)
             {
-                string searchPattern = searchTextBox.Text;
-                queriesTreeView.Nodes.Clear();
-
-                if (string.IsNullOrWhiteSpace(searchPattern))
+                if (e.Shift)
                 {
-                    PopulateTreeView();
-                    // Find and expand the server node
-                    foreach (TreeNode node in queriesTreeView.Nodes)
+                    // Search inside files when Shift + Enter is pressed
+                    string searchPattern = searchTextBox.Text;
+                    queriesTreeView.Nodes.Clear();
+
+                    if (string.IsNullOrWhiteSpace(searchPattern))
                     {
-                        if (node.Text.Equals(m_serverType.ToString(), StringComparison.Ordinal))
-                        {
-                            node.Expand();
-                            break;
-                        }
+                        PopulateTreeView();
+                        ExpandServerNode();
+                        return;
                     }
-                    return;
-                }
 
-                try
-                {
-                    var regex = new Regex(searchPattern, RegexOptions.IgnoreCase);
-                    SearchDirectory(m_directoryPath, regex);
-                    // Expand all nodes after search to show results
-                    queriesTreeView.ExpandAll();
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show($"Invalid search pattern: {ex.Message}", "Error",
-                        MessageBoxButtons.OK, MessageBoxIcon.Error);
-                    PopulateTreeView();
-                    // Restore expansion after error
-                    foreach (TreeNode node in queriesTreeView.Nodes)
+                    try
                     {
-                        if (node.Text.Equals(m_serverType.ToString(), StringComparison.Ordinal))
-                        {
-                            node.Expand();
-                            break;
-                        }
+                        var regex = new Regex(searchPattern, RegexOptions.IgnoreCase);
+                        SearchDirectoryContents(m_directoryPath, regex);
+                        queriesTreeView.ExpandAll();
+                    }
+                    catch (Exception ex)
+                    {
+                        MessageBox.Show($"Invalid search pattern: {ex.Message}", "Error",
+                            MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        PopulateTreeView();
+                        ExpandServerNode();
+                    }
+                }
+                else
+                {
+                    // Existing filename-only search logic
+                    string searchPattern = searchTextBox.Text;
+                    queriesTreeView.Nodes.Clear();
+
+                    if (string.IsNullOrWhiteSpace(searchPattern))
+                    {
+                        PopulateTreeView();
+                        ExpandServerNode();
+                        return;
+                    }
+
+                    try
+                    {
+                        var regex = new Regex(searchPattern, RegexOptions.IgnoreCase);
+                        SearchDirectory(m_directoryPath, regex);
+                        queriesTreeView.ExpandAll();
+                    }
+                    catch (Exception ex)
+                    {
+                        MessageBox.Show($"Invalid search pattern: {ex.Message}", "Error",
+                            MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        PopulateTreeView();
+                        ExpandServerNode();
                     }
                 }
             }
+        }
+
+        // Helper method to avoid code duplication
+        private void ExpandServerNode()
+        {
+            foreach (TreeNode node in queriesTreeView.Nodes)
+            {
+                if (node.Text.Equals(m_serverType.ToString(), StringComparison.Ordinal))
+                {
+                    node.Expand();
+                    break;
+                }
+            }
+        }
+
+        // New method to search inside file contents
+        private void SearchDirectoryContents(string path, Regex regex)
+        {
+            var rootDirectories = Directory.GetDirectories(path);
+            foreach (var dir in rootDirectories)
+            {
+                var dirInfo = new DirectoryInfo(dir);
+                var node = queriesTreeView.Nodes.Add(dirInfo.Name);
+                node.Tag = dirInfo.FullName;
+                node.ToolTipText = m_nodeTooltipText;
+
+                bool hasMatches = SearchSubDirectoryContents(dir, regex, node);
+
+                if (!hasMatches && !regex.IsMatch(dirInfo.Name))
+                {
+                    queriesTreeView.Nodes.Remove(node);
+                }
+            }
+        }
+
+        private bool SearchSubDirectoryContents(string path, Regex regex, TreeNode parentNode)
+        {
+            bool hasMatches = false;
+
+            // Search subdirectories
+            foreach (var dir in Directory.GetDirectories(path))
+            {
+                var dirInfo = new DirectoryInfo(dir);
+                var node = parentNode.Nodes.Add(dirInfo.Name);
+                node.Tag = dirInfo.FullName;
+                node.ToolTipText = m_nodeTooltipText;
+
+                bool subHasMatches = SearchSubDirectoryContents(dir, regex, node);
+                if (subHasMatches || regex.IsMatch(dirInfo.Name))
+                {
+                    hasMatches = true;
+                }
+                else
+                {
+                    parentNode.Nodes.Remove(node);
+                }
+            }
+
+            // Search file contents
+            foreach (var file in Directory.GetFiles(path, "*.sql"))
+            {
+                var fileInfo = new FileInfo(file);
+                bool contentMatch = false;
+
+                try
+                {
+                    string fileContent = File.ReadAllText(file);
+                    contentMatch = regex.IsMatch(fileContent);
+                }
+                catch (Exception)
+                {
+                    // Skip files that can't be read
+                    continue;
+                }
+
+                if (contentMatch || regex.IsMatch(fileInfo.Name))
+                {
+                    var node = parentNode.Nodes.Add(fileInfo.Name);
+                    node.Tag = fileInfo.FullName;
+                    node.ToolTipText = m_nodeTooltipText;
+                    hasMatches = true;
+                }
+            }
+
+            return hasMatches;
         }
 
         private void SearchDirectory(string path, Regex regex)
@@ -445,6 +529,11 @@ namespace SQL_Extractor_for_Excel.Forms
             m_pasteType = PasteType.Cancel;
             this.DialogResult = DialogResult.OK;
             this.Close();
+        }
+
+        private void QueryPickerForm_Activated(object sender, EventArgs e)
+        {
+            Utils.EnsureWindowIsVisible(this);
         }
     }
 }

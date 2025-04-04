@@ -78,5 +78,10 @@ namespace SQL_Extractor_for_Excel.Forms
             m_worksheet.Activate();
             Close();
         }
+
+        private void InputRangeForm_Activated(object sender, EventArgs e)
+        {
+            Utils.EnsureWindowIsVisible(this);
+        }
     }
 }

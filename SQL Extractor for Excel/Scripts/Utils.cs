@@ -154,6 +154,86 @@ public static class Utils
                 return true;*/
     }
 
+    public static bool CompareIgnoringWhitespace(string str1, string str2)
+    {
+        // If both strings are null, consider them equal.
+        if (str1 == null && str2 == null)
+            return true;
+        // If one is null and the other is not, they're not equal.
+        if (str1 == null || str2 == null)
+            return false;
+
+        // Regex pattern to match any whitespace character (spaces, tabs, newlines, etc.)
+        string pattern = @"\s+";
+
+        // Remove all whitespace characters from each string.
+        string cleanStr1 = Regex.Replace(str1, pattern, "");
+        string cleanStr2 = Regex.Replace(str2, pattern, "");
+
+        // Compare the cleaned strings.
+        return cleanStr1.Equals(cleanStr2);
+    }
+
+
+    public static List<string> SplitSqlColumns(string input)
+    {
+        // Splits a SQL expression into columns by commas that are not inside single quotes or square brackets.
+        var result = new List<string>();
+        var token = new StringBuilder();
+        bool inSingleQuote = false;
+        bool inBracket = false;
+
+        for (int i = 0; i < input.Length; i++)
+        {
+            char c = input[i];
+
+            // Toggle single-quote state (ignore bracket context for quotes)
+            if (c == '\'' && !inBracket)
+            {
+                inSingleQuote = !inSingleQuote;
+                token.Append(c);
+                continue;
+            }
+
+            // Toggle bracket state (if not in a quoted string)
+            if (c == '[' && !inSingleQuote)
+            {
+                inBracket = true;
+                token.Append(c);
+                continue;
+            }
+            if (c == ']' && inBracket && !inSingleQuote)
+            {
+                inBracket = false;
+                token.Append(c);
+                continue;
+            }
+
+            // If we find a comma and we’re not inside quotes or brackets, split here.
+            if (c == ',' && !inSingleQuote && !inBracket)
+            {
+                token.Append(c); // include the comma with the token
+                result.Add(token.ToString().Trim());
+                token.Clear();
+                continue;
+            }
+
+            token.Append(c);
+        }
+        if (token.Length > 0)
+            result.Add(token.ToString().Trim());
+        return result;
+    }
+
+    public static string RemoveSqlAliasesFromText(string text)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+            return text;
+
+        string pattern = @"(?i)\s+AS\s+(\w+|'.*?')(?=,)";
+        return Regex.Replace(text, pattern, "");
+    }
+
     public static string GenerateSqlFilter(DataTable table)
     {
         var orderedColumns = table.Columns.Cast<DataColumn>()
@@ -408,6 +488,20 @@ public static class Utils
         int newY = workingArea.Y + (workingArea.Height - form.Height) / 2;
 
         form.Location = new Point(newX, newY);
+    }
+
+    public static void EnsureWindowIsVisible(Form form)
+    {
+        // Get the window's bounds
+        Rectangle formBounds = form.Bounds;
+
+        // Check if the form intersects with any screen
+        bool isVisibleOnAnyScreen = Screen.AllScreens.Any(screen => screen.WorkingArea.IntersectsWith(formBounds));
+
+        if (!isVisibleOnAnyScreen)
+        {
+            MoveFormToCenter(form);
+        }
     }
 
     public static void SaveAsTabDelimited(this DataTable dt, string delimiter = "\t", string folderPath = null)

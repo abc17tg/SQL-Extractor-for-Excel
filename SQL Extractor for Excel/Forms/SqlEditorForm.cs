@@ -9,7 +9,6 @@ using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Windows.Forms;
-using ScintillaNET_FindReplaceDialog;
 using SQL_Extractor_for_Excel.Forms;
 using SQL_Extractor_for_Excel.Scripts;
 using static SQL_Extractor_for_Excel.Forms.QueryPickerForm;
@@ -37,7 +36,6 @@ namespace SQL_Extractor_for_Excel
         private SqlServerManager m_sqlManager;
         private Timer m_timer;
         private Timer m_autoSaveTimer;
-        private string m_querySeparator = "--------------------------------------------------";
         private List<string> m_tablesListBoxAllItemsList = new List<string>();
         private List<string> m_tablesListBoxSelectedItemsList = new List<string>();
         private List<string> m_fieldsListBoxAllItemsList = new List<string>();
@@ -67,20 +65,19 @@ namespace SQL_Extractor_for_Excel
 
         public SqlEditorForm(Excel.Application app, string saveFile = null, string startQuery = null)
         {
-            ScintillaFix.CopyNativeFolderIfNotExistOrDifferentFixForScintillaBug();
+            //ScintillaFix.CopyNativeFolderIfNotExistOrDifferentFixForScintillaBug();
             InitializeComponent();
+
             m_guid = Guid.NewGuid().ToString();
             m_backupName = $"{Text}_{m_guid}.json";
+
             Version version = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version;
-            string versionString = $"{version.Major}" + ((version.Minor != 0 || version.Build != 0) ? $".{version.Minor}" + (version.Build != 0 ? $".{version.Build}" : string.Empty) : string.Empty);
-            Text = $"{Text} v{versionString}";
+            Text = $"{Text} v{GetVersionString(version)}";
             FormTitle = Text;
+
             m_sqlManager = new SqlServerManager();
             App = app;
             TopMost = true;
-            m_timer = new Timer();
-            /*app.WindowActivate += (_, w) => this.TopMost = true;
-            app.WindowDeactivate += (_, w) => this.TopMost = false;*/
 
             serverTypeComboBox.Items.AddRange(Directory.EnumerateDirectories(FileManager.SqlQueriesPath).Select(p => Path.GetFileName(p)).ToArray());
 
@@ -94,6 +91,7 @@ namespace SQL_Extractor_for_Excel
 
             serverComboBox.ContextMenuStrip = new ContextMenuStrip();
             serverComboBox.ContextMenuStrip.Items.Add("Add Server Connection").Click += (sender, e) => SqlServerManager.AddSqlConnection();
+            serverComboBox.ContextMenuStrip.Items.Add("Update local password to server").Click += (sender, e) => PasswordUpdate();
 
             if (!string.IsNullOrEmpty(saveFile))
                 LoadEditorState(saveFile);
@@ -102,6 +100,56 @@ namespace SQL_Extractor_for_Excel
             //app.WindowDeactivate += (_, w) => SaveEditorState();
             SetupAutoSaveTimer(30000);
 
+            SheetNameTextBoxEnterLeaveSetup();
+
+            SetupTimer();
+
+            m_sqlManager.CommandFinished += RefreshRunningQueriesDataGridView;
+            m_sqlManager.CommandFinished += SaveEditorState;
+
+            SetupSqlEditorScintillaContextMenu();
+        }
+
+        private void PasswordUpdate()
+        {
+            SqlServerManager.ServerType serverType = (SqlServerManager.ServerType)Enum.Parse(typeof(SqlServerManager.ServerType), serverTypeComboBox.SelectedItem.ToString());
+            if (!Enum.IsDefined(typeof(SqlServerManager.ServerType), serverType) || string.IsNullOrWhiteSpace(serverComboBox.SelectedItem?.ToString()))
+            {
+                MessageBox.Show("Missing server selections or query", "Run error");
+                return;
+            }
+
+            Form.ActiveForm.TopMost = false;
+            SqlServerPasswordUpdateForm sqlServerPasswordUpdateForm = new SqlServerPasswordUpdateForm(serverType, serverComboBox.SelectedItem?.ToString());
+            var result = sqlServerPasswordUpdateForm.ShowDialog();
+            if (result == DialogResult.OK)
+            {
+                switch (serverType)
+                {
+                    case SqlServerManager.ServerType.SqlServer:
+                        this.TopMost = false;
+                        m_connDic = FileManager.GetSqlServerConnectionValues();
+                        this.TopMost = true;
+                        break;
+                    case SqlServerManager.ServerType.Oracle:
+                        this.TopMost = false;
+                        m_connDic = FileManager.GetOracleConnectionValues();
+                        this.TopMost = true;
+                        break;
+                    default:
+                        return;
+                }
+            }
+            Form.ActiveForm.TopMost = true;
+        }
+
+        private static string GetVersionString(Version version)
+        {
+            return $"{version.Major}" + ((version.Minor != 0 || version.Build != 0) ? $".{version.Minor}" + (version.Build != 0 ? $".{version.Build}" : string.Empty) : string.Empty);
+        }
+
+        private void SheetNameTextBoxEnterLeaveSetup()
+        {
             sheetNameTextBox.Enter += (s, e) =>
             {
                 if (sheetNameTextBox.Text == m_sheetNameTextBoxPlaceholder)
@@ -135,37 +183,31 @@ namespace SQL_Extractor_for_Excel
                 if (searchFieldsTextBox.Text == "")
                     searchFieldsTextBox.Text = "Search";
             };
+        }
 
-            m_timer.Interval = 500;
-            m_timer.Tick += (t, v) => RefreshRunningQueriesDataGridView();
-            m_timer.Start();
-            m_sqlManager.CommandFinished += RefreshRunningQueriesDataGridView;
-            m_sqlManager.CommandFinished += SaveEditorState;
-            ContextMenu cm = new ContextMenu();
+        private void SetupSqlEditorScintillaContextMenu()
+        {
+            ContextMenu cm = sqlEditorScintilla.ContextMenu ?? new ContextMenu();
 
             MenuItem formatSqlBySqlFluffCMI = new MenuItem("Format by SQLFluff", (o, e) => { FormatSelectionUsingSqlFluff(); });
-            MenuItem copyCMI = new MenuItem("Copy", (o, e) => { sqlEditorScintilla.Copy(); });
-            MenuItem pasteCMI = new MenuItem("Paste", (o, e) => { sqlEditorScintilla.Paste(); });
             MenuItem fetchCMI = new MenuItem("Fetch", (o, e) => { fetchTablesBtn.PerformClick(); });
-            MenuItem commentCMI = new MenuItem("Comment", (o, e) => { commentBtn.PerformClick(); });
             MenuItem pasteRangeCMI = new MenuItem("Paste range", (o, e) => { pasteRngBtn.PerformClick(); });
-            MenuItem pasteClipboardRangeCMI = new MenuItem("Paste rng from clipboard", (o, e) => { PasteFromClipboard(); });
-            MenuItem formatToSqlCMI = new MenuItem("Format to SQL", (o, e) => { UtilsScintilla.ReformatTextToSql(sqlEditorScintilla); });
-            MenuItem toggleWrapModeCMI = new MenuItem("Toggle text wrap mode", (o, e) => { if (sqlEditorScintilla.WrapMode == ScintillaNET.WrapMode.None) sqlEditorScintilla.WrapMode = ScintillaNET.WrapMode.Word; else sqlEditorScintilla.WrapMode = ScintillaNET.WrapMode.None; });
             MenuItem runSelectionCMI = new MenuItem("Run selected", (o, e) => { runSelectionBtn.PerformClick(); });
             MenuItem runBlockCMI = new MenuItem("Run block (block identifier '-----')", (o, e) => { UtilsScintilla.SelectBlock(sqlEditorScintilla); runSelectionBtn.PerformClick(); });
             cm.MenuItems.Add(formatSqlBySqlFluffCMI);
-            cm.MenuItems.Add(pasteCMI);
-            cm.MenuItems.Add(copyCMI);
             cm.MenuItems.Add(fetchCMI);
-            cm.MenuItems.Add(commentCMI);
             cm.MenuItems.Add(pasteRangeCMI);
-            cm.MenuItems.Add(pasteClipboardRangeCMI);
-            cm.MenuItems.Add(formatToSqlCMI);
-            cm.MenuItems.Add(toggleWrapModeCMI);
             cm.MenuItems.Add(runSelectionCMI);
             cm.MenuItems.Add(runBlockCMI);
             sqlEditorScintilla.ContextMenu = cm;
+        }
+
+        private void SetupTimer()
+        {
+            m_timer = new Timer();
+            m_timer.Interval = 500;
+            m_timer.Tick += (t, v) => RefreshRunningQueriesDataGridView();
+            m_timer.Start();
         }
 
         protected override void OnFormClosing(FormClosingEventArgs e)
@@ -264,7 +306,7 @@ namespace SQL_Extractor_for_Excel
                             sqlEditorScintilla.Text = sqlEditorScintilla.Text.TrimEnd('\n', '\r', '\t', ' ');
                             int position = sqlEditorScintilla.Lines.Last().Position;
                             // Append the new query with separator
-                            sqlEditorScintilla.AppendText($"{Environment.NewLine}{m_querySeparator}{Environment.NewLine}{text}{Environment.NewLine}");
+                            sqlEditorScintilla.AppendText($"{Environment.NewLine}{UtilsScintilla.ScintillaSqlQuerySeparator}{Environment.NewLine}{text}{Environment.NewLine}");
                             sqlEditorScintilla.GotoPosition(position); // Move cursor
                             break;
 
@@ -417,7 +459,18 @@ namespace SQL_Extractor_for_Excel
                 return;
             }
 
-            err = SqlServerManager.CheckSqlQuerySyntaxOnline(sqlEditorScintilla.SelectedText, SqlConn);
+            switch(SqlConn.Type)
+            {
+                case SqlServerManager.ServerType.SqlServer:
+                    err = SqlServerManager.CheckSqlQuerySyntaxOnline(sqlEditorScintilla.SelectedText, SqlConn, sqlEditorScintilla.LineFromPosition(sqlEditorScintilla.SelectionStart));
+                    break;
+                case SqlServerManager.ServerType.Oracle:
+                    err = SqlServerManager.CheckSqlQuerySyntaxOnline(sqlEditorScintilla.SelectedText, SqlConn, sqlEditorScintilla.SelectionStart);
+                    break;
+                default:
+                    err = SqlServerManager.CheckSqlQuerySyntaxOnline(sqlEditorScintilla.SelectedText, SqlConn, sqlEditorScintilla.SelectionStart);
+                    break;
+            }
 
             switch (err)
             {
@@ -432,15 +485,6 @@ namespace SQL_Extractor_for_Excel
                     break;
             }
             sqlEditorScintilla.Focus();
-        }
-
-        private void PasteFromClipboard()
-        {
-            string text = Clipboard.GetText(TextDataFormat.Text);
-            if (string.IsNullOrWhiteSpace(text))
-                return;
-
-            UtilsScintilla.ReformatTextToSql(sqlEditorScintilla, text);
         }
 
         private void pasteRngBtn_Click(object sender, EventArgs e)
@@ -806,7 +850,7 @@ namespace SQL_Extractor_for_Excel
                     case DialogResult.Yes:
                         sqlEditorScintilla.Text = sqlEditorScintilla.Text.TrimEnd('\n', '\r', '\t', ' ');
                         int position = sqlEditorScintilla.Lines.Last().Position;
-                        sqlEditorScintilla.AppendText($"{Environment.NewLine + Environment.NewLine}{m_querySeparator}{Environment.NewLine + Environment.NewLine}{m_queriesDic[m_queriesDic.Keys.First(p => Path.GetFileName(p) == savedQueriesComboBox.SelectedItem.ToString())]}");
+                        sqlEditorScintilla.AppendText($"{Environment.NewLine + Environment.NewLine}{UtilsScintilla.ScintillaSqlQuerySeparator}{Environment.NewLine + Environment.NewLine}{m_queriesDic[m_queriesDic.Keys.First(p => Path.GetFileName(p) == savedQueriesComboBox.SelectedItem.ToString())]}");
                         sqlEditorScintilla.GotoPosition(position);
                         break;
                     case DialogResult.No:
@@ -833,24 +877,12 @@ namespace SQL_Extractor_for_Excel
             var result = m_connDic.TryGetValue((sender as ComboBox).SelectedItem.ToString(), out SqlConn);
         }
 
-        private void sqlEditorScintilla_KeyPress(object sender, KeyPressEventArgs e)
-        {
-            if (e.KeyChar == (char)Keys.Return)
-                UtilsScintilla.IndentAfterReturn(sqlEditorScintilla);
-        }
-
         private void sqlEditorScintilla_KeyUp(object sender, KeyEventArgs e)
         {
             if (e.Control)
             {
                 if (e.Shift)
                 {
-                    if (e.KeyCode == Keys.Divide || e.KeyCode == Keys.Oem2)
-                    {
-                        UtilsScintilla.Comment(sqlEditorScintilla);
-                        e.SuppressKeyPress = true;
-                    }
-
                     if (e.KeyCode == Keys.V)
                     {
                         Excel.Range rng = App.ActiveWindow.RangeSelection;
@@ -879,13 +911,6 @@ namespace SQL_Extractor_for_Excel
                         e.SuppressKeyPress = true;
                     }
 
-                    if (e.KeyCode == Keys.B)
-                    {
-                        UtilsScintilla.WrapIntoSqlBlock(sqlEditorScintilla);
-                        sqlEditorScintilla.Focus();
-                        e.SuppressKeyPress = true;
-                    }
-
                     if (e.KeyCode == Keys.F)
                     {
                         Excel.Range rng = App.ActiveWindow.RangeSelection;
@@ -903,50 +928,12 @@ namespace SQL_Extractor_for_Excel
                 }
                 else
                 {
-                    if (e.KeyCode == Keys.H || e.KeyCode == Keys.F)
-                    {
-                        FindReplace findReplace = new FindReplace(sqlEditorScintilla);
-                        if (e.KeyCode == Keys.F)
-                            findReplace.ShowFind();
-                        else
-                            findReplace.ShowReplace();
-                        findReplace.Window.FormClosed += (o, ea) => sqlEditorScintilla.MultipleSelection = false;
-                        e.SuppressKeyPress = true;
-                    }
-
-                    if (e.KeyCode == Keys.OemMinus)
-                    {
-                        sqlEditorScintilla.ReplaceSelection($"{Environment.NewLine}{m_querySeparator}{Environment.NewLine}");
-                        sqlEditorScintilla.Focus();
-                        e.SuppressKeyPress = true;
-                    }
-
-                    if (e.KeyCode == Keys.Q)
-                    {
-                        UtilsScintilla.ReformatTextToSql(sqlEditorScintilla);
-                        e.SuppressKeyPress = true;
-                    }
-
                     if (e.KeyCode == Keys.R)
                     {
                         Query = sqlEditorScintilla.Text;
                         Run(Query);
                         e.SuppressKeyPress = true;
                     }
-                }
-            }
-
-            if (e.Alt)
-            {
-                if (e.KeyCode == Keys.Up)
-                {
-                    UtilsScintilla.MoveLineUp(sqlEditorScintilla);
-                    e.Handled = true;
-                }
-                else if (e.KeyCode == Keys.Down)
-                {
-                    UtilsScintilla.MoveLineDown(sqlEditorScintilla);
-                    e.Handled = true;
                 }
             }
         }
@@ -979,28 +966,21 @@ namespace SQL_Extractor_for_Excel
             tablesListBox.Items.Add(m_listBoxFetchingText);
             tablesListBox.Update();
 
-            string query;
-            switch (sqlConn.Type)
+            string query = SqlServerManager.GetFetchTablesQuery(sqlConn.Type);
+            if (string.IsNullOrEmpty(query))
             {
-                case SqlServerManager.ServerType.SqlServer:
-                    query = "CREATE TABLE #AllTables (Database_Schema_Object NVARCHAR(MAX)); DECLARE @sql NVARCHAR(MAX) = N''; DECLARE @dbName NVARCHAR(128); DECLARE dbCursor CURSOR FOR SELECT [name] FROM sys.databases WHERE state = 0 AND [name] NOT IN ('master', 'tempdb', 'model', 'msdb'); OPEN dbCursor; FETCH NEXT FROM dbCursor INTO @dbName; WHILE @@FETCH_STATUS = 0 BEGIN SET @sql = N'USE [' + @dbName + ']; INSERT INTO #AllTables SELECT ''' + @dbName + '.'' + SCHEMA_NAME(schema_id) + ''.'' + [name] FROM sys.tables t WHERE EXISTS (SELECT 1 FROM ' + QUOTENAME(@dbName) + '.sys.partitions p WHERE p.object_id = t.object_id AND p.rows > 0) UNION ALL SELECT ''' + @dbName + '.'' + SCHEMA_NAME(schema_id) + ''.'' + [name] FROM sys.views v;'; BEGIN TRY EXEC sp_executesql @sql; END TRY BEGIN CATCH PRINT 'Error accessing database ' + @dbName + ': ' + ERROR_MESSAGE(); END CATCH; FETCH NEXT FROM dbCursor INTO @dbName; END CLOSE dbCursor; DEALLOCATE dbCursor; SELECT * FROM #AllTables ORDER BY Database_Schema_Object; DROP TABLE #AllTables;";
-                    break;
-                case SqlServerManager.ServerType.Oracle:
-                    query = "SELECT OWNER || '.' || OBJECT_NAME FROM (SELECT DISTINCT OWNER, OBJECT_NAME FROM ALL_OBJECTS WHERE OBJECT_TYPE IN ('VIEW', 'TABLE') AND STATUS = 'VALID' ORDER BY OBJECT_NAME)";
-                    break;
-                case SqlServerManager.ServerType.Excel:
-                    tablesListBox.Items.Clear();
-                    return;
-                default:
-                    tablesListBox.Items.Clear();
-                    return;
+                tablesListBox.Items.Clear();
+                return;
             }
 
             var sqlResult = SqlServerManager.GetDataFromServer(m_sqlManager, query, sqlConn, 40);
             tablesListBox.Items.Clear(); // clear "Fetching..." from the list
             if (!sqlResult.HasErrors)
             {
-                tablesListBox.Items.AddRange(sqlResult.DataTable.AsEnumerable().Select(row => row.Field<string>(0)).Distinct().ToArray() ?? new string[1]);
+                tablesListBox.Items.AddRange(sqlResult.DataTable.AsEnumerable()
+                    .Select(row => row.Field<string>(0))
+                    .Distinct()
+                    .ToArray() ?? new string[1]);
                 m_tablesListBoxAllItemsList.AddRange(tablesListBox.Items.Cast<string>());
             }
 
@@ -1328,6 +1308,7 @@ namespace SQL_Extractor_for_Excel
         private void SqlEditorForm_Activated(object sender, EventArgs e)
         {
             this.Opacity = 0.95;
+            Utils.EnsureWindowIsVisible(this);
         }
 
         private void SqlEditorForm_Deactivate(object sender, EventArgs e)
@@ -1348,7 +1329,7 @@ namespace SQL_Extractor_for_Excel
 
         private void separateBtn_Click(object sender, EventArgs e)
         {
-            sqlEditorScintilla.ReplaceSelection($"{Environment.NewLine}{m_querySeparator}{Environment.NewLine}");
+            sqlEditorScintilla.ReplaceSelection($"{Environment.NewLine}{UtilsScintilla.ScintillaSqlQuerySeparator}{Environment.NewLine}");
             sqlEditorScintilla.Focus();
         }
 
@@ -1542,7 +1523,7 @@ namespace SQL_Extractor_for_Excel
 
                         if (sqlConn == null || !sqlConn.Test())
                         {
-                            errorQueries += $"{m_querySeparator}{Environment.NewLine}{m_querySeparator}{Environment.NewLine}-- Server type: {sqlElementDto.ServerType.ToString()}{Environment.NewLine}-- DB: {sqlElementDto.DbName}{Environment.NewLine}{m_querySeparator}{Environment.NewLine}-- Query:{Environment.NewLine}{sqlElementDto.CommandText}{Environment.NewLine}{m_querySeparator}{Environment.NewLine}{Environment.NewLine}";
+                            errorQueries += $"{UtilsScintilla.ScintillaSqlQuerySeparator}{Environment.NewLine}{UtilsScintilla.ScintillaSqlQuerySeparator}{Environment.NewLine}-- Server type: {sqlElementDto.ServerType.ToString()}{Environment.NewLine}-- DB: {sqlElementDto.DbName}{Environment.NewLine}{UtilsScintilla.ScintillaSqlQuerySeparator}{Environment.NewLine}-- Query:{Environment.NewLine}{sqlElementDto.CommandText}{Environment.NewLine}{UtilsScintilla.ScintillaSqlQuerySeparator}{Environment.NewLine}{Environment.NewLine}";
                             continue;
                         }
 
@@ -1565,7 +1546,7 @@ namespace SQL_Extractor_for_Excel
                     string queries = string.Empty;
                     foreach (var sqlElementDto in sqlElementsDto)
                     {
-                        queries += $"{m_querySeparator}{Environment.NewLine}{m_querySeparator}{Environment.NewLine}-- Server type: {sqlElementDto.ServerType.ToString()}{Environment.NewLine}-- DB: {sqlElementDto.DbName}{Environment.NewLine}{m_querySeparator}{Environment.NewLine}-- Query:{Environment.NewLine}{sqlElementDto.CommandText}{Environment.NewLine}{m_querySeparator}{Environment.NewLine}{Environment.NewLine}";
+                        queries += $"{UtilsScintilla.ScintillaSqlQuerySeparator}{Environment.NewLine}{UtilsScintilla.ScintillaSqlQuerySeparator}{Environment.NewLine}-- Server type: {sqlElementDto.ServerType.ToString()}{Environment.NewLine}-- DB: {sqlElementDto.DbName}{Environment.NewLine}{UtilsScintilla.ScintillaSqlQuerySeparator}{Environment.NewLine}-- Query:{Environment.NewLine}{sqlElementDto.CommandText}{Environment.NewLine}{UtilsScintilla.ScintillaSqlQuerySeparator}{Environment.NewLine}{Environment.NewLine}";
                     }
                     Clipboard.SetText(queries);
                 }

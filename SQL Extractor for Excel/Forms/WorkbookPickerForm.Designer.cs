@@ -82,6 +82,7 @@
             this.ShowIcon = false;
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
             this.Text = "Pick workbook";
+            this.Activated += new System.EventHandler(this.WorkbookPickerForm_Activated);
             this.tableLayoutPanel.ResumeLayout(false);
             this.ResumeLayout(false);
 

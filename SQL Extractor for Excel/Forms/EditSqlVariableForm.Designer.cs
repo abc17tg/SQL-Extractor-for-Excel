@@ -405,6 +405,7 @@
             this.Controls.Add(this.tableLayoutPanel1);
             this.Name = "EditSqlVariableForm";
             this.Text = "EditSqlVariableForm";
+            this.Activated += new System.EventHandler(this.EditSqlVariableForm_Activated);
             this.tableLayoutPanel1.ResumeLayout(false);
             this.tableLayoutPanel1.PerformLayout();
             this.tableLayoutPanel.ResumeLayout(false);

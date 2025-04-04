@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Data;
 using System.Data.SqlClient;
+using System.IO;
 using System.Linq;
 using System.Windows.Forms;
 using Microsoft.CSharp.RuntimeBinder;
@@ -228,7 +229,7 @@ namespace SQL_Extractor_for_Excel.Scripts
             return (sqlResult, true);
         }
 
-        public static string CheckOracleSqlSyntax(string query, SqlConn sqlConn)
+        public static string CheckOracleSqlSyntaxOld(string query, SqlConn sqlConn)
         {
             try
             {
@@ -257,7 +258,66 @@ namespace SQL_Extractor_for_Excel.Scripts
             }
         }
 
-        public static string CheckSqlServerQuerySyntax(string query, SqlConn sqlConn)
+        public static string CheckOracleSqlSyntax(string query, SqlConn sqlConn, int pos)
+        {
+            try
+            {
+                using (OracleConnection con = new OracleConnection(sqlConn.ConnectionString()))
+                {
+                    con.Open();
+
+                    string modifiedQuery = query.Replace(Environment.NewLine, "\n").Replace("'", "''");
+
+                    string plsqlBlock = @"
+DECLARE
+    v_cursor_id INTEGER := DBMS_SQL.OPEN_CURSOR ();
+    V_SQL VARCHAR2(32767) := '" + modifiedQuery + @"';
+    v_err_pos INTEGER := " + pos + @";
+    v_line_number INTEGER;
+    v_line_start INTEGER;
+    v_line_end INTEGER;
+    v_error_line VARCHAR2(32767);
+BEGIN
+    DBMS_SQL.PARSE(v_cursor_id, V_SQL, DBMS_SQL.NATIVE);
+    DBMS_SQL.CLOSE_CURSOR(v_cursor_id);
+EXCEPTION
+    WHEN OTHERS THEN
+        -- Use provided position to determine line and content
+        v_line_number := REGEXP_COUNT(SUBSTR(V_SQL, 1, v_err_pos), CHR(10)) + 1;
+        v_line_start := NVL(INSTR(V_SQL, CHR(10), 1, v_line_number - 1), 0) + 1;
+        v_line_end := INSTR(V_SQL, CHR(10), v_line_start);
+        IF v_line_end = 0 THEN
+            v_error_line := SUBSTR(V_SQL, v_line_start);
+        ELSE
+            v_error_line := SUBSTR(V_SQL, v_line_start, v_line_end - v_line_start);
+        END IF;
+        RAISE_APPLICATION_ERROR(
+            -20000, SQLERRM || CHR(10) ||
+                     'Error reported at provided position ' || v_err_pos || ' (line ' || v_line_number || '):' || CHR(10) || TRIM(v_error_line));
+        DBMS_SQL.CLOSE_CURSOR(v_cursor_id);
+END;";
+
+                    using (OracleCommand syntaxCheckCmd = new OracleCommand(plsqlBlock, con))
+                    {
+                        syntaxCheckCmd.ExecuteNonQuery();
+                    }
+
+                    return string.Empty;
+                }
+            }
+            catch (OracleException ex)
+            {
+                return "Syntax error: " + ex.Message;
+            }
+            catch (Exception)
+            {
+                return CheckOracleSqlSyntaxOld(query, sqlConn);
+            }
+        }
+
+
+
+        public static string CheckSqlServerQuerySyntax(string query, SqlConn sqlConn, int pos)
         {
             try
             {
@@ -285,7 +345,7 @@ namespace SQL_Extractor_for_Excel.Scripts
 
                 if (ex.Errors.Count > 0)
                 {
-                    return $"Syntax error:\n{string.Join(Environment.NewLine, ex.Errors.Cast<SqlError>().Select(p => $"Line {p.LineNumber}\tError: {p.Message}"))}";
+                    return $"Syntax error:\n{string.Join(Environment.NewLine, ex.Errors.Cast<SqlError>().Select(p => $"Line {p.LineNumber + pos - 1}\tError: {p.Message}"))}";
                 }
                 return $"Syntax error: {ex.Message}";
             }
@@ -295,16 +355,33 @@ namespace SQL_Extractor_for_Excel.Scripts
             }
         }
 
-        public static string CheckSqlQuerySyntaxOnline(string query, SqlConn sqlConn)
+        public static string CheckSqlQuerySyntaxOnline(string query, SqlConn sqlConn, int pos = 0)
         {
             string err = null;
             switch (sqlConn.Type)
             {
                 case ServerType.SqlServer:
-                    err = CheckSqlServerQuerySyntax(query, sqlConn);
+                    err = CheckSqlServerQuerySyntax(query, sqlConn, pos + 1); //pos == line
                     break;
                 case ServerType.Oracle:
-                    err = CheckOracleSqlSyntax(query, sqlConn);
+                    err = CheckOracleSqlSyntax(query, sqlConn, pos);
+                    break;
+                case ServerType.Excel:
+                    break;
+            }
+            return err;
+        }
+
+        public static string CheckSqlQuerySyntaxOnlineOld(string query, SqlConn sqlConn)
+        {
+            string err = null;
+            switch (sqlConn.Type)
+            {
+                case ServerType.SqlServer:
+                    err = CheckSqlServerQuerySyntax(query, sqlConn, 1);
+                    break;
+                case ServerType.Oracle:
+                    err = CheckOracleSqlSyntaxOld(query, sqlConn);
                     break;
                 case ServerType.Excel:
                     break;
@@ -314,7 +391,7 @@ namespace SQL_Extractor_for_Excel.Scripts
 
         public static bool CheckSqlQueriesSyntaxOnline(List<string> queries, SqlConn sqlConn)
         {
-            if(queries.All(p=>CheckSqlQuerySyntaxOnline(p, sqlConn) == string.Empty))
+            if(queries.All(p=>CheckSqlQuerySyntaxOnlineOld(p, sqlConn) == string.Empty))
                 return true;
             else
                 return false;
@@ -367,7 +444,8 @@ namespace SQL_Extractor_for_Excel.Scripts
                     con.Open();
                     OracleCommand cmd = new OracleCommand(query, con);
                     cmd.CommandTimeout = timeout >= 0 ? timeout : cmd.CommandTimeout;
-                    SqlElement sqlElement = new SqlElement(cmd, sqlConn.Type, sqlConn.Name, string.IsNullOrEmpty(con.Database) ? con.Database : "Oracle query");
+                    SqlElement sqlElement = new SqlElement(cmd, sqlConn.Type, sqlConn.Name, string.IsNullOrEmpty(con.ServiceName) ? con.ServiceName : string.IsNullOrEmpty(con.DatabaseName) ? con.DatabaseName : "Oracle query");
+                    //SqlElement sqlElement = new SqlElement(cmd, sqlConn.Type, sqlConn.Name, sqlConn.Name ?? "Oracle query");
                     manager.SqlElements.Add(sqlElement);
                     try
                     {
@@ -426,6 +504,38 @@ namespace SQL_Extractor_for_Excel.Scripts
             {
                 manager.SqlServerCommandFinished?.Invoke(null);
                 return new SqlResult(null, ex.Message, null, null);
+            }
+        }
+
+
+        public static string GetFetchTablesQuery(ServerType serverType)
+        {
+            string queryFilePath = Path.Combine(FileManager.SqlTablesFetchQueriesPath, $"{serverType}.sql");
+
+            // Try to read from file first
+            if (File.Exists(queryFilePath))
+            {
+                try
+                {
+                    return File.ReadAllText(queryFilePath);
+                }
+                catch { }
+            }
+
+            // Return basic default queries if file doesn't exist or can't be read
+            switch (serverType)
+            {
+                case ServerType.SqlServer:
+                    return "SELECT DISTINCT TABLE_SCHEMA + '.' + TABLE_NAME " +
+                           "FROM INFORMATION_SCHEMA.TABLES";
+
+                case ServerType.Oracle:
+                    return "SELECT DISTINCT OWNER || '.' || TABLE_NAME " +
+                           "FROM ALL_TABLES";
+
+                case ServerType.Excel:
+                default:
+                    return string.Empty;
             }
         }
 

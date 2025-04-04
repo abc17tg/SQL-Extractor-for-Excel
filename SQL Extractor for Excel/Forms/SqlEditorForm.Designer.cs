@@ -1,4 +1,5 @@
-﻿using System.Windows.Forms;
+﻿using System;
+using System.Windows.Forms;
 
 namespace SQL_Extractor_for_Excel
 {
@@ -138,7 +139,6 @@ namespace SQL_Extractor_for_Excel
             this.sqlEditorScintilla.UseTabs = true;
             this.sqlEditorScintilla.WrapIndentMode = ScintillaNET.WrapIndentMode.Indent;
             this.sqlEditorScintilla.WrapMode = ScintillaNET.WrapMode.Word;
-            this.sqlEditorScintilla.KeyPress += new System.Windows.Forms.KeyPressEventHandler(this.sqlEditorScintilla_KeyPress);
             this.sqlEditorScintilla.KeyUp += new System.Windows.Forms.KeyEventHandler(this.sqlEditorScintilla_KeyUp);
             this.sqlEditorScintilla.MouseDoubleClick += new System.Windows.Forms.MouseEventHandler(this.sqlEditorScintilla_MouseDoubleClick);
             // 

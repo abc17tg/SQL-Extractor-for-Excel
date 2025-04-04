@@ -29,8 +29,8 @@
         private void InitializeComponent()
         {
             this.tableLayoutPanel = new System.Windows.Forms.TableLayoutPanel();
-            this.okButton = new System.Windows.Forms.Button();
             this.cancelButton = new System.Windows.Forms.Button();
+            this.okButton = new System.Windows.Forms.Button();
             this.label = new System.Windows.Forms.Label();
             this.inputTextBox = new System.Windows.Forms.TextBox();
             this.tableLayoutPanel.SuspendLayout();
@@ -55,17 +55,6 @@
             this.tableLayoutPanel.Size = new System.Drawing.Size(425, 97);
             this.tableLayoutPanel.TabIndex = 0;
             // 
-            // okButton
-            // 
-            this.okButton.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.okButton.Location = new System.Drawing.Point(3, 70);
-            this.okButton.Name = "okButton";
-            this.okButton.Size = new System.Drawing.Size(206, 24);
-            this.okButton.TabIndex = 0;
-            this.okButton.Text = "OK";
-            this.okButton.UseVisualStyleBackColor = true;
-            this.okButton.Click += new System.EventHandler(this.okButton_Click);
-            // 
             // cancelButton
             // 
             this.cancelButton.DialogResult = System.Windows.Forms.DialogResult.Cancel;
@@ -77,6 +66,17 @@
             this.cancelButton.Text = "Cancel";
             this.cancelButton.UseVisualStyleBackColor = true;
             this.cancelButton.Click += new System.EventHandler(this.cancelButton_Click);
+            // 
+            // okButton
+            // 
+            this.okButton.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.okButton.Location = new System.Drawing.Point(3, 70);
+            this.okButton.Name = "okButton";
+            this.okButton.Size = new System.Drawing.Size(206, 24);
+            this.okButton.TabIndex = 0;
+            this.okButton.Text = "OK";
+            this.okButton.UseVisualStyleBackColor = true;
+            this.okButton.Click += new System.EventHandler(this.okButton_Click);
             // 
             // label
             // 
@@ -121,6 +121,7 @@
             this.SizeGripStyle = System.Windows.Forms.SizeGripStyle.Show;
             this.Text = "InputBox";
             this.TopMost = true;
+            this.Activated += new System.EventHandler(this.InputBoxForm_Activated);
             this.Load += new System.EventHandler(this.InputBoxForm_Load);
             this.tableLayoutPanel.ResumeLayout(false);
             this.tableLayoutPanel.PerformLayout();

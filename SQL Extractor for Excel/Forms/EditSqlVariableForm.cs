@@ -239,5 +239,10 @@ namespace SQL_Extractor_for_Excel.Forms
         {
             Fetch();
         }
+
+        private void EditSqlVariableForm_Activated(object sender, EventArgs e)
+        {
+            Utils.EnsureWindowIsVisible(this);
+        }
     }
 }

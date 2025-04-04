@@ -52,21 +52,22 @@ namespace SQL_Extractor_for_Excel.Scripts
             return new SqlConn(Name, UserName, Password, Link, Port, Type, false); 
         }
 
-        public static bool SaveSqlConn(SqlConn sqlConn)
+        public static bool SaveSqlConn(SqlConn sqlConn, string name = null)
         {
             string json = JsonConvert.SerializeObject(sqlConn, Newtonsoft.Json.Formatting.Indented);
-            string result = Microsoft.VisualBasic.Interaction.InputBox("Name your server connection", "Name your server connection", "", 0, 0);
-            if (string.IsNullOrWhiteSpace(result))
+            if(string.IsNullOrWhiteSpace(name))
+                name = Microsoft.VisualBasic.Interaction.InputBox("Name your server connection", "Name your server connection", "", 0, 0);
+            if (string.IsNullOrWhiteSpace(name))
                 return false;
             try
             {
                 switch (sqlConn.Type)
                 {
                     case SqlServerManager.ServerType.SqlServer:
-                        File.WriteAllText(Path.Combine(FileManager.SqlServerQueriesPath, $"{result}.json"), json);
+                        File.WriteAllText(Path.Combine(FileManager.SqlServerQueriesPath, $"{name}.json"), json);
                         break;
                     case SqlServerManager.ServerType.Oracle:
-                        File.WriteAllText(Path.Combine(FileManager.OracleQueriesPath, $"{result}.json"), json);
+                        File.WriteAllText(Path.Combine(FileManager.OracleQueriesPath, $"{name}.json"), json);
                         break;
                     default:
                         return false;

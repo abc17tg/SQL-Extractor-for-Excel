@@ -5,6 +5,7 @@ using System.Globalization;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using System.Windows.Interop;
 using SQL_Extractor_for_Excel.Scripts;
 using Excel = Microsoft.Office.Interop.Excel;
 
@@ -33,10 +34,10 @@ namespace SQL_Extractor_for_Excel.Forms
         [DllImport("user32.dll")]
         private static extern bool InsertMenu(IntPtr hMenu, Int32 wPosition, Int32 wFlags, Int32 wIDNewItem, string lpNewItem);
 
-
         public DataTableForm(DataTable dataTable, string query, Excel.Application app, string name = null, string displayQuery = null)
         {
             InitializeComponent();
+
             m_nfi = new CultureInfo("en-US", false).NumberFormat;
             m_nfi.NumberGroupSeparator = " ";
             FormName = name ?? "DataTable";
@@ -57,6 +58,7 @@ namespace SQL_Extractor_for_Excel.Forms
         public DataTableForm(SqlResult sqlResult, string query, Excel.Application app, string name = null, string displayQuery = null)
         {
             InitializeComponent();
+
             m_nfi = new CultureInfo("en-US", false).NumberFormat;
             m_nfi.NumberGroupSeparator = " ";
             FormName = name ?? "DataTable";
@@ -224,7 +226,7 @@ namespace SQL_Extractor_for_Excel.Forms
                         pasteButton.Enabled = false;
                         saveButton.Enabled = false;
                         headersCheckBox.Enabled = false;
-                        DisplayQuery =  $"Query finished with errors:\n\n{sqlResult.Errors}\n\nQuery:\n\n{Query}";
+                        DisplayQuery = $"Query finished with errors:\n\n{sqlResult.Errors}\n\nQuery:\n\n{Query}";
                         queryRichTextBox.Text = DisplayQuery;
                         this.Show();
                         this.Activate();
@@ -253,6 +255,11 @@ namespace SQL_Extractor_for_Excel.Forms
 
             runQueryWithResult.Start();
             this.UseWaitCursor = true;
+        }
+
+        private void DataTableForm_Activated(object sender, EventArgs e)
+        {
+            Utils.EnsureWindowIsVisible(this);
         }
     }
 }

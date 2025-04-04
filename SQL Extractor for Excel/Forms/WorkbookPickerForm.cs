@@ -37,5 +37,10 @@ namespace SQL_Extractor_for_Excel.Forms
         {
             Workbook = m_macroWorkbookList.Where(p => p.Name == workbookPickerComboBox.SelectedItem?.ToString()).FirstOrDefault();
         }
+
+        private void WorkbookPickerForm_Activated(object sender, EventArgs e)
+        {
+            Utils.EnsureWindowIsVisible(this);
+        }
     }
 }

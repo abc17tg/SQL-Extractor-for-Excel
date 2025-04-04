@@ -1,16 +1,21 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
+using System.Text;
 using System.Text.RegularExpressions;
 using System.Windows.Forms;
 using ScintillaNET;
 using ScintillaNET_FindReplaceDialog;
+using static ScintillaNET.Style;
 
 namespace SQL_Extractor_for_Excel.Scripts
 {
     public static class UtilsScintilla
     {
+        public static readonly string ScintillaSqlQuerySeparator = "--------------------------------------------------";
+
         public static void Comment(Scintilla editor, string commentSymbol = "--")
         {
             using (new ScintillaPauseUpdatesBlock(editor))
@@ -51,7 +56,8 @@ namespace SQL_Extractor_for_Excel.Scripts
                 int currentPos = editor.CurrentPosition;
                 int currentLine = editor.LineFromPosition(currentPos);
                 editor.Lines[currentLine].Indentation = editor.Lines[currentLine - 1].Indentation;
-                editor.GotoPosition(editor.Lines[currentLine].EndPosition - (editor.Lines[currentLine].Text.EndsWith(Environment.NewLine) ? Environment.NewLine.Length : 0));
+                editor.GotoPosition(editor.Lines[currentLine].IndentPosition);
+                //editor.GotoPosition(editor.Lines[currentLine].EndPosition - (editor.Lines[currentLine].Text.EndsWith(Environment.NewLine) ? Environment.NewLine.Length : 0));
             }
         }
 
@@ -62,6 +68,7 @@ namespace SQL_Extractor_for_Excel.Scripts
             if (string.IsNullOrWhiteSpace(text))
                 return;
 
+            int startPos = editor.SelectionStart;
             // Regex patterns to detect formats
             var singleQuotedPattern = @"^\(\s*'[^']*'(,\s*'[^']*')*\s*\)$";
             var unquotedPattern = @"^\(\s*[^,']+(,\s*[^,']+)*\s*\)$";
@@ -88,10 +95,93 @@ namespace SQL_Extractor_for_Excel.Scripts
                 List<char> DelimiterChars = new List<char> { ' ', '\'', '(', ')', ',', '\t', '\n', '\r', ';', '|' };
                 text = $"({string.Join(", ", text.Split(DelimiterChars.ToArray(), StringSplitOptions.RemoveEmptyEntries).Select(p => $"'{p.Trim()}'").ToArray())})";
             }
-
+            int endPos = startPos + text.Length;
             // Replace the selected text in the editor
             editor.ReplaceSelection(text);
+            editor.SetSelection(startPos, endPos);
         }
+
+        public static void ToggleSpacesAndNewLines(Scintilla editor, string text = null)
+        {
+            if (text == null)
+                text = editor.SelectedText;
+            if (string.IsNullOrWhiteSpace(text))
+                return;
+            
+            string originalText = text;
+
+            int startPos = editor.SelectionStart;
+            string firstLineIndentation = GetIndentationLevel(editor);
+
+            // Use a regex to detect newlines that separate actual SQL code (ignoring comment-only lines)
+            bool isMultiLine = Regex.IsMatch(text, @"(?<!--.*)\r?\n\s*(?!--)");
+
+            if (isMultiLine)
+            {
+                // Collapse non-comment lines into a single line while preserving comment lines
+                var lines = text.Split(new[] { Environment.NewLine }, StringSplitOptions.None);
+                var outputLines = new List<string>();
+                var buffer = new List<string>();
+
+                foreach (var line in lines)
+                {
+                    if (Regex.IsMatch(line.TrimStart(), @"^--"))
+                    {
+                        if (buffer.Count > 0)
+                        {
+                            // Merge the buffered non-comment lines
+                            var joined = Regex.Replace(string.Join(" ", buffer), @"\s+", " ")
+                                              .Replace(" ,", ",").Trim();
+                            outputLines.Add(joined);
+                            buffer.Clear();
+                        }
+                        outputLines.Add(line.TrimEnd());
+                    }
+                    else
+                    {
+                        buffer.Add(line.Trim());
+                    }
+                }
+                if (buffer.Count > 0)
+                {
+                    var joined = Regex.Replace(string.Join(" ", buffer), @"\s+", " ")
+                                      .Replace(" ,", ",").Trim();
+                    outputLines.Add(joined);
+                }
+                text = string.Join(Environment.NewLine, outputLines);
+            }
+            else
+            {
+                // Expand to multi-line: for each non-comment line, split the text at commas outside quotes/brackets.
+                var lines = text.Split(new[] { Environment.NewLine }, StringSplitOptions.None);
+                var processedLines = new List<string>();
+
+                foreach (string line in lines)
+                {
+                    if (Regex.IsMatch(line.TrimStart(), @"^--"))
+                    {
+                        processedLines.Add(line.TrimEnd());
+                    }
+                    else
+                    {
+                        var columns = Utils.SplitSqlColumns(line);
+                        foreach (var col in columns)
+                        {
+                            if (!string.IsNullOrWhiteSpace(col))
+                                processedLines.Add(firstLineIndentation + col.Trim());
+                        }
+                    }
+                }
+                text = string.Join(Environment.NewLine, processedLines).Trim();
+            }
+
+            int endPos = startPos + text.Length;
+            if (Utils.CompareIgnoringWhitespace(originalText, text))
+            {
+                editor.ReplaceSelection(text);
+                editor.SetSelection(startPos, endPos);
+            }
+        }       
 
         public static string GetIndentationLevel(this Scintilla scintilla, bool replaceOtherCharToSpace = false)
         {
@@ -105,19 +195,9 @@ namespace SQL_Extractor_for_Excel.Scripts
 
             string lineText = scintilla.GetTextRange(lineStartPos, position - lineStartPos);
             if (!replaceOtherCharToSpace)
-                return new string('\t', indentation);
+                return new string('\t', indentation / scintilla.TabWidth);
             else
                 return new string(lineText.Select(p => char.IsWhiteSpace(p) ? p : ' ').ToArray());
-
-            //int position = scintilla.SelectionStart;
-            //int lineNumber = scintilla.LineFromPosition(position);
-            //int lineStartPos = scintilla.Lines[lineNumber].Position;
-
-            //if (position == lineStartPos) 
-            //    return string.Empty;
-
-            //string lineText = scintilla.GetTextRange(lineStartPos, position - lineStartPos);
-            //return new string(lineText.Select(p => char.IsWhiteSpace(p) ? p : ' ').ToArray());
         }
 
         public static void SelectBlock(Scintilla editor, string blockStartIdentifier = "-----", string blockEndIdentifier = "-----") // Selects block that is serrounded by at least 5 '-'
@@ -161,27 +241,6 @@ namespace SQL_Extractor_for_Excel.Scripts
             editor.SetSelection(startPosition, endPosition);
         }
 
-        //public static void WrapIntoSqlBlock(Scintilla editor)
-        //{
-        //    using (new ScintillaPauseUpdatesBlock(editor))
-        //    {
-        //        int indentation = editor.Lines[editor.CurrentLine].Indentation;
-        //        int selStartPos = editor.SelectionStart;
-        //        int linesCount = editor.LineFromPosition(editor.SelectionEnd) - editor.LineFromPosition(selStartPos) + 1;
-        //        string text = $"(\n{editor.SelectedText}\n)";
-        //        editor.ReplaceSelection(text);
-        //        editor.Update();
-        //        editor.SetSelection(editor.Lines[editor.LineFromPosition(selStartPos) + 1].Position, editor.Lines[editor.LineFromPosition(selStartPos) - 1 + linesCount].EndPosition);
-        //        editor.Update();
-
-        //        editor.Lines[editor.LineFromPosition(selStartPos)].Indentation = indentation;
-        //        editor.Lines[editor.LineFromPosition(selStartPos) + linesCount + 1].Indentation = indentation;
-
-        //        for (int i = editor.LineFromPosition(editor.SelectionStart); i <= editor.LineFromPosition(editor.SelectionEnd); i++)
-        //            editor.Lines[i].Indentation = Math.Max(indentation, editor.Lines[i].Indentation) + editor.TabWidth;
-        //    }
-        //}
-
         public static void WrapIntoSqlBlock(Scintilla editor)
         {
             using (new ScintillaPauseUpdatesBlock(editor))
@@ -222,13 +281,51 @@ namespace SQL_Extractor_for_Excel.Scripts
             }
         }
 
+        public static string EndsWithNewLineString(this Line line)
+        {
+            if (line == null || line.Text == null)
+                return string.Empty;
+
+            string text = line.Text;
+
+            switch (true)
+            {
+                case bool _ when text.EndsWith("\r\n"):
+                    return "\r\n";
+                case bool _ when text.EndsWith("\n"):
+                    return "\n";
+                case bool _ when text.EndsWith("\r"):
+                    return "\r";
+                default:
+                    return string.Empty;
+            }
+        }
+
+        public static void ReplaceLineText(this Line line, string newText, Scintilla editor)
+        {
+            if (line == null)
+                return;
+
+            // Handle null newText by converting to empty string
+            newText = newText ?? string.Empty;
+
+            // Get line boundaries
+            int startPos = line.Position;
+            int endPos = line.EndPosition;
+
+            // Set target to entire line and replace
+            editor.TargetStart = startPos;
+            editor.TargetEnd = endPos;
+            editor.ReplaceTarget(newText);
+        }
+
         public static void MoveLineUp(Scintilla editor)
         {
             using (new ScintillaPauseUpdatesBlock(editor))
             {
                 int startLine = editor.LineFromPosition(editor.SelectionStart);
                 int endLine = editor.LineFromPosition(editor.SelectionEnd);
-                editor.SetSelection(editor.Lines[startLine].Position, editor.Lines[endLine].EndPosition - Environment.NewLine.Length);
+                editor.SetSelection(editor.Lines[startLine].Position, editor.Lines[endLine].EndPosition - (editor.Lines[endLine].Text.EndsWith(Environment.NewLine) ? Environment.NewLine.Length : 0));
 
                 string selectedText = editor.SelectedText;
 
@@ -239,6 +336,11 @@ namespace SQL_Extractor_for_Excel.Scripts
 
                     editor.SetSelection(editor.Lines[startLine - 1].Position, editor.Lines[endLine - 1].EndPosition - (editor.Lines[endLine].Text.EndsWith(Environment.NewLine) ? Environment.NewLine.Length : 0));
                 }
+                else
+                {
+                    editor.InsertText(editor.Lines[endLine].EndPosition, Environment.NewLine);
+                    editor.SetSelection(editor.Lines[startLine].Position, editor.Lines[endLine].EndPosition - Environment.NewLine.Length);
+                }
             }
         }
 
@@ -248,27 +350,27 @@ namespace SQL_Extractor_for_Excel.Scripts
             {
                 int startLine = editor.LineFromPosition(editor.SelectionStart);
                 int endLine = editor.LineFromPosition(editor.SelectionEnd);
-                editor.SetSelection(editor.Lines[startLine].Position, editor.Lines[endLine].EndPosition - Environment.NewLine.Length);
+                editor.SetSelection(editor.Lines[startLine].Position, editor.Lines[endLine].EndPosition - (editor.Lines[endLine].Text.EndsWith(Environment.NewLine) ? Environment.NewLine.Length : 0));
 
                 string selectedText = editor.SelectedText;
 
                 if (endLine < editor.Lines.Count - 1)
                 {
                     editor.DeleteRange(editor.Lines[startLine].Position, selectedText.Length + Environment.NewLine.Length);
-                    editor.InsertText(editor.Lines[endLine - (endLine - startLine)].EndPosition, selectedText + Environment.NewLine);
+                    editor.InsertText(editor.Lines[endLine - (endLine - startLine)].EndPosition, (editor.Lines[endLine - (endLine - startLine)].Text == string.Empty ? Environment.NewLine : string.Empty) + selectedText + Environment.NewLine);
 
                     editor.SetSelection(editor.Lines[startLine + 1].Position, editor.Lines[endLine + 1].EndPosition - (editor.Lines[endLine].Text.EndsWith(Environment.NewLine) ? Environment.NewLine.Length : 0));
+                }
+                else
+                {
+                    editor.InsertText(editor.Lines[startLine].Position, Environment.NewLine);
+                    editor.SetSelection(editor.Lines[startLine].Position + Environment.NewLine.Length, editor.Lines[endLine + 1].EndPosition);
                 }
             }
         }
 
-        public static void SetupSqlEditor(Scintilla editor)
+        public static void SetupSqlEditorStyle(Scintilla editor)
         {
-            editor.InsertCheck += Editor_InsertCheck;
-            editor.TextChanged += Editor_TextChanged;
-            editor.DragEnter += Editor_DragEnter;
-            editor.DragDrop += Editor_DragDrop;
-            editor.DragOver += Editor_DragOver;
             editor.LexerName = "sql";
 
             editor.StyleClearAll();
@@ -330,20 +432,54 @@ namespace SQL_Extractor_for_Excel.Scripts
 
             // Set SQL keywords
             editor.SetKeywords(0, FileManager.SqlKeywords);
+        }
 
+        public static void SetupSqlEditor(Scintilla editor)
+        {
+            editor.InsertCheck += Editor_InsertCheck;
+            editor.TextChanged += Editor_TextChanged;
+            editor.DragEnter += Editor_DragEnter;
+            editor.DragDrop += Editor_DragDrop;
+            editor.DragOver += Editor_DragOver;
+            editor.KeyUp += Editor_KeyUp;
+            editor.KeyDown += Editor_KeyDown;
+            editor.KeyPress += Editor_KeyPress;
+
+            SetupSqlEditorStyle(editor);
+
+            editor.ClearCmdKey(Keys.Alt | Keys.Up);
+            editor.ClearCmdKey(Keys.Alt | Keys.Down);
             editor.ClearCmdKey(Keys.Control | Keys.F);
+            editor.ClearCmdKey(Keys.Control | Keys.G);
             editor.ClearCmdKey(Keys.Control | Keys.H);
-            editor.ClearCmdKey(Keys.Control | Keys.R);
             editor.ClearCmdKey(Keys.Control | Keys.Q);
+            editor.ClearCmdKey(Keys.Control | Keys.R);
+            editor.ClearCmdKey(Keys.Control | Keys.W);
+            editor.ClearCmdKey(Keys.Control | Keys.Divide);
             editor.ClearCmdKey(Keys.Control | Keys.Oem2);
             editor.ClearCmdKey(Keys.Control | Keys.OemMinus);
-            editor.ClearCmdKey(Keys.Control | Keys.Divide);
-            editor.ClearCmdKey(Keys.Shift | Keys.Control | Keys.R);
+            editor.ClearCmdKey(Keys.Shift | Keys.Control | Keys.A);
             editor.ClearCmdKey(Keys.Shift | Keys.Control | Keys.B);
             editor.ClearCmdKey(Keys.Shift | Keys.Control | Keys.F);
+            editor.ClearCmdKey(Keys.Shift | Keys.Control | Keys.R);
+            editor.ClearCmdKey(Keys.Shift | Keys.Control | Keys.S);
             editor.ClearCmdKey(Keys.Shift | Keys.Control | Keys.V);
             editor.ClearCmdKey(Keys.Shift | Keys.Control | Keys.Divide);
             editor.ClearCmdKey(Keys.Shift | Keys.Control | Keys.Oem2);
+
+            ContextMenu cm = editor.ContextMenu ?? new ContextMenu();
+
+            MenuItem copyCMI = new MenuItem("Copy", (o, e) => { editor.Copy(); });
+            MenuItem pasteCMI = new MenuItem("Paste", (o, e) => { editor.Paste(); });
+            MenuItem pasteClipboardRangeCMI = new MenuItem("Paste rng from clipboard", (o, e) => { PasteFromClipboard(editor); });
+            MenuItem formatToSqlCMI = new MenuItem("Format to SQL", (o, e) => { ReformatTextToSql(editor); });
+            MenuItem toggleWrapModeCMI = new MenuItem("Toggle text wrap mode (Ctrl + W)", (o, e) => { ToggleTextWrapModeScintilla(editor); });
+            cm.MenuItems.Add(pasteCMI);
+            cm.MenuItems.Add(copyCMI);
+            cm.MenuItems.Add(pasteClipboardRangeCMI);
+            cm.MenuItems.Add(formatToSqlCMI);
+            cm.MenuItems.Add(toggleWrapModeCMI);
+            editor.ContextMenu = cm;
 
             // Set up an indicator for highlighting words starting with ':::'
             int indicatorIndex = 8; // Choose an unused indicator index
@@ -375,7 +511,7 @@ namespace SQL_Extractor_for_Excel.Scripts
                  switch (e.Change)
                  {
                      case UpdateChange.Content:
-                         foreach (var ind in editor.Indicators.Select(p => p.Index).Where(p=>p != FindReplace.IndicatorIndex))
+                         foreach (var ind in editor.Indicators.Select(p => p.Index).Where(p => p != FindReplace.IndicatorIndex))
                          {
                              editor.IndicatorCurrent = ind;
                              editor.IndicatorClearRange(0, editor.TextLength);
@@ -453,95 +589,31 @@ namespace SQL_Extractor_for_Excel.Scripts
                         break;
                 }
             };
+        }
 
-            /*            editor.BeforeDelete += (sender, e) =>
-                        {
-                            if (e.Source != ModificationSource.User)
-                                return;
-
-                            if (e.Text == "(" || e.Text == "[")
-                            {
-                                int currentPos = e.Position;
-                                int match = editor.BraceMatch(currentPos);
-                                if (match != Scintilla.InvalidPosition && editor.GetTextRange(currentPos + 1, match - currentPos - 1).Trim() == string.Empty)
-                                {
-                                    editor.DeleteRange(currentPos - 1, match - currentPos + 5);
-                                }
-                            }
-                        };*/
-
+        private static void ToggleTextWrapModeScintilla(Scintilla editor)
+        {
+            if (editor.WrapMode == ScintillaNET.WrapMode.None) editor.WrapMode = ScintillaNET.WrapMode.Word; else editor.WrapMode = ScintillaNET.WrapMode.None;
         }
 
         public static void SetupSqlEditorReadOnly(Scintilla editor)
         {
             editor.InsertCheck += Editor_InsertCheck;
             editor.TextChanged += Editor_TextChanged;
-            editor.LexerName = "sql";
+            editor.KeyUp += Editor_KeyUp;
 
-            editor.StyleClearAll();
-            editor.CaretLineBackColor = Color.FromArgb(35, 35, 35);
+            SetupSqlEditorStyle(editor);
             editor.ReadOnly = true;
-            editor.CaretForeColor = Color.White;
-            editor.WrapIndentMode = WrapIndentMode.Indent;
-            editor.WrapMode = WrapMode.Word;
-            editor.Styles[Style.Default].BackColor = Color.FromArgb(30, 30, 30);
-            editor.Styles[Style.Default].Font = "Consolas";
-            editor.Styles[Style.Default].Size = 10;
-            editor.Styles[Style.Default].Bold = true;
-            editor.Margins[0].Width = 25;
-            editor.Margins[1].Width = 8;
 
-            // Set SQL syntax highlighting styles similar to Visual Studio Dark Theme
-            editor.Styles[Style.Sql.Default].ForeColor = Color.FromArgb(240, 240, 240); // Almost white
-            editor.Styles[Style.Sql.Comment].ForeColor = Color.FromArgb(100, 100, 100); // Gray
-            editor.Styles[Style.Sql.CommentLine].ForeColor = Color.FromArgb(100, 100, 100); // Gray
-            editor.Styles[Style.Sql.CommentDoc].ForeColor = Color.FromArgb(100, 100, 100); // Gray
-            editor.Styles[Style.Sql.Number].ForeColor = Color.FromArgb(214, 157, 133); // Orange
-            editor.Styles[Style.Sql.Word].ForeColor = Color.FromArgb(86, 156, 214); // Blue
-            editor.Styles[Style.Sql.Word2].ForeColor = Color.FromArgb(86, 156, 214); // Blue
-            editor.Styles[Style.Sql.String].ForeColor = Color.FromArgb(181, 220, 168); // Light green
-            editor.Styles[Style.Sql.Character].ForeColor = Color.FromArgb(181, 220, 168); // Light green
-            editor.Styles[Style.Sql.Operator].ForeColor = Color.FromArgb(240, 240, 240); // Almost white
-            editor.Styles[Style.Sql.Identifier].ForeColor = Color.FromArgb(240, 240, 240); // Almost white
-            editor.Styles[Style.LineNumber].ForeColor = Color.FromArgb(100, 100, 100); // Gray
-            editor.Styles[Style.BraceLight].ForeColor = Color.Yellow;
-            editor.Styles[Style.BraceBad].ForeColor = Color.LightGoldenrodYellow;
-
-            editor.Styles[Style.Sql.Default].BackColor = Color.FromArgb(30, 30, 30);
-            editor.Styles[Style.Sql.Comment].BackColor = editor.Styles[Style.Default].BackColor;
-            editor.Styles[Style.Sql.CommentLine].BackColor = editor.Styles[Style.Default].BackColor;
-            editor.Styles[Style.Sql.CommentDoc].BackColor = editor.Styles[Style.Default].BackColor;
-            editor.Styles[Style.Sql.Number].BackColor = editor.Styles[Style.Default].BackColor;
-            editor.Styles[Style.Sql.Word].BackColor = editor.Styles[Style.Default].BackColor;
-            editor.Styles[Style.Sql.Word2].BackColor = editor.Styles[Style.Default].BackColor;
-            editor.Styles[Style.Sql.String].BackColor = editor.Styles[Style.Default].BackColor;
-            editor.Styles[Style.Sql.Character].BackColor = editor.Styles[Style.Default].BackColor;
-            editor.Styles[Style.Sql.Operator].BackColor = editor.Styles[Style.Default].BackColor;
-            editor.Styles[Style.Sql.Identifier].BackColor = editor.Styles[Style.Default].BackColor;
-            editor.Styles[Style.LineNumber].BackColor = Color.FromArgb(15, 15, 15); ;
-            editor.Styles[Style.BraceLight].BackColor = Color.DarkGray;
-            editor.Styles[Style.BraceBad].BackColor = Color.Red;
-
-            editor.Styles[Style.Sql.Word].Case = StyleCase.Upper;
-            editor.Styles[Style.Sql.Word2].Case = StyleCase.Upper;
-
-            editor.Styles[Style.Sql.Default].Bold = true;
-            editor.Styles[Style.Sql.Comment].Bold = true;
-            editor.Styles[Style.Sql.CommentLine].Bold = true;
-            editor.Styles[Style.Sql.CommentDoc].Bold = true;
-            editor.Styles[Style.Sql.Number].Bold = true;
-            editor.Styles[Style.Sql.Word].Bold = true;
-            editor.Styles[Style.Sql.Word2].Bold = true;
-            editor.Styles[Style.Sql.String].Bold = true;
-            editor.Styles[Style.Sql.Character].Bold = true;
-            editor.Styles[Style.Sql.Operator].Bold = true;
-            editor.Styles[Style.Sql.Identifier].Bold = true;
-            editor.Styles[Style.BraceLight].Bold = true;
-            editor.Styles[Style.BraceBad].Bold = true;
-
-            // Set SQL keywords
-            editor.SetKeywords(0, FileManager.SqlKeywords);
             editor.ClearCmdKey(Keys.Control | Keys.F);
+            editor.ClearCmdKey(Keys.Control | Keys.W);
+
+            ContextMenu cm = editor.ContextMenu ?? new ContextMenu();
+            MenuItem copyCMI = new MenuItem("Copy", (o, e) => { editor.Copy(); });
+            MenuItem toggleWrapModeCMI = new MenuItem("Toggle text wrap mode (Ctrl + W)", (o, e) => { ToggleTextWrapModeScintilla(editor); });
+            cm.MenuItems.Add(copyCMI);
+            cm.MenuItems.Add(toggleWrapModeCMI);
+            editor.ContextMenu = cm;
 
             // Set up an indicator for highlighting words starting with ':::'
             int indicatorIndex = 8; // Choose an unused indicator index
@@ -664,6 +736,128 @@ namespace SQL_Extractor_for_Excel.Scripts
             editor.GotoPosition(currentPos);
         }
 
+        private static void Editor_KeyPress(object sender, KeyPressEventArgs e)
+        {
+            Scintilla editor = sender as Scintilla;
+            if (e.KeyChar == (char)Keys.Return)
+                IndentAfterReturn(editor);
+        }
+
+        private static void Editor_KeyDown(object sender, KeyEventArgs e)
+        {
+            Scintilla editor = sender as Scintilla;
+            {
+                if (e.Alt || e.KeyCode == Keys.Alt)
+                    if (e.KeyCode == Keys.Up)
+                    {
+                        MoveLineUp(editor);
+                        editor.ScrollCaret();
+                        e.Handled = true;
+                    }
+                    else if (e.KeyCode == Keys.Down)
+                    {
+                        MoveLineDown(editor);
+                        editor.ScrollCaret();
+                        e.Handled = true;
+                    }
+            }
+        }
+
+
+        private static void Editor_KeyUp(object sender, KeyEventArgs e)
+        {
+            Scintilla editor = sender as Scintilla;
+            if (e.Control)
+            {
+                if (e.Shift)
+                {
+                    if (e.KeyCode == Keys.Divide || e.KeyCode == Keys.Oem2)
+                    {
+                        Comment(editor);
+                        e.SuppressKeyPress = true;
+                    }
+
+                    if (e.KeyCode == Keys.B)
+                    {
+                        WrapIntoSqlBlock(editor);
+                        editor.Focus();
+                        e.SuppressKeyPress = true;
+                    }
+
+                    if (e.KeyCode == Keys.S)
+                    {
+                        ToggleSpacesAndNewLines(editor);
+                        e.SuppressKeyPress = true;
+                    }
+
+                    if (e.KeyCode == Keys.A)
+                    {
+                        SelectBlock(editor);
+                        e.SuppressKeyPress = true;
+                    }
+                }
+                else
+                {
+                    if (e.KeyCode == Keys.H || e.KeyCode == Keys.F)
+                    {
+                        FindReplace findReplace = new FindReplace(editor);
+                        if (e.KeyCode == Keys.F)
+                            findReplace.ShowFind();
+                        else
+                            findReplace.ShowReplace();
+                        findReplace.Window.FormClosed += (o, ea) => editor.MultipleSelection = false;
+                        e.SuppressKeyPress = true;
+                    }
+
+                    if (e.KeyCode == Keys.OemMinus)
+                    {
+                        editor.ReplaceSelection($"{Environment.NewLine}{ScintillaSqlQuerySeparator}{Environment.NewLine}");
+                        editor.Focus();
+                        e.SuppressKeyPress = true;
+                    }
+
+                    if (e.KeyCode == Keys.Q)
+                    {
+                        ReformatTextToSql(editor);
+                        e.SuppressKeyPress = true;
+                    }
+
+                    if (e.KeyCode == Keys.W)
+                    {
+                        ToggleTextWrapModeScintilla(editor);
+                        e.SuppressKeyPress = true;
+                    }
+
+                    if (e.KeyCode == Keys.G)
+                    {
+                        RemoveSqlAliases(editor);
+                        e.SuppressKeyPress = true;
+                    }
+                }
+            }
+        }
+
+        public static void RemoveSqlAliases(Scintilla editor)
+        {
+            // Get the selected text
+            string text = editor.SelectedText;
+            if (string.IsNullOrWhiteSpace(text))
+                return;
+
+            // Record the starting position of the selection
+            int startPos = editor.SelectionStart;
+
+            // Process the text to remove aliases
+            string processedText = Utils.RemoveSqlAliasesFromText(text);
+
+            // Replace the selection with the processed text
+            editor.ReplaceSelection(processedText);
+
+            // Update the selection to cover the new text
+            int endPos = startPos + processedText.Length;
+            editor.SetSelection(startPos, endPos);
+        }
+
         private static void SkipClosingBracket(Scintilla editor, char openingChar, char closingChar)
         {
             int currentPos = editor.CurrentPosition;
@@ -709,6 +903,14 @@ namespace SQL_Extractor_for_Excel.Scripts
             }
         }
 
+        private static void PasteFromClipboard(Scintilla editor)
+        {
+            string text = Clipboard.GetText(TextDataFormat.Text);
+            if (string.IsNullOrWhiteSpace(text))
+                return;
+
+            ReformatTextToSql(editor, text);
+        }
         private static void HighlightVariables(Scintilla editor, int indicatorIndex)
         {
             if (editor == null || !editor.Indicators.Select(p => p.Index).Contains(indicatorIndex))

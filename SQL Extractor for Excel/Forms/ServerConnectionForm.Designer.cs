@@ -248,7 +248,9 @@
             this.Controls.Add(this.label5);
             this.Controls.Add(this.usernameLabel);
             this.Name = "ServerConnectionForm";
-            this.Text = "ServerConnectionForm";
+            this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
+            this.Text = "Set new server connection";
+            this.Activated += new System.EventHandler(this.ServerConnectionForm_Activated);
             this.ResumeLayout(false);
             this.PerformLayout();
 

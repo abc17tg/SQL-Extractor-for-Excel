@@ -37,7 +37,7 @@
     <PublishUrl>C:\Users\olszewsm\Documents\Documents\SQLExtractorForExcel\Releases\SQLExtractorForExcel_v1.6\</PublishUrl>
     <InstallUrl />
     <TargetCulture>en</TargetCulture>
-    <ApplicationVersion>1.6.0.1</ApplicationVersion>
+    <ApplicationVersion>1.7.0.0</ApplicationVersion>
     <AutoIncrementApplicationRevision>true</AutoIncrementApplicationRevision>
     <UpdateEnabled>true</UpdateEnabled>
     <UpdateInterval>7</UpdateInterval>
@@ -99,6 +99,8 @@
     <WarningLevel>4</WarningLevel>
     <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
     <CodeAnalysisIgnoreGeneratedCode>true</CodeAnalysisIgnoreGeneratedCode>
+    <NoWarn>
+    </NoWarn>
   </PropertyGroup>
   <!--
     This section defines properties that are set when the "Release" configuration is selected.
@@ -218,8 +220,8 @@
     <Reference Include="Oracle.ManagedDataAccess, Version=4.122.23.1, Culture=neutral, PublicKeyToken=89b483f429c47342, processorArchitecture=MSIL">
       <HintPath>..\packages\Oracle.ManagedDataAccess.23.7.0\lib\net472\Oracle.ManagedDataAccess.dll</HintPath>
     </Reference>
-    <Reference Include="Scintilla.NET, Version=5.6.6.0, Culture=neutral, PublicKeyToken=0221e70ba618311e, processorArchitecture=MSIL">
-      <HintPath>..\packages\Scintilla5.NET.5.6.6\lib\net462\Scintilla.NET.dll</HintPath>
+    <Reference Include="Scintilla.NET, Version=6.0.1.0, Culture=neutral, PublicKeyToken=0221e70ba618311e, processorArchitecture=MSIL">
+      <HintPath>..\packages\Scintilla5.NET.6.0.1\lib\net462\Scintilla.NET.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Buffers, Version=4.0.4.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
@@ -577,6 +579,12 @@
     <Compile Include="Forms\SqlEditorForm.Designer.cs">
       <DependentUpon>SqlEditorForm.cs</DependentUpon>
     </Compile>
+    <Compile Include="Forms\SqlServerPasswordUpdateForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Forms\SqlServerPasswordUpdateForm.Designer.cs">
+      <DependentUpon>SqlServerPasswordUpdateForm.cs</DependentUpon>
+    </Compile>
     <Compile Include="Forms\WorkbookPickerForm.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -637,6 +645,9 @@
     <EmbeddedResource Include="Forms\SqlEditorForm.resx">
       <DependentUpon>SqlEditorForm.cs</DependentUpon>
     </EmbeddedResource>
+    <EmbeddedResource Include="Forms\SqlServerPasswordUpdateForm.resx">
+      <DependentUpon>SqlServerPasswordUpdateForm.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="Forms\WorkbookPickerForm.resx">
       <DependentUpon>WorkbookPickerForm.cs</DependentUpon>
     </EmbeddedResource>
@@ -666,6 +677,7 @@
       <DependentUpon>Settings.settings</DependentUpon>
     </Compile>
     <Compile Include="Scripts\AesEncryption.cs" />
+    <Compile Include="Scripts\Dwm.cs" />
     <Compile Include="Scripts\ExcelExecutionBlock.cs" />
     <Compile Include="Scripts\FileManager.cs" />
     <Compile Include="Scripts\Macro.cs" />
@@ -6596,6 +6608,12 @@
     <Content Include="FindAndReplace\Resources\LineColorHS.png" />
     <Content Include="FindAndReplace\search.png" />
     <Content Include="ILLink\ILLink.Descriptors.LibraryBuild.xml" />
+    <Content Include="Properties Files\FetchTablesQueries\Oracle.sql">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Properties Files\FetchTablesQueries\SqlServer.sql">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
     <Content Include="Properties Files\SqlKeywords.txt">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
@@ -11939,8 +11957,8 @@
     </PropertyGroup>
     <Error Condition="!Exists('..\packages\Microsoft.SqlServer.Types.160.1000.6\build\net462\Microsoft.SqlServer.Types.props')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Microsoft.SqlServer.Types.160.1000.6\build\net462\Microsoft.SqlServer.Types.props'))" />
     <Error Condition="!Exists('..\packages\Microsoft.Data.SqlClient.SNI.6.0.2\build\net462\Microsoft.Data.SqlClient.SNI.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Microsoft.Data.SqlClient.SNI.6.0.2\build\net462\Microsoft.Data.SqlClient.SNI.targets'))" />
-    <Error Condition="!Exists('..\packages\Scintilla5.NET.5.6.6\build\scintilla5.net.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Scintilla5.NET.5.6.6\build\scintilla5.net.targets'))" />
+    <Error Condition="!Exists('..\packages\Scintilla5.NET.6.0.1\build\scintilla5.net.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Scintilla5.NET.6.0.1\build\scintilla5.net.targets'))" />
   </Target>
   <Import Project="..\packages\Microsoft.Data.SqlClient.SNI.6.0.2\build\net462\Microsoft.Data.SqlClient.SNI.targets" Condition="Exists('..\packages\Microsoft.Data.SqlClient.SNI.6.0.2\build\net462\Microsoft.Data.SqlClient.SNI.targets')" />
-  <Import Project="..\packages\Scintilla5.NET.5.6.6\build\scintilla5.net.targets" Condition="Exists('..\packages\Scintilla5.NET.5.6.6\build\scintilla5.net.targets')" />
+  <Import Project="..\packages\Scintilla5.NET.6.0.1\build\scintilla5.net.targets" Condition="Exists('..\packages\Scintilla5.NET.6.0.1\build\scintilla5.net.targets')" />
 </Project>
