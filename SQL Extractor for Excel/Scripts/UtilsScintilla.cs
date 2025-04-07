@@ -562,33 +562,37 @@ namespace SQL_Extractor_for_Excel.Scripts
              };
 
             // Add this in your constructor or initialization function
-            editor.CharAdded += (sender, e) =>
-            {
-                // Get the char that was just added
-                char addedChar = (char)e.Char;
+            editor.CharAdded += Editor_CharAdded;
+        }
 
-                switch (addedChar)
-                {
-                    case '(':
-                        InsertMatchingBracket(editor, addedChar, ')');
-                        break;
-                    case '[':
-                        InsertMatchingBracket(editor, addedChar, ']');
-                        break;
-                    case '"':
-                        InsertMatchingBracket(editor, addedChar, '"');
-                        break;
-                    case '\'':
-                        InsertMatchingBracket(editor, addedChar, '\'');
-                        break;
-                    case ')':
-                        SkipClosingBracket(editor, '(', addedChar);
-                        break;
-                    case ']':
-                        SkipClosingBracket(editor, '[', addedChar);
-                        break;
-                }
-            };
+        private static void Editor_CharAdded(object sender, CharAddedEventArgs e)
+        {
+
+            // Get the char that was just added
+            Scintilla editor = sender as Scintilla;
+            char addedChar = (char)e.Char;
+       
+            switch (addedChar)
+            {
+                case '(':
+                    InsertMatchingBracket(editor, addedChar, ')');
+                    break;
+                case '[':
+                    InsertMatchingBracket(editor, addedChar, ']');
+                    break;
+                case '"':
+                    InsertMatchingBracket(editor, addedChar, '"');
+                    break;
+                case '\'':
+                    InsertMatchingBracket(editor, addedChar, '\'');
+                    break;
+                case ')':
+                    SkipClosingBracket(editor, '(', addedChar);
+                    break;
+                case ']':
+                    SkipClosingBracket(editor, '[', addedChar);
+                    break;
+            }
         }
 
         private static void ToggleTextWrapModeScintilla(Scintilla editor)
@@ -694,6 +698,24 @@ namespace SQL_Extractor_for_Excel.Scripts
                         break;
                 }
             };
+        }
+
+        public static void InitializeScintillaAutocomplete(Scintilla editor)
+        {
+            // Set the separator character for keyword lists
+            editor.AutoCSeparator = ' '; // Use space as the separator in your keyword strings
+            editor.AutoCOrder = Order.Presorted;//.Custom;
+
+            // Set autocompletion to be case-insensitive (common for SQL)
+            editor.AutoCIgnoreCase = true;
+
+            // Prevent autocompletion from cancelling if you type characters at the *beginning* of the word
+            editor.AutoCCancelAtStart = false;
+
+            // When an item is selected, automatically delete the rest of the word being typed
+            editor.AutoCDropRestOfWord = true;
+            editor.AutoCCancelAtStart = false;
+            editor.AutoCMaxHeight = 9;
         }
 
         private static void Editor_TextChanged(object sender, EventArgs e)

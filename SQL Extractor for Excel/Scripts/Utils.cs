@@ -504,6 +504,46 @@ public static class Utils
         }
     }
 
+    public static void SortStrings(this List<string> list, string given)
+    {
+        int givenLength = given.Length;
+
+        // Helper to determine priority
+        int GetPriority(string s)
+        {
+            if (s.StartsWith(given, StringComparison.OrdinalIgnoreCase)) return 0;          // Starts with given string
+            if (s.Contains(given, StringComparison.OrdinalIgnoreCase)) return 1;           // Contains but doesn't start with
+            return 2;                                  // Doesn't contain
+        }
+
+        // Sort the list in place with a custom comparison
+        list.Sort((s1, s2) =>
+        {
+            int p1 = GetPriority(s1);
+            int p2 = GetPriority(s2);
+
+            // Compare priorities first
+            if (p1 != p2) return p1.CompareTo(p2);
+
+            // If priorities are equal
+            if (p1 == 2)
+            {
+                // For strings without the given string, sort alphabetically
+                return s1.CompareTo(s2);
+            }
+            else
+            {
+                // For strings that start with or contain the given string,
+                // sort by number of extra characters
+                int diff1 = s1.Length - givenLength;
+                int diff2 = s2.Length - givenLength;
+                if (diff1 != diff2) return diff1.CompareTo(diff2);
+                // If extra characters are equal, sort alphabetically
+                return s1.CompareTo(s2);
+            }
+        });
+    }
+
     public static void SaveAsTabDelimited(this DataTable dt, string delimiter = "\t", string folderPath = null)
     {
         object lockObject = new object();

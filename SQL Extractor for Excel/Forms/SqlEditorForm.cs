@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 using System.Linq;
@@ -9,6 +10,8 @@ using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using System.Windows.Input;
+using ScintillaNET;
 using SQL_Extractor_for_Excel.Forms;
 using SQL_Extractor_for_Excel.Scripts;
 using static SQL_Extractor_for_Excel.Forms.QueryPickerForm;
@@ -40,6 +43,18 @@ namespace SQL_Extractor_for_Excel
         private List<string> m_tablesListBoxSelectedItemsList = new List<string>();
         private List<string> m_fieldsListBoxAllItemsList = new List<string>();
         private List<string> m_fieldsListBoxSelectedItemsList = new List<string>();
+
+        private string m_sqlKeywords;
+        private string m_fieldsKeywords;
+        private string m_tablesKeywords;
+        private List<string> m_sqlKeywordList = new List<string>();
+        private List<string> m_fieldsKeywordList => m_fieldsListBoxAllItemsList;
+        private List<string> m_tablesKeywordList => m_tablesListBoxAllItemsList;
+        private int m_autoCStartPosition = -1; // Position in text where AC was triggered/started
+        private char m_currentTriggerChar = '\0';// Store the character that triggered the list (if '.' or '#')
+        private string m_autoCSelectedWord = string.Empty;
+        private bool m_autoCWasActiveOnBackspace = false;
+
         private Dictionary<string, SqlConn> m_connDic;
         private Dictionary<string, string> m_queriesDic;
         private bool m_selectionChangedByCode = false;
@@ -67,6 +82,8 @@ namespace SQL_Extractor_for_Excel
         {
             //ScintillaFix.CopyNativeFolderIfNotExistOrDifferentFixForScintillaBug();
             InitializeComponent();
+            m_sqlKeywords = FileManager.SqlKeywords.ToUpper();
+            m_sqlKeywordList = m_sqlKeywords.Split(' ').ToList();
 
             m_guid = Guid.NewGuid().ToString();
             m_backupName = $"{Text}_{m_guid}.json";
@@ -108,6 +125,285 @@ namespace SQL_Extractor_for_Excel
             m_sqlManager.CommandFinished += SaveEditorState;
 
             SetupSqlEditorScintillaContextMenu();
+            UtilsScintilla.InitializeScintillaAutocomplete(sqlEditorScintilla);
+            sqlEditorScintilla.CharAdded += sqlEditorScintilla_CharAdded;
+            sqlEditorScintilla.KeyDown += sqlEditorScintilla_KeyDown;
+            sqlEditorScintilla.KeyUp += sqlEditorScintilla_KeyUp2;
+            sqlEditorScintilla.AutoCSelectionChange += sqlEditorScintilla_AutoCSelectionChange;
+            sqlEditorScintilla.AutoCCompleted += sqlEditorScintilla_AutoCCompleted; // To reset trigger char
+            sqlEditorScintilla.AutoCCancelled += sqlEditorScintilla_AutoCCancelled; // To reset trigger char
+        }
+
+        private void sqlEditorScintilla_AutoCSelectionChange(object sender, AutoCSelectionChangeEventArgs e)
+        {
+            m_autoCSelectedWord = e.Text ?? string.Empty;
+        }
+
+        private void sqlEditorScintilla_AutoCCancelled(object sender, EventArgs e)
+        {
+            if (!m_autoCWasActiveOnBackspace)
+                ResetAutoCState();
+        }
+
+        private void sqlEditorScintilla_AutoCCompleted(object sender, AutoCSelectionEventArgs e)
+        {
+            ResetAutoCState();
+        }
+
+        private void sqlEditorScintilla_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (sqlEditorScintilla.AutoCActive)
+            {
+                if (e.KeyCode == Keys.Tab)
+                {
+                    /*sqlEditorScintilla.AutoCComplete();
+                    e.Handled = true;
+                    e.SuppressKeyPress = true;*/
+
+                    // Capture state *before* cancelling, as AutoCCancelled will clear it
+                    var originalTrigger = m_currentTriggerChar;
+                    var originalStartPos = m_autoCStartPosition;
+
+
+                    // Perform deletion *after* cancelling if triggered by . or #
+                    if (originalTrigger == '.' || originalTrigger == '#')
+                    {
+                        var currentPos = sqlEditorScintilla.CurrentPosition;
+                        int triggerPos = originalStartPos - 1; // Position of the trigger char itself
+
+                        // Basic check: Ensure range is valid and trigger char is still there
+                        if (triggerPos >= 0 && currentPos >= originalStartPos && triggerPos < sqlEditorScintilla.TextLength)
+                        {
+                            if ((char)sqlEditorScintilla.GetCharAt(triggerPos) == originalTrigger)
+                            {
+                                sqlEditorScintilla.SetSelection(triggerPos, currentPos);
+                                sqlEditorScintilla.ReplaceSelection(m_autoCSelectedWord);
+                            }
+                        }
+                    }
+                    else
+                    {
+                        var currentPos = sqlEditorScintilla.CurrentPosition;
+                        int triggerPos = originalStartPos;
+
+                        // Basic check: Ensure range is valid and trigger char is still there
+                        if (triggerPos >= 0 && currentPos >= originalStartPos && triggerPos < sqlEditorScintilla.TextLength)
+                        {
+                            sqlEditorScintilla.SetSelection(triggerPos, currentPos);
+                            sqlEditorScintilla.ReplaceSelection(m_autoCSelectedWord);
+                        }
+                    }
+
+                    sqlEditorScintilla.AutoCCancel(); // This triggers AutoCCancelled handler
+                    e.Handled = true;
+                    e.SuppressKeyPress = true;
+                }
+                else if (e.KeyCode == Keys.Return)
+                {
+                    sqlEditorScintilla.AutoCCancel();
+                }
+                else if (e.KeyCode == Keys.Escape)
+                {
+                    // Capture state *before* cancelling, as AutoCCancelled will clear it
+                    var originalTrigger = m_currentTriggerChar;
+                    var originalStartPos = m_autoCStartPosition;
+
+                    sqlEditorScintilla.AutoCCancel(); // This triggers AutoCCancelled handler
+
+                    // Perform deletion *after* cancelling if triggered by . or #
+                    if (originalTrigger == '.' || originalTrigger == '#')
+                    {
+                        var currentPos = sqlEditorScintilla.CurrentPosition;
+                        int triggerPos = originalStartPos - 1; // Position of the trigger char itself
+
+                        // Basic check: Ensure range is valid and trigger char is still there
+                        if (triggerPos >= 0 && currentPos >= originalStartPos && triggerPos < sqlEditorScintilla.TextLength)
+                        {
+                            if ((char)sqlEditorScintilla.GetCharAt(triggerPos) == originalTrigger)
+                            {
+                                sqlEditorScintilla.SetSelection(triggerPos, currentPos);
+                                sqlEditorScintilla.ReplaceSelection(string.Empty);
+                            }
+                        }
+
+                    }
+                    e.Handled = true;
+                    e.SuppressKeyPress = true;
+                }
+                else if (e.KeyCode == Keys.Back)
+                {
+                    if (sqlEditorScintilla.AutoCActive)
+                        m_autoCWasActiveOnBackspace = true;
+                }
+            }
+        }
+
+        private void sqlEditorScintilla_KeyUp2(object sender, KeyEventArgs e)
+        {
+            if (e.KeyCode == Keys.Back && m_autoCWasActiveOnBackspace)
+            {
+                var currentPos = sqlEditorScintilla.CurrentPosition;
+                // If a list is active, filter it based on text typed since AC started
+                // Ensure start position is valid before trying to get text range
+                if (m_autoCStartPosition < 0 || currentPos < m_autoCStartPosition)
+                {
+                    sqlEditorScintilla.AutoCCancel();
+                    m_autoCWasActiveOnBackspace = false;
+                    return;
+                }
+
+                string filterText = sqlEditorScintilla.GetTextRange(m_autoCStartPosition, currentPos - m_autoCStartPosition);
+
+                List<string> sourceList = GetCurrentSourceList();
+                sourceList.SortStrings(filterText);
+                if (sourceList != null)
+                {
+                    ShowFilteredList(sourceList, filterText);
+                }
+                else
+                {
+                    sqlEditorScintilla.AutoCCancel();
+                }
+            }
+            else
+                m_autoCWasActiveOnBackspace = false;
+        }
+
+        private void sqlEditorScintilla_CharAdded(object sender, CharAddedEventArgs e)
+        {
+            if (sqlEditorScintilla.SelectedText.Length > 0)
+            {
+                // If user starts selecting text, cancel any active list
+                if (sqlEditorScintilla.AutoCActive)
+                    sqlEditorScintilla.AutoCCancel();
+                return;
+            }
+
+            var currentPos = sqlEditorScintilla.CurrentPosition;
+
+            // --- Handle Trigger Characters ---
+            if (!sqlEditorScintilla.AutoCActive)
+            {
+                if (e.Char == '.')
+                {
+                    m_currentTriggerChar = '.';
+                    // Start position is *after* the trigger character
+                    m_autoCStartPosition = currentPos;
+                    // Show full list initially, allow manual filtering for subsequent chars
+                    ShowFilteredList(m_fieldsKeywordList, ""); // Assumes m_fieldsKeywordList is populated
+                    return;
+                }
+                else if (e.Char == '#')
+                {
+                    m_currentTriggerChar = '#';
+                    m_autoCStartPosition = currentPos;
+                    ShowFilteredList(m_tablesKeywordList, ""); // Assumes m_tablesKeywordList is populated
+                    return;
+                }
+            }
+
+            // --- Handle Filtering or SQL Keyword Trigger ---
+            if (sqlEditorScintilla.AutoCActive)
+            {
+                // If a list is active, filter it based on text typed since AC started
+                // Ensure start position is valid before trying to get text range
+                if (m_autoCStartPosition < 0 || currentPos < m_autoCStartPosition)
+                {
+                    sqlEditorScintilla.AutoCCancel();
+                    return;
+                }
+
+                string filterText = sqlEditorScintilla.GetTextRange(m_autoCStartPosition, currentPos - m_autoCStartPosition);
+
+                List<string> sourceList = GetCurrentSourceList();
+                sourceList.SortStrings(filterText);
+                if (sourceList != null)
+                {
+                    ShowFilteredList(sourceList, filterText);
+                }
+                else
+                {
+                    sqlEditorScintilla.AutoCCancel();
+                }
+            }
+            else
+            {
+                // List is NOT active, check if we should trigger SQL keywords
+                if (char.IsLetterOrDigit((char)e.Char) || e.Char == '_')
+                {
+                    var wordStartPos = sqlEditorScintilla.WordStartPosition(currentPos, true);
+                    // Check if immediately preceded by a trigger char (we shouldn't trigger SQL keywords then)
+                    if (wordStartPos > 0)
+                    {
+                        char precedingChar = (char)sqlEditorScintilla.GetCharAt(wordStartPos - 1);
+                        if (precedingChar == '.' || precedingChar == '#')
+                        {
+                            return; // Don't trigger SQL keywords right after . or #
+                        }
+                    }
+
+                    string currentWord = sqlEditorScintilla.GetTextRange(wordStartPos, currentPos - wordStartPos);
+
+                    if (currentWord.Length >= 1) // Or set minimum length (e.g., 2)
+                    {
+                        m_currentTriggerChar = '\0'; // Indicate SQL keywords context
+                        m_autoCStartPosition = wordStartPos; // Start pos is the beginning of the keyword
+                        var tempList = m_sqlKeywordList;
+                        tempList.SortStrings(currentWord);
+                        ShowFilteredList(tempList, currentWord);
+                    }
+                }
+            }
+        }
+
+        private void ResetAutoCState()
+        {
+            m_currentTriggerChar = '\0';
+            m_autoCStartPosition = -1;
+        }
+
+        private List<string> GetCurrentSourceList()
+        {
+            switch (m_currentTriggerChar)
+            {
+                case '.': return m_fieldsKeywordList;
+                case '#': return m_tablesKeywordList;
+                case '\0': // SQL Keywords context
+                           // Ensure start position is valid for SQL context
+                    return (m_autoCStartPosition != -1) ? m_sqlKeywordList : null;
+                default: return null;
+            }
+        }
+
+        // Central method to filter and show/update the AC list
+        private void ShowFilteredList(List<string> sourceList, string filterText)
+        {
+            if (sourceList == null)
+            {
+                if (sqlEditorScintilla.AutoCActive)
+                    sqlEditorScintilla.AutoCCancel();
+                return;
+            }
+
+            // Perform case-insensitive "Contains" filtering
+            var filteredList = sourceList
+                .Where(item => item.Contains(filterText, StringComparison.OrdinalIgnoreCase))
+                .ToList(); // Use ToList to materialize the results
+
+            if (filteredList.Any())
+            {
+                string listString = string.Join(sqlEditorScintilla.AutoCSeparator.ToString(), filteredList);
+                int lengthEntered = filterText.Length;
+                sqlEditorScintilla.AutoCShow(0, listString);
+            }
+            else
+            {
+                // No items match
+                if (sqlEditorScintilla.AutoCActive)
+                {
+                    sqlEditorScintilla.AutoCCancel(); // Explicitly cancel if filter yields nothing
+                }
+            }
         }
 
         private void PasswordUpdate()
@@ -459,7 +755,7 @@ namespace SQL_Extractor_for_Excel
                 return;
             }
 
-            switch(SqlConn.Type)
+            switch (SqlConn.Type)
             {
                 case SqlServerManager.ServerType.SqlServer:
                     err = SqlServerManager.CheckSqlQuerySyntaxOnline(sqlEditorScintilla.SelectedText, SqlConn, sqlEditorScintilla.LineFromPosition(sqlEditorScintilla.SelectionStart));
@@ -942,6 +1238,7 @@ namespace SQL_Extractor_for_Excel
         {
             m_fieldsListBoxAllItemsList.Clear();
             m_fieldsListBoxSelectedItemsList.Clear();
+            m_fieldsKeywords = string.Empty;
             fieldsListBox.Items.Clear();
             fieldsListBox.Items.Add(m_listBoxFetchingText);
             fieldsListBox.Update();
@@ -953,6 +1250,7 @@ namespace SQL_Extractor_for_Excel
             {
                 fieldsListBox.Items.AddRange(sqlResult.DataTable.Columns.Cast<DataColumn>().Select(column => column.ColumnName).Distinct().ToArray());
                 m_fieldsListBoxAllItemsList.AddRange(fieldsListBox.Items.Cast<string>());
+                m_fieldsKeywords = string.Join(" ", m_fieldsListBoxAllItemsList) ?? string.Empty;
             }
 
             objectsAndVariablesTabControl.SelectedTab = fieldsTabPage;
@@ -962,6 +1260,7 @@ namespace SQL_Extractor_for_Excel
         {
             m_tablesListBoxAllItemsList.Clear();
             m_tablesListBoxSelectedItemsList.Clear();
+            m_tablesKeywords = string.Empty;
             tablesListBox.Items.Clear();
             tablesListBox.Items.Add(m_listBoxFetchingText);
             tablesListBox.Update();
@@ -982,6 +1281,7 @@ namespace SQL_Extractor_for_Excel
                     .Distinct()
                     .ToArray() ?? new string[1]);
                 m_tablesListBoxAllItemsList.AddRange(tablesListBox.Items.Cast<string>());
+                m_tablesKeywords = string.Join(" ", m_tablesListBoxAllItemsList) ?? string.Empty;
             }
 
             objectsAndVariablesTabControl.SelectedTab = tablesTabPage;
