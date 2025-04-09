@@ -36,6 +36,7 @@ namespace SQL_Extractor_for_Excel
         private readonly string m_guid;
         private readonly string m_backupName;
         private readonly object saveLock = new object();
+        private DataTable m_shortcutsDT;
         private SqlServerManager m_sqlManager;
         private Timer m_timer;
         private Timer m_autoSaveTimer;
@@ -104,11 +105,12 @@ namespace SQL_Extractor_for_Excel
                 sqlEditorScintilla.Text = startQuery;
 
             serverTypeComboBox.ContextMenuStrip = new ContextMenuStrip();
-            serverTypeComboBox.ContextMenuStrip.Items.Add("Add Server Connection").Click += (sender, e) => SqlServerManager.AddSqlConnection();
+            serverTypeComboBox.ContextMenuStrip.Items.Add("Add Server Connection").Click += (sender, e) => { SqlServerManager.AddSqlConnection(); RefreshSavedQueriesComboBox(serverComboBox.SelectedItem?.ToString()); };
 
             serverComboBox.ContextMenuStrip = new ContextMenuStrip();
-            serverComboBox.ContextMenuStrip.Items.Add("Add Server Connection").Click += (sender, e) => SqlServerManager.AddSqlConnection();
-            serverComboBox.ContextMenuStrip.Items.Add("Update local password to server").Click += (sender, e) => PasswordUpdate();
+            serverComboBox.ContextMenuStrip.Items.Add("Add Server Connection").Click += (sender, e) => { SqlServerManager.AddSqlConnection(); RefreshSavedQueriesComboBox(serverComboBox.SelectedItem?.ToString()); };
+            serverComboBox.ContextMenuStrip.Items.Add("Update local password to server").Click += (sender, e) =>
+            { PasswordUpdate(); RefreshSavedQueriesComboBox(serverComboBox.SelectedItem?.ToString()); };
 
             if (!string.IsNullOrEmpty(saveFile))
                 LoadEditorState(saveFile);
@@ -132,6 +134,37 @@ namespace SQL_Extractor_for_Excel
             sqlEditorScintilla.AutoCSelectionChange += sqlEditorScintilla_AutoCSelectionChange;
             sqlEditorScintilla.AutoCCompleted += sqlEditorScintilla_AutoCCompleted; // To reset trigger char
             sqlEditorScintilla.AutoCCancelled += sqlEditorScintilla_AutoCCancelled; // To reset trigger char
+
+            try
+            {
+                string filePath = Path.Combine(FileManager.ResourcesPath, "SqlEditorScintillaShortcuts.txt");
+                m_shortcutsDT = Utils.ReadTabDelimitedFile(filePath);
+            }
+            catch (Exception) { }
+        }
+
+        private void DisplayEditorShortcutsForm()
+        {
+            try
+            {
+                if (m_shortcutsDT != null)
+                {
+                    DataTableForm dataTableForm = new DataTableForm(m_shortcutsDT, "No query", App);
+                    dataTableForm.TopMost = true;
+                    dataTableForm.Show();
+                    Utils.MoveFormToCursor(dataTableForm);
+                    var DGV = dataTableForm.FindAllChildrenByType<DataGridView>()?.FirstOrDefault();
+                    DGV.AutoResizeColumns();
+                }
+                else
+                {
+                    MessageBox.Show($"Problem displaing shortcuts table, check if file exists:\n{Path.Combine(FileManager.ResourcesPath, "SqlEditorScintillaShortcuts.txt")}");
+                }
+            }
+            catch (Exception)
+            {
+                MessageBox.Show($"Problem displaing shortcuts table, check if file exists:\n{Path.Combine(FileManager.ResourcesPath, "SqlEditorScintillaShortcuts.txt")}");
+            }
         }
 
         private void sqlEditorScintilla_AutoCSelectionChange(object sender, AutoCSelectionChangeEventArgs e)
@@ -147,6 +180,39 @@ namespace SQL_Extractor_for_Excel
 
         private void sqlEditorScintilla_AutoCCompleted(object sender, AutoCSelectionEventArgs e)
         {
+            // Capture state *before* cancelling, as AutoCCancelled will clear it
+            var originalTrigger = m_currentTriggerChar;
+            var originalStartPos = m_autoCStartPosition;
+            // Perform deletion *after* cancelling if triggered by . or #
+            if (originalTrigger == '.' || originalTrigger == '#')
+            {
+                var currentPos = sqlEditorScintilla.CurrentPosition;
+                int triggerPos = originalStartPos - 1; // Position of the trigger char itself
+
+                // Basic check: Ensure range is valid and trigger char is still there
+                if (triggerPos >= 0 && currentPos >= originalStartPos && triggerPos < sqlEditorScintilla.TextLength)
+                {
+                    if ((char)sqlEditorScintilla.GetCharAt(triggerPos) == originalTrigger)
+                    {
+                        sqlEditorScintilla.SetSelection(triggerPos, currentPos);
+                        sqlEditorScintilla.ReplaceSelection(m_autoCSelectedWord);
+                    }
+                }
+            }
+            else
+            {
+                var currentPos = sqlEditorScintilla.CurrentPosition;
+                int triggerPos = originalStartPos;
+
+                // Basic check: Ensure range is valid and trigger char is still there
+                if (triggerPos >= 0 && currentPos >= originalStartPos && triggerPos < sqlEditorScintilla.TextLength)
+                {
+                    sqlEditorScintilla.SetSelection(triggerPos, currentPos);
+                    sqlEditorScintilla.ReplaceSelection(m_autoCSelectedWord);
+                }
+            }
+
+            sqlEditorScintilla.AutoCCancel(); // This triggers AutoCCancelled handler
             ResetAutoCState();
         }
 
@@ -408,7 +474,7 @@ namespace SQL_Extractor_for_Excel
 
         private void PasswordUpdate()
         {
-            SqlServerManager.ServerType serverType = (SqlServerManager.ServerType)Enum.Parse(typeof(SqlServerManager.ServerType), serverTypeComboBox.SelectedItem.ToString());
+            SqlServerManager.ServerType serverType = (SqlServerManager.ServerType)Enum.Parse(typeof(SqlServerManager.ServerType), serverTypeComboBox.SelectedItem?.ToString());
             if (!Enum.IsDefined(typeof(SqlServerManager.ServerType), serverType) || string.IsNullOrWhiteSpace(serverComboBox.SelectedItem?.ToString()))
             {
                 MessageBox.Show("Missing server selections or query", "Run error");
@@ -435,6 +501,7 @@ namespace SQL_Extractor_for_Excel
                     default:
                         return;
                 }
+                RefreshSavedQueriesComboBox(serverComboBox.SelectedItem?.ToString());
             }
             Form.ActiveForm.TopMost = true;
         }
@@ -485,16 +552,16 @@ namespace SQL_Extractor_for_Excel
         {
             ContextMenu cm = sqlEditorScintilla.ContextMenu ?? new ContextMenu();
 
-            MenuItem formatSqlBySqlFluffCMI = new MenuItem("Format by SQLFluff", (o, e) => { FormatSelectionUsingSqlFluff(); });
-            MenuItem fetchCMI = new MenuItem("Fetch", (o, e) => { fetchTablesBtn.PerformClick(); });
-            MenuItem pasteRangeCMI = new MenuItem("Paste range", (o, e) => { pasteRngBtn.PerformClick(); });
-            MenuItem runSelectionCMI = new MenuItem("Run selected", (o, e) => { runSelectionBtn.PerformClick(); });
-            MenuItem runBlockCMI = new MenuItem("Run block (block identifier '-----')", (o, e) => { UtilsScintilla.SelectBlock(sqlEditorScintilla); runSelectionBtn.PerformClick(); });
+            MenuItem formatSqlBySqlFluffCMI = new MenuItem("Format by SQLFluff", (o, e) => FormatSelectionUsingSqlFluff());
+            MenuItem fetchCMI = new MenuItem("Fetch", (o, e) => Fetch());
+            MenuItem runSelectionCMI = new MenuItem("Run selected", (o, e) => RunSelection());
+            MenuItem runBlockCMI = new MenuItem("Run block (block identifier '-----')", (o, e) => { UtilsScintilla.SelectBlock(sqlEditorScintilla); RunSelection(); });
+            MenuItem shortcutsLookupCMI = new MenuItem("Keyboard shortcuts", (o, e) => DisplayEditorShortcutsForm());
             cm.MenuItems.Add(formatSqlBySqlFluffCMI);
             cm.MenuItems.Add(fetchCMI);
-            cm.MenuItems.Add(pasteRangeCMI);
             cm.MenuItems.Add(runSelectionCMI);
             cm.MenuItems.Add(runBlockCMI);
+            cm.MenuItems.Add(shortcutsLookupCMI);
             sqlEditorScintilla.ContextMenu = cm;
         }
 
@@ -577,6 +644,7 @@ namespace SQL_Extractor_for_Excel
         private void SqlEditorForm_Load(object sender, EventArgs e)
         {
             IntPtr MenuHandle = GetSystemMenu(this.Handle, false);
+
             InsertMenu(MenuHandle, 5, MF_BYPOSITION, ToggleTopMostMenuItem, "Pin/Unpin this window");
             InsertMenu(MenuHandle, 6, MF_BYPOSITION, CenterFormMenuItem, "Center window");
             InsertMenu(MenuHandle, 7, MF_BYPOSITION, NewFormMenuItem, "New SQL Extractor window");
@@ -636,14 +704,17 @@ namespace SQL_Extractor_for_Excel
             this.Close();
         }
 
-        private void RefreshServerTypeComboBox()
+        private void RefreshServerTypeComboBox(string prevSel = null)
         {
             serverTypeComboBox.Items.AddRange(Directory.EnumerateDirectories(FileManager.SqlQueriesPath).Select(p => Path.GetFileName(p)).ToArray());
+            int prevSelIndex = serverTypeComboBox.FindStringExact(prevSel ?? string.Empty);
+            if (prevSelIndex > 0)
+                serverTypeComboBox.SelectedIndex = prevSelIndex;
         }
 
-        private void RefreshSavedQueriesComboBox()
+        private void RefreshSavedQueriesComboBox(string prevSel = null)
         {
-            SqlServerManager.ServerType serverType = (SqlServerManager.ServerType)Enum.Parse(typeof(SqlServerManager.ServerType), serverTypeComboBox.SelectedItem.ToString());
+            SqlServerManager.ServerType serverType = (SqlServerManager.ServerType)Enum.Parse(typeof(SqlServerManager.ServerType), serverTypeComboBox.SelectedItem?.ToString());
             if (!Enum.IsDefined(typeof(SqlServerManager.ServerType), serverType))
                 return;
 
@@ -679,6 +750,10 @@ namespace SQL_Extractor_for_Excel
                     serverComboBox.Items.AddRange(m_connDic.Keys.ToArray());
             }
             catch { }
+
+            int prevSelIndex = serverComboBox.FindStringExact(prevSel ?? string.Empty);
+            if (prevSelIndex > 0)
+                serverComboBox.SelectedIndex = prevSelIndex;
         }
 
         private void FormatSelectionUsingSqlFluff()
@@ -702,13 +777,15 @@ namespace SQL_Extractor_for_Excel
                         break;
                 }
             }
-            catch (Exception)
-            { }
+            catch (Exception ex)
+            {
+                formattedText = $"Formatting failed: {ex.Message}";
+            }
             finally
             {
                 sqlEditorScintilla.Enabled = true;
                 sqlEditorScintilla.ReadOnly = false;
-                sqlEditorScintilla.ReplaceSelection(formattedText ?? "Formatting failed");
+                sqlEditorScintilla.ReplaceSelection(formattedText ?? $"Formatting failed: no error message");
                 this.UseWaitCursor = false;
             }
         }
@@ -874,6 +951,11 @@ namespace SQL_Extractor_for_Excel
 
         private void pasteRngFilterBtn_Click(object sender, EventArgs e)
         {
+            PasteRngAsFilter();
+        }
+
+        private void PasteRngAsFilter()
+        {
             Excel.Range rng = App.ActiveWindow.RangeSelection;
 
             if (!rng.Valid() || rng.Areas.Cast<Excel.Range>().Sum(p => p.Rows.Count) < 2)
@@ -887,11 +969,21 @@ namespace SQL_Extractor_for_Excel
 
         private void runBtn_Click(object sender, EventArgs e)
         {
+            RunAll();
+        }
+
+        private void RunAll()
+        {
             Query = sqlEditorScintilla.Text;
             Run(Query);
         }
 
         private void runSelectionBtn_Click(object sender, EventArgs e)
+        {
+            RunSelection();
+        }
+
+        private void RunSelection()
         {
             Query = sqlEditorScintilla.SelectedText;
 
@@ -1127,7 +1219,7 @@ namespace SQL_Extractor_for_Excel
                 }
                 /*savedQueriesComboBox.Items.Clear();
                 savedQueriesComboBox.Items.AddRange(m_queriesDic.Keys.Select(p => Path.GetFileName(p)).ToArray());*/
-                RefreshSavedQueriesComboBox();
+                RefreshSavedQueriesComboBox(serverComboBox.SelectedItem?.ToString());
             }
         }
 
@@ -1148,11 +1240,11 @@ namespace SQL_Extractor_for_Excel
                     case DialogResult.Yes:
                         sqlEditorScintilla.Text = sqlEditorScintilla.Text.TrimEnd('\n', '\r', '\t', ' ');
                         int position = sqlEditorScintilla.Lines.Last().Position;
-                        sqlEditorScintilla.AppendText($"{Environment.NewLine + Environment.NewLine}{UtilsScintilla.ScintillaSqlQuerySeparator}{Environment.NewLine + Environment.NewLine}{m_queriesDic[m_queriesDic.Keys.First(p => Path.GetFileName(p) == savedQueriesComboBox.SelectedItem.ToString())]}");
+                        sqlEditorScintilla.AppendText($"{Environment.NewLine + Environment.NewLine}{UtilsScintilla.ScintillaSqlQuerySeparator}{Environment.NewLine + Environment.NewLine}{m_queriesDic[m_queriesDic.Keys.First(p => Path.GetFileName(p) == savedQueriesComboBox.SelectedItem?.ToString())]}");
                         sqlEditorScintilla.GotoPosition(position);
                         break;
                     case DialogResult.No:
-                        sqlEditorScintilla.Text = m_queriesDic[m_queriesDic.Keys.First(p => Path.GetFileName(p) == savedQueriesComboBox.SelectedItem.ToString())];
+                        sqlEditorScintilla.Text = m_queriesDic[m_queriesDic.Keys.First(p => Path.GetFileName(p) == savedQueriesComboBox.SelectedItem?.ToString())];
                         break;
                     case DialogResult.Cancel:
                     case DialogResult.None:
@@ -1161,7 +1253,7 @@ namespace SQL_Extractor_for_Excel
                 }
             }
             else
-                sqlEditorScintilla.Text = m_queriesDic[m_queriesDic.Keys.First(p => Path.GetFileName(p) == savedQueriesComboBox.SelectedItem.ToString())];
+                sqlEditorScintilla.Text = m_queriesDic[m_queriesDic.Keys.First(p => Path.GetFileName(p) == savedQueriesComboBox.SelectedItem?.ToString())];
         }
 
         private void savedQueriesComboBox_MouseDown(object sender, MouseEventArgs e)
@@ -1172,7 +1264,7 @@ namespace SQL_Extractor_for_Excel
 
         private void serverComboBox_SelectedIndexChanged(object sender, EventArgs e)
         {
-            var result = m_connDic.TryGetValue((sender as ComboBox).SelectedItem.ToString(), out SqlConn);
+            var result = m_connDic.TryGetValue((sender as ComboBox).SelectedItem?.ToString(), out SqlConn);
         }
 
         private void sqlEditorScintilla_KeyUp(object sender, KeyEventArgs e)
@@ -1290,6 +1382,11 @@ namespace SQL_Extractor_for_Excel
         }
 
         private void fetchBtn_Click(object sender, EventArgs e)
+        {
+            Fetch();
+        }
+
+        private void Fetch()
         {
             ListBox listBox = objectsAndVariablesTabControl.SelectedTab.FindAllChildrenByType<ListBox>().FirstOrDefault();
 
@@ -1548,7 +1645,7 @@ namespace SQL_Extractor_for_Excel
                 SqlConn sqlConn;
                 try
                 {
-                    bool result = m_connDic.TryGetValue(m_connDic.Keys.FirstOrDefault(p => p.Contains(serverComboBox.SelectedItem.ToString())), out sqlConn);
+                    bool result = m_connDic.TryGetValue(m_connDic.Keys.FirstOrDefault(p => p.Contains(serverComboBox.SelectedItem?.ToString())), out sqlConn);
                     if (result)
                         result = sqlConn.Test();
                     if (!result)
@@ -1561,7 +1658,7 @@ namespace SQL_Extractor_for_Excel
                     return;
                 }
                 objectsAndVariablesTabControl.SelectedTab = fieldsTabPage;
-                FetchFields(listBox.SelectedItem.ToString(), sqlConn);
+                FetchFields(listBox.SelectedItem?.ToString(), sqlConn);
             }
             else if ((objectsAndVariablesTabControl.SelectedTab == fieldsTabPage) && listBox.SelectedItems.Count > 0)
                 TransferToQueryFromListbox();

@@ -544,6 +544,33 @@ public static class Utils
         });
     }
 
+    public static DataTable ReadTabDelimitedFile(string filePath)
+    {
+        DataTable dt = new DataTable();
+
+        // Read all lines from the file
+        string[] lines = File.ReadAllLines(filePath);
+
+        if (lines.Length == 0)
+            return dt; // Return an empty DataTable if the file is empty
+
+        // First line contains the headers
+        string[] headers = lines[0].Split('\t');
+        foreach (string header in headers)
+        {
+            dt.Columns.Add(header); // Add columns to DataTable
+        }
+
+        // Read remaining lines as data rows
+        for (int i = 1; i < lines.Length; i++)
+        {
+            string[] fields = lines[i].Split('\t');
+            dt.Rows.Add(fields); // Add data row to DataTable
+        }
+
+        return dt;
+    }
+
     public static void SaveAsTabDelimited(this DataTable dt, string delimiter = "\t", string folderPath = null)
     {
         object lockObject = new object();

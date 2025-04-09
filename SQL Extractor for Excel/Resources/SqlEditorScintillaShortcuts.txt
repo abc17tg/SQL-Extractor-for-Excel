@@ -1,0 +1,43 @@
+Command	Key
+Indent selection	Tab
+Dedent selection	Shift + Tab
+Delete to start of word	Ctrl + BackSpace
+Delete to end of word	Ctrl + Delete
+Delete to start of line	Ctrl + Shift + BackSpace
+Delete to end of line	Ctrl + Shift + Delete
+Go to start of document	Ctrl + Home
+Extend selection to start of document	Ctrl + Shift + Home
+Go to start of display line	Alt + Home
+Go to end of document	Ctrl + End
+Extend selection to end of document	Ctrl + Shift + End
+Go to end of display line	Alt + End
+Scroll up	Ctrl + Up
+Scroll down	Ctrl + Down
+Line cut	Ctrl + L
+Line copy	Ctrl + Shift + T
+Line delete	Ctrl + Shift + L
+Line swap with previous	Ctrl + T
+Selection/Line duplicate	Ctrl + D
+Previous paragraph. Shift extends selection	Ctrl + [
+Next paragraph. Shift extends selection	Ctrl + ]
+Previous word. Shift extends selection	Ctrl + Left
+Next word. Shift extends selection	Ctrl + Right
+Next word part. Shift extends selection	Ctrl + \
+Rectangular block selection	Alt + Shift + Movement
+Extend rectangular selection to start of line	Alt + Shift + Home
+Extend rectangular selection to end of line	Alt + Shift + End
+Find	Ctrl + F
+Replace	Ctrl + H
+Paste ----- block	Ctrl + -
+Select ----- block	Ctrl + A
+Format to filter list (' ', ' ', ...) and toggle to (  ,  , ...)	Ctrl + Q
+Comment/Uncomment	Ctrl + Shift + /
+Wrap to ( ) block	Ctrl + Shift + B
+Paste Excel's range	Ctrl + Shift + V
+Paste Excel's range as filter	Ctrl + Shift + F
+Toggle between spaces and new lines	Ctrl + Shift + S
+Toggle text wrap mode	Ctrl + W
+Remove aliases	Ctrl + G
+Move lines	Alt + Up/Down
+Run	Ctrl + R
+Run selection	Ctrl + Shift + R
