@@ -580,6 +580,8 @@ namespace SQL_Extractor_for_Excel
             InsertMenu(MenuHandle, 5, MF_BYPOSITION, ToggleTopMostMenuItem, "Pin/Unpin this window");
             InsertMenu(MenuHandle, 6, MF_BYPOSITION, CenterFormMenuItem, "Center window");
             InsertMenu(MenuHandle, 7, MF_BYPOSITION, NewFormMenuItem, "New SQL Extractor window");
+
+            SaveEditorState();
         }
 
         private void ToggleTopMost()
