@@ -14,7 +14,7 @@ namespace SQL_Extractor_for_Excel.Scripts
 {
     public static class UtilsScintilla
     {
-        public static readonly string ScintillaSqlQuerySeparator = "--------------------------------------------------";
+        public static readonly string ScintillaSqlQuerySeparator = new string('-', 50); // "--------------------------------------------------";
 
         public static void Comment(Scintilla editor, string commentSymbol = "--")
         {

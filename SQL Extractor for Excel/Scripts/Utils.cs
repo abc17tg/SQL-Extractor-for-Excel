@@ -544,6 +544,11 @@ public static class Utils
         });
     }
 
+    public static string GetVersionString(Version version)
+    {
+        return $"{version.Major}" + ((version.Minor != 0 || version.Build != 0) ? $".{version.Minor}" + (version.Build != 0 ? $".{version.Build}" : string.Empty) : string.Empty);
+    }
+
     public static DataTable ReadTabDelimitedFile(string filePath)
     {
         DataTable dt = new DataTable();

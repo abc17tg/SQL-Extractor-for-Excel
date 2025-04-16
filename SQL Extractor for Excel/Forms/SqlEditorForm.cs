@@ -90,7 +90,7 @@ namespace SQL_Extractor_for_Excel
             m_backupName = $"{Text}_{m_guid}.json";
 
             Version version = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version;
-            Text = $"{Text} v{GetVersionString(version)}";
+            Text = $"{Text} v{Utils.GetVersionString(version)}";
             FormTitle = Text;
 
             m_sqlManager = new SqlServerManager();
@@ -504,11 +504,6 @@ namespace SQL_Extractor_for_Excel
                 RefreshSavedQueriesComboBox(serverComboBox.SelectedItem?.ToString());
             }
             Form.ActiveForm.TopMost = true;
-        }
-
-        private static string GetVersionString(Version version)
-        {
-            return $"{version.Major}" + ((version.Minor != 0 || version.Build != 0) ? $".{version.Minor}" + (version.Build != 0 ? $".{version.Build}" : string.Empty) : string.Empty);
         }
 
         private void SheetNameTextBoxEnterLeaveSetup()
