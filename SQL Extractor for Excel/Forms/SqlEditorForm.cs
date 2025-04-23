@@ -1717,7 +1717,7 @@ namespace SQL_Extractor_for_Excel
 
         private void formatToSqlBtn_Click(object sender, EventArgs e)
         {
-            UtilsScintilla.ReformatTextToSql(sqlEditorScintilla);
+            UtilsScintilla.ReformatTextToSqlFilter(sqlEditorScintilla);
             sqlEditorScintilla.Focus();
         }
 

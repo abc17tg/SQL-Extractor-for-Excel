@@ -61,44 +61,156 @@ namespace SQL_Extractor_for_Excel.Scripts
             }
         }
 
-        public static void ReformatTextToSql(Scintilla editor, string text = null)
+        public static void SelectCurrentWord(Scintilla editor)
+        {
+            // Get the current position
+            int currentPos = editor.CurrentPosition;
+
+            // Find the start position of the current word
+            int startPos = editor.WordStartPosition(currentPos, false);
+            // Find the end position of the current word
+            int endPos = editor.WordEndPosition(currentPos, false);
+
+            if (!(!char.IsWhiteSpace(editor.GetCharAt(currentPos)) && ((currentPos > 0 && !char.IsWhiteSpace(editor.GetCharAt(currentPos - 1))) || (currentPos == 0))))
+                if (!(!char.IsWhiteSpace(editor.GetCharAt(currentPos)) && ((currentPos < editor.TextLength && !char.IsWhiteSpace(editor.GetCharAt(currentPos + 1))) || (currentPos == editor.TextLength - 1))))
+                    return;
+
+            while (new char[] { '\r', '\n' }.Contains(editor.GetCharAt(startPos)))
+                startPos += 1;
+            if (startPos > 0 && new char[] { '\'', '(' }.Contains(editor.GetCharAt(startPos - 1)))
+            {
+                startPos -= 1;
+                if (startPos > 0 && editor.GetCharAt(startPos - 1) == '(')
+                    startPos -= 1;
+            }
+
+            while (new char[] { '\r', '\n' }.Contains(editor.GetCharAt(endPos)))
+                endPos -= 1;
+            if (endPos < editor.TextLength && new char[] { '\'', ')' }.Contains(editor.GetCharAt(endPos + 1)))
+            {
+                endPos = endPos + 1;
+                if (endPos < editor.TextLength && editor.GetCharAt(endPos + 1) == ')')
+                    endPos += 1;
+            }
+
+            if (editor.GetCharAt(startPos) == '(' ^ editor.GetCharAt(endPos) == ')')
+            {
+                if (editor.GetCharAt(startPos) == '(')
+                    startPos += 1;
+                else
+                    endPos -= 1;
+            }
+
+            if (editor.GetCharAt(startPos) == '\'' ^ editor.GetCharAt(endPos) == '\'')
+            {
+                if (editor.GetCharAt(startPos) == '\'')
+                    startPos += 1;
+                else
+                    endPos -= 1;
+            }
+
+            
+
+            // If we found a word, select it
+            if (startPos != endPos)
+            {
+                editor.SetSelection(startPos, endPos + 1);
+            }
+        }
+
+        public static void ReformatTextToSqlFilter(Scintilla editor, string text = null)
         {
             if (text == null)
+            {
                 text = editor.SelectedText;
+                if (string.IsNullOrWhiteSpace(text))
+                {
+                    SelectCurrentWord(editor);
+                    text = editor.SelectedText;
+                }
+            }
+
             if (string.IsNullOrWhiteSpace(text))
                 return;
 
+            string origText = text;
             int startPos = editor.SelectionStart;
-            // Regex patterns to detect formats
-            var singleQuotedPattern = @"^\(\s*'[^']*'(,\s*'[^']*')*\s*\)$";
-            var unquotedPattern = @"^\(\s*[^,']+(,\s*[^,']+)*\s*\)$";
 
-            if (Regex.IsMatch(text, singleQuotedPattern))
+            // Cache the compiled regex patterns for better performance
+            Regex singleQuotedPattern = new Regex(@"^\(\s*'[^']*'(,\s*'[^']*')*\s*\)$", RegexOptions.Compiled);
+            Regex unquotedPattern = new Regex(@"^\(\s*[^,']+(,\s*[^,']+)*\s*\)$", RegexOptions.Compiled);
+            Regex numericPattern = new Regex(@"^-?\d+(\.\d+)?$", RegexOptions.Compiled);
+
+            // Use char array instead of list for better performance
+            char[] DelimiterChars = { ' ', '\'', '(', ')', ',', '\t', '\n', '\r', ';', '|' };
+
+            string result;
+            if (singleQuotedPattern.IsMatch(text))
             {
-                // Format from ('x','x','x',...) to (x, x, x, ...)
-                text = text.Trim('(', ')'); // Remove outer parentheses
-                text = string.Join(", ", text.Split(',')
-                    .Select(p => p.Trim().Trim('\''))); // Remove single quotes and trim
-                text = $"({text})";
+                result = FormatToUnquotedSqlFilter(text);
             }
-            else if (Regex.IsMatch(text, unquotedPattern))
+            else if (unquotedPattern.IsMatch(text))
             {
-                // Format from (x, x, x, ...) to ('x','x','x',...)
-                text = text.Trim('(', ')'); // Remove outer parentheses
-                text = string.Join(", ", text.Split(',')
-                    .Select(p => $"'{p.Trim()}'")); // Add single quotes and trim
-                text = $"({text})";
+                result = FormatToQuotedSqlFilter(text);
             }
             else
             {
-                // If neither format is matched, use the default formatting logic
-                List<char> DelimiterChars = new List<char> { ' ', '\'', '(', ')', ',', '\t', '\n', '\r', ';', '|' };
-                text = $"({string.Join(", ", text.Split(DelimiterChars.ToArray(), StringSplitOptions.RemoveEmptyEntries).Select(p => $"'{p.Trim()}'").ToArray())})";
+                // Use HashSet directly for better performance in distinct operation
+                var valueSet = new HashSet<string>(
+                    text.Split(DelimiterChars, StringSplitOptions.RemoveEmptyEntries)
+                        .Select(p => p.Trim())
+                );
+
+                // Avoid redundant .ToArray() call and move the condition check to a separate method
+                if (valueSet.All(p => numericPattern.IsMatch(p)))
+                {
+                    result = FormatToUnquotedSqlFilter(string.Join(",", valueSet));
+                    if (result == origText)
+                        result = FormatToQuotedSqlFilter(string.Join(",", valueSet));
+                }
+                else
+                    result = FormatToQuotedSqlFilter(string.Join(",", valueSet));
             }
-            int endPos = startPos + text.Length;
+
             // Replace the selected text in the editor
-            editor.ReplaceSelection(text);
-            editor.SetSelection(startPos, endPos);
+            editor.ReplaceSelection(result);
+            editor.SetSelection(startPos, startPos + result.Length);
+        }
+
+        private static string FormatToUnquotedSqlFilter(string text)
+        {
+            // Format from ('x','x','x',...) to (x, x, x, ...)
+            text = text.Trim('(', ')'); // Remove outer parentheses
+
+            // Use HashSet for distinct to avoid multiple enumeration
+            var distinctValues = new HashSet<string>(
+                text.Split(',')
+                    .Select(p => p.Trim().Trim('\''))
+            );
+
+            // Handle single value case
+            if (distinctValues.Count == 1)
+                return distinctValues.First();
+            else
+                return $"({string.Join(", ", distinctValues)})";
+        }
+
+        private static string FormatToQuotedSqlFilter(string text)
+        {
+            // Format from (x, x, x, ...) to ('x','x','x',...)
+            text = text.Trim('(', ')'); // Remove outer parentheses
+
+            // Use HashSet for distinct to avoid multiple enumeration
+            var distinctValues = new HashSet<string>(
+                text.Split(',')
+                    .Select(p => p.Trim())
+            );
+
+            // Handle single value case
+            if (distinctValues.Count == 1)
+                return $"'{distinctValues.First()}'";
+            else
+                return $"({string.Join(", ", distinctValues.Select(p => $"'{p}'"))})";
         }
 
         public static void ToggleSpacesAndNewLines(Scintilla editor, string text = null)
@@ -107,7 +219,7 @@ namespace SQL_Extractor_for_Excel.Scripts
                 text = editor.SelectedText;
             if (string.IsNullOrWhiteSpace(text))
                 return;
-            
+
             string originalText = text;
 
             int startPos = editor.SelectionStart;
@@ -181,7 +293,7 @@ namespace SQL_Extractor_for_Excel.Scripts
                 editor.ReplaceSelection(text);
                 editor.SetSelection(startPos, endPos);
             }
-        }       
+        }
 
         public static string GetIndentationLevel(this Scintilla scintilla, bool replaceOtherCharToSpace = false)
         {
@@ -472,7 +584,7 @@ namespace SQL_Extractor_for_Excel.Scripts
             MenuItem copyCMI = new MenuItem("Copy", (o, e) => { editor.Copy(); });
             MenuItem pasteCMI = new MenuItem("Paste", (o, e) => { editor.Paste(); });
             MenuItem pasteClipboardRangeCMI = new MenuItem("Paste rng from clipboard", (o, e) => { PasteFromClipboard(editor); });
-            MenuItem formatToSqlCMI = new MenuItem("Format to SQL", (o, e) => { ReformatTextToSql(editor); });
+            MenuItem formatToSqlCMI = new MenuItem("Format to SQL", (o, e) => { ReformatTextToSqlFilter(editor); });
             MenuItem toggleWrapModeCMI = new MenuItem("Toggle text wrap mode (Ctrl + W)", (o, e) => { ToggleTextWrapModeScintilla(editor); });
             cm.MenuItems.Add(pasteCMI);
             cm.MenuItems.Add(copyCMI);
@@ -571,7 +683,7 @@ namespace SQL_Extractor_for_Excel.Scripts
             // Get the char that was just added
             Scintilla editor = sender as Scintilla;
             char addedChar = (char)e.Char;
-       
+
             switch (addedChar)
             {
                 case '(':
@@ -840,7 +952,7 @@ namespace SQL_Extractor_for_Excel.Scripts
 
                     if (e.KeyCode == Keys.Q)
                     {
-                        ReformatTextToSql(editor);
+                        ReformatTextToSqlFilter(editor);
                         e.SuppressKeyPress = true;
                     }
 
@@ -931,7 +1043,7 @@ namespace SQL_Extractor_for_Excel.Scripts
             if (string.IsNullOrWhiteSpace(text))
                 return;
 
-            ReformatTextToSql(editor, text);
+            ReformatTextToSqlFilter(editor, text);
         }
         private static void HighlightVariables(Scintilla editor, int indicatorIndex)
         {
