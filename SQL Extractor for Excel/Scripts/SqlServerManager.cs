@@ -4,10 +4,13 @@ using System.Data;
 using System.Data.SqlClient;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
+using System.Threading;
 using System.Windows.Forms;
 using Microsoft.CSharp.RuntimeBinder;
 using Oracle.ManagedDataAccess.Client;
 using Excel = Microsoft.Office.Interop.Excel;
+using Microsoft.VisualBasic.Devices;
 
 namespace SQL_Extractor_for_Excel.Scripts
 {
@@ -23,6 +26,8 @@ namespace SQL_Extractor_for_Excel.Scripts
         private event Action<OracleCommand> OracleCommandFinished;
         private event Action<dynamic> CommandCancelled;
 
+        private readonly object m_lock = new object();
+
         public SqlServerManager()
         {
             SqlServerCommandFinished += OnCommandFinished;
@@ -32,17 +37,20 @@ namespace SQL_Extractor_for_Excel.Scripts
 
         private void OnCommandFinished(dynamic cmd)
         {
-            try
+            lock (m_lock)
             {
-                SqlElement sqlElement = SqlElements.FirstOrDefault(p => p.Cmd == cmd);
-                if (sqlElement != null)
-                    SqlElements.Remove(sqlElement);
-                else
+                try
+                {
+                    SqlElement sqlElement = SqlElements.FirstOrDefault(p => p.Cmd == cmd);
+                    if (sqlElement != null)
+                        SqlElements.Remove(sqlElement);
+                    else
+                        SqlElements.RemoveAll(p => p.Cmd == null);
+                }
+                catch (Exception)
+                {
                     SqlElements.RemoveAll(p => p.Cmd == null);
-            }
-            catch (Exception)
-            {
-                SqlElements.RemoveAll(p => p.Cmd == null);
+                }
             }
             CommandFinished?.Invoke();
         }
@@ -391,10 +399,29 @@ END;";
 
         public static bool CheckSqlQueriesSyntaxOnline(List<string> queries, SqlConn sqlConn)
         {
-            if(queries.All(p=>CheckSqlQuerySyntaxOnlineOld(p, sqlConn) == string.Empty))
+            if (queries.All(p => CheckSqlQuerySyntaxOnlineOld(p, sqlConn) == string.Empty))
                 return true;
             else
                 return false;
+        }
+
+        public static SqlResult GetDataFromExcelSqlTables(string query)
+        {
+            return null;
+            /*            try
+                        {
+                            object rs = UtilsExcel.RunMacro("SqlQueries.ExecuteSQLQuery", new object[] { query });
+
+                            OleDbDataAdapter adapter = new OleDbDataAdapter();
+                            DataTable dt = new DataTable();
+                            adapter.Fill(dt, rs);
+
+                            return new SqlResult(dt, null);
+                        }
+                        catch (Exception ex)
+                        {
+                            return new SqlResult(null, ex.Message);
+                        }*/
         }
 
         public static SqlResult GetDataFromServer(SqlServerManager manager, string query, SqlConn sqlConn, int timeout = -1)
@@ -416,25 +443,6 @@ END;";
             return sqlResult;
         }
 
-        public static SqlResult GetDataFromExcelSqlTables(string query)
-        {
-            return null;
-/*            try
-            {
-                object rs = UtilsExcel.RunMacro("SqlQueries.ExecuteSQLQuery", new object[] { query });
-
-                OleDbDataAdapter adapter = new OleDbDataAdapter();
-                DataTable dt = new DataTable();
-                adapter.Fill(dt, rs);
-
-                return new SqlResult(dt, null);
-            }
-            catch (Exception ex)
-            {
-                return new SqlResult(null, ex.Message);
-            }*/
-        }
-
         public static SqlResult GetDataFromOracleSqlServer(SqlServerManager manager, string query, SqlConn sqlConn, int timeout = -1)
         {
             try
@@ -444,7 +452,7 @@ END;";
                     con.Open();
                     OracleCommand cmd = new OracleCommand(query, con);
                     cmd.CommandTimeout = timeout >= 0 ? timeout : cmd.CommandTimeout;
-                    SqlElement sqlElement = new SqlElement(cmd, sqlConn.Type, sqlConn.Name, string.IsNullOrEmpty(con.ServiceName) ? con.ServiceName : string.IsNullOrEmpty(con.DatabaseName) ? con.DatabaseName : "Oracle query");
+                    SqlElement sqlElement = new SqlElement(cmd, sqlConn.Type, sqlConn.Name, !string.IsNullOrEmpty(con.ServiceName) ? con.ServiceName : !string.IsNullOrEmpty(con.DatabaseName) ? con.DatabaseName : "Oracle query");
                     //SqlElement sqlElement = new SqlElement(cmd, sqlConn.Type, sqlConn.Name, sqlConn.Name ?? "Oracle query");
                     manager.SqlElements.Add(sqlElement);
                     try
@@ -481,7 +489,7 @@ END;";
                     con.Open();
                     SqlCommand cmd = new SqlCommand(query, con);
                     cmd.CommandTimeout = timeout >= 0 ? timeout : cmd.CommandTimeout;
-                    SqlElement sqlElement = new SqlElement(cmd, sqlConn.Type, sqlConn.Name, string.IsNullOrEmpty(con.Database) ? con.Database : "MS Sql query");
+                    SqlElement sqlElement = new SqlElement(cmd, sqlConn.Type, sqlConn.Name, !string.IsNullOrEmpty(con.Database) ? con.Database : "MS Sql query");
                     manager.SqlElements.Add(sqlElement);
                     try
                     {
@@ -505,6 +513,194 @@ END;";
                 manager.SqlServerCommandFinished?.Invoke(null);
                 return new SqlResult(null, ex.Message, null, null);
             }
+        }
+
+        public static async Task<SqlResult> GetDataFromSqlServerLiveAsync(SqlServerManager manager, string query, SqlConn sqlConn, IProgress<DataTable> progress, CancellationToken cancellationToken, int batchSize = 500, int timeout = -1)
+        {
+            var dt = new DataTable();
+            SqlElement sqlElement = null;
+            DateTime lastReportTime = DateTime.UtcNow;
+            int lastReportedCount = 0;
+
+            using (var con = new SqlConnection(sqlConn.ConnectionString()))
+            {
+                await con.OpenAsync(cancellationToken);
+                var cmd = new SqlCommand(query, con);
+                cmd.CommandTimeout = timeout >= 0 ? timeout : cmd.CommandTimeout;
+                sqlElement = new SqlElement(cmd, sqlConn.Type, sqlConn.Name, con.Database ?? "MS Sql live");
+                manager.SqlElements.Add(sqlElement);
+
+                try
+                {
+                    // wrap ExecuteReaderAsync + loop in its own try/catch
+                    try
+                    {
+                        using (var rdr = await cmd.ExecuteReaderAsync(cancellationToken))
+                        {
+                            bool schemaInit = false;
+                            int rows = 0;
+
+                            while (true)
+                            {
+                                bool hasRow;
+                                try
+                                {
+                                    hasRow = await rdr.ReadAsync(cancellationToken);
+                                }
+                                catch (OperationCanceledException)
+                                {
+                                    sqlElement.Cancelled = true;
+                                    break;
+                                }
+
+                                if (!hasRow)
+                                    break;
+
+                                if (!schemaInit)
+                                {
+                                    for (int i = 0; i < rdr.FieldCount; i++)
+                                        dt.Columns.Add(rdr.GetName(i), rdr.GetFieldType(i));
+                                    schemaInit = true;
+                                }
+
+                                var row = dt.NewRow();
+                                for (int i = 0; i < rdr.FieldCount; i++)
+                                    row[i] = rdr.GetValue(i);
+                                dt.Rows.Add(row);
+
+                                rows++;
+                                var now = DateTime.UtcNow;
+                                var elapsed = (now - lastReportTime).TotalSeconds;
+                                bool batchReady = rows % batchSize == 0;
+                                bool gotNewRows = rows != lastReportedCount;
+                                bool allowFastRpt = batchReady && elapsed >= 5;
+                                bool allowSlowRpt = gotNewRows && elapsed >= 30;
+
+                                if (allowFastRpt || allowSlowRpt)
+                                {
+                                    progress?.Report(dt);
+                                    lastReportTime = now;
+                                    lastReportedCount = rows;
+                                }
+                            }
+                        }
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        sqlElement.Cancelled = true;
+                        return new SqlResult(dt, null, sqlElement, sqlConn);
+                    }
+                    catch (SqlException ex)
+                    {
+                        return new SqlResult(null, ex.Message, sqlElement, sqlConn);
+                    }
+                }
+                finally
+                {
+                    manager.SqlServerCommandFinished?.Invoke(cmd);
+                }
+            }
+
+            // final push & return
+            progress?.Report(dt);
+            return new SqlResult(dt, null, sqlElement, sqlConn);
+        }
+
+        public static async Task<SqlResult> GetDataFromOracleLiveAsync(SqlServerManager manager, string query, SqlConn sqlConn, IProgress<DataTable> progress, CancellationToken cancellationToken, int batchSize = 500, int timeout = -1)
+        {
+            var dt = new DataTable();
+            SqlElement sqlElement = null;
+            DateTime lastReportTime = DateTime.UtcNow;
+            int lastReportedCount = 0;
+
+            using (var con = new OracleConnection(sqlConn.ConnectionString()))
+            {
+                await con.OpenAsync(cancellationToken);
+                var cmd = new OracleCommand(query, con);
+                cmd.CommandTimeout = timeout >= 0 ? timeout : cmd.CommandTimeout;
+                var svc = con.ServiceName ?? con.DatabaseName ?? "Oracle live";
+                sqlElement = new SqlElement(cmd, sqlConn.Type, sqlConn.Name, svc);
+                manager.SqlElements.Add(sqlElement);
+
+                try
+                {
+                    // wrap ExecuteReaderAsync + loop in its own try/catch
+                    try
+                    {
+                        using (var rdr = await cmd.ExecuteReaderAsync(cancellationToken))
+                        {
+                            bool schemaInit = false;
+                            int rows = 0;
+
+                            while (true)
+                            {
+                                bool hasRow;
+                                try
+                                {
+                                    hasRow = await rdr.ReadAsync(cancellationToken);
+                                }
+                                catch (OperationCanceledException)
+                                {
+                                    sqlElement.Cancelled = true;
+                                    break;
+                                }
+                                catch (OracleException ex) when (ex.Number == 1013)
+                                {
+                                    sqlElement.Cancelled = true;
+                                    break;
+                                }
+
+                                if (!hasRow)
+                                    break;
+
+                                if (!schemaInit)
+                                {
+                                    for (int i = 0; i < rdr.FieldCount; i++)
+                                        dt.Columns.Add(rdr.GetName(i), rdr.GetFieldType(i));
+                                    schemaInit = true;
+                                }
+
+                                var row = dt.NewRow();
+                                for (int i = 0; i < rdr.FieldCount; i++)
+                                    row[i] = rdr.GetValue(i);
+                                dt.Rows.Add(row);
+
+                                rows++;
+                                var now = DateTime.UtcNow;
+                                var elapsed = (now - lastReportTime).TotalSeconds;
+                                bool batchReady = rows % batchSize == 0;
+                                bool gotNewRows = rows != lastReportedCount;
+                                bool allowFastRpt = batchReady && elapsed >= 5;
+                                bool allowSlowRpt = gotNewRows && elapsed >= 30;
+
+                                if (allowFastRpt || allowSlowRpt)
+                                {
+                                    progress?.Report(dt);
+                                    lastReportTime = now;
+                                    lastReportedCount = rows;
+                                }
+                            }
+                        }
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        sqlElement.Cancelled = true;
+                        return new SqlResult(dt, null, sqlElement, sqlConn);
+                    }
+                    catch (OracleException ex)
+                    {
+                        return new SqlResult(null, ex.Message, sqlElement, sqlConn);
+                    }
+                }
+                finally
+                {
+                    manager.OracleCommandFinished?.Invoke(cmd);
+                }
+            }
+
+            // final push & return
+            progress?.Report(dt);
+            return new SqlResult(dt, null, sqlElement, sqlConn);
         }
 
 

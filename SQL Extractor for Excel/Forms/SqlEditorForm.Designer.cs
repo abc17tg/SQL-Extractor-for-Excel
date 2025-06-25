@@ -50,7 +50,6 @@ namespace SQL_Extractor_for_Excel
             this.fetchTablesBtn = new System.Windows.Forms.Button();
             this.tablesListBox = new System.Windows.Forms.ListBox();
             this.searchTablesTextBox = new System.Windows.Forms.TextBox();
-            this.pasteResultsToSelectionCheckBox = new System.Windows.Forms.CheckBox();
             this.sheetNameTextBox = new System.Windows.Forms.TextBox();
             this.fillSheetNameBtn = new System.Windows.Forms.Button();
             this.headersCheckBox = new System.Windows.Forms.CheckBox();
@@ -77,7 +76,8 @@ namespace SQL_Extractor_for_Excel
             this.upperTableLayoutPanel = new System.Windows.Forms.TableLayoutPanel();
             this.parametersTableLayoutPanel = new System.Windows.Forms.TableLayoutPanel();
             this.worksheetTableLayoutPanel = new System.Windows.Forms.TableLayoutPanel();
-            this.pasteToDataTableCheckBox = new System.Windows.Forms.CheckBox();
+            this.exportTypeLabel = new System.Windows.Forms.Label();
+            this.exportTypeComboBox = new System.Windows.Forms.ComboBox();
             this.objectsAndVariablesTabControl = new System.Windows.Forms.TabControl();
             this.tablesTabPage = new System.Windows.Forms.TabPage();
             this.tablesTableLayoutPanel = new System.Windows.Forms.TableLayoutPanel();
@@ -199,20 +199,6 @@ namespace SQL_Extractor_for_Excel
             this.toolTip.SetToolTip(this.searchTablesTextBox, "Search tables (you can use Regex) (selections on the list are preserved)");
             this.searchTablesTextBox.WordWrap = false;
             this.searchTablesTextBox.KeyDown += new System.Windows.Forms.KeyEventHandler(this.searchTextBox_KeyDown);
-            // 
-            // pasteResultsToSelectionCheckBox
-            // 
-            this.pasteResultsToSelectionCheckBox.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right)));
-            this.pasteResultsToSelectionCheckBox.Location = new System.Drawing.Point(324, 3);
-            this.pasteResultsToSelectionCheckBox.Margin = new System.Windows.Forms.Padding(10, 3, 3, 3);
-            this.pasteResultsToSelectionCheckBox.Name = "pasteResultsToSelectionCheckBox";
-            this.pasteResultsToSelectionCheckBox.Size = new System.Drawing.Size(180, 33);
-            this.pasteResultsToSelectionCheckBox.TabIndex = 25;
-            this.pasteResultsToSelectionCheckBox.Text = "Paste result to selection";
-            this.toolTip.SetToolTip(this.pasteResultsToSelectionCheckBox, "When checked it will paste the result to cell that was selected when the query wa" +
-        "s run");
-            this.pasteResultsToSelectionCheckBox.UseVisualStyleBackColor = true;
-            this.pasteResultsToSelectionCheckBox.CheckedChanged += new System.EventHandler(this.pasteResultsToSelectionCheckBox_CheckedChanged);
             // 
             // sheetNameTextBox
             // 
@@ -614,16 +600,16 @@ namespace SQL_Extractor_for_Excel
             // 
             this.parametersTableLayoutPanel.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
             this.parametersTableLayoutPanel.ColumnCount = 5;
-            this.parametersTableLayoutPanel.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 17.34695F));
-            this.parametersTableLayoutPanel.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 27.55102F));
-            this.parametersTableLayoutPanel.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 27.55102F));
-            this.parametersTableLayoutPanel.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 27.55102F));
+            this.parametersTableLayoutPanel.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 17.3473F));
+            this.parametersTableLayoutPanel.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 27.55158F));
+            this.parametersTableLayoutPanel.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 17.55035F));
+            this.parametersTableLayoutPanel.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 37.55076F));
             this.parametersTableLayoutPanel.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle());
             this.parametersTableLayoutPanel.Controls.Add(this.headersCheckBox, 0, 0);
             this.parametersTableLayoutPanel.Controls.Add(this.worksheetTableLayoutPanel, 1, 0);
-            this.parametersTableLayoutPanel.Controls.Add(this.pasteResultsToSelectionCheckBox, 2, 0);
-            this.parametersTableLayoutPanel.Controls.Add(this.pasteToDataTableCheckBox, 3, 0);
             this.parametersTableLayoutPanel.Controls.Add(this.clearEditorLabel, 4, 0);
+            this.parametersTableLayoutPanel.Controls.Add(this.exportTypeLabel, 2, 0);
+            this.parametersTableLayoutPanel.Controls.Add(this.exportTypeComboBox, 3, 0);
             this.parametersTableLayoutPanel.Dock = System.Windows.Forms.DockStyle.Fill;
             this.parametersTableLayoutPanel.Location = new System.Drawing.Point(3, 3);
             this.parametersTableLayoutPanel.MinimumSize = new System.Drawing.Size(0, 35);
@@ -653,21 +639,29 @@ namespace SQL_Extractor_for_Excel
             this.worksheetTableLayoutPanel.Size = new System.Drawing.Size(193, 39);
             this.worksheetTableLayoutPanel.TabIndex = 28;
             // 
-            // pasteToDataTableCheckBox
+            // exportTypeLabel
             // 
-            this.pasteToDataTableCheckBox.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right)));
-            this.pasteToDataTableCheckBox.Checked = true;
-            this.pasteToDataTableCheckBox.CheckState = System.Windows.Forms.CheckState.Checked;
-            this.pasteToDataTableCheckBox.Location = new System.Drawing.Point(517, 3);
-            this.pasteToDataTableCheckBox.Margin = new System.Windows.Forms.Padding(10, 3, 3, 3);
-            this.pasteToDataTableCheckBox.Name = "pasteToDataTableCheckBox";
-            this.pasteToDataTableCheckBox.Size = new System.Drawing.Size(180, 33);
-            this.pasteToDataTableCheckBox.TabIndex = 33;
-            this.pasteToDataTableCheckBox.Text = "Paste result to data table";
-            this.toolTip.SetToolTip(this.pasteToDataTableCheckBox, "When checked it will paste the result into extra window with a visible table that" +
-        " can be later pasted to Excel or discarded (recommended)");
-            this.pasteToDataTableCheckBox.UseVisualStyleBackColor = true;
-            this.pasteToDataTableCheckBox.CheckedChanged += new System.EventHandler(this.pasteToDataTableCheckBox_CheckedChanged);
+            this.exportTypeLabel.AutoSize = true;
+            this.exportTypeLabel.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.exportTypeLabel.Location = new System.Drawing.Point(317, 0);
+            this.exportTypeLabel.Name = "exportTypeLabel";
+            this.exportTypeLabel.Size = new System.Drawing.Size(117, 39);
+            this.exportTypeLabel.TabIndex = 30;
+            this.exportTypeLabel.Text = "Export type:";
+            this.exportTypeLabel.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
+            // 
+            // exportTypeComboBox
+            // 
+            this.exportTypeComboBox.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right)));
+            this.exportTypeComboBox.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.exportTypeComboBox.Font = new System.Drawing.Font("Microsoft Sans Serif", 9F);
+            this.exportTypeComboBox.FormattingEnabled = true;
+            this.exportTypeComboBox.Location = new System.Drawing.Point(440, 8);
+            this.exportTypeComboBox.Name = "exportTypeComboBox";
+            this.exportTypeComboBox.Size = new System.Drawing.Size(257, 23);
+            this.exportTypeComboBox.TabIndex = 31;
+            this.toolTip.SetToolTip(this.exportTypeComboBox, "Choose export of query result type");
+            this.exportTypeComboBox.SelectedIndexChanged += new System.EventHandler(this.exportTypeComboBox_SelectedIndexChanged);
             // 
             // objectsAndVariablesTabControl
             // 
@@ -1091,14 +1085,12 @@ namespace SQL_Extractor_for_Excel
         private System.Windows.Forms.Button fetchTablesBtn;
         private System.Windows.Forms.ListBox tablesListBox;
         private TextBox searchTablesTextBox;
-        private CheckBox pasteResultsToSelectionCheckBox;
         private TextBox sheetNameTextBox;
         private Button fillSheetNameBtn;
         private CheckBox headersCheckBox;
         private Label clearEditorLabel;
         private TableLayoutPanel mainTableLayoutPanel;
         private TableLayoutPanel parametersTableLayoutPanel;
-        private CheckBox pasteToDataTableCheckBox;
         private TableLayoutPanel upperTableLayoutPanel;
         private TableLayoutPanel tablesButtonsTableLayoutPanel;
         private TableLayoutPanel tablesTableLayoutPanel;
@@ -1143,5 +1135,7 @@ namespace SQL_Extractor_for_Excel
         private DataGridViewTextBoxColumn VariableInstancesColumn;
         private SplitContainer mainSplitContainer;
         private ToolTip toolTip;
+        private Label exportTypeLabel;
+        private ComboBox exportTypeComboBox;
     }
 }

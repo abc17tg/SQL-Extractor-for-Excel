@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Data;
-using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 using System.Linq;
@@ -10,7 +9,6 @@ using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Windows.Forms;
-using System.Windows.Input;
 using ScintillaNET;
 using SQL_Extractor_for_Excel.Forms;
 using SQL_Extractor_for_Excel.Scripts;
@@ -27,11 +25,12 @@ namespace SQL_Extractor_for_Excel
         public int RunningQueries = 0;
         public Excel.Application App;
         public SqlServerManager.ServerType? ServerType;
+        public Dictionary<ExportType, string> ResultExportTypeDic;
+        public ExportType? ResultExportType;
         public SqlConn SqlConn;
         public static string DefaultSheetName = "Sql Query";
         public static string NewSheetName;
         public bool PasteHeaders => headersCheckBox.Checked;
-        public bool PasteToSelection => pasteResultsToSelectionCheckBox.Checked;
 
         private readonly string m_guid;
         private readonly string m_backupName;
@@ -83,6 +82,10 @@ namespace SQL_Extractor_for_Excel
         {
             //ScintillaFix.CopyNativeFolderIfNotExistOrDifferentFixForScintillaBug();
             InitializeComponent();
+
+            PopulateExportTypeDic();
+            PopulateExportTypeComboBox();
+
             m_sqlKeywords = FileManager.SqlKeywords.ToUpper();
             m_sqlKeywordList = m_sqlKeywords.Split(' ').ToList();
 
@@ -1007,15 +1010,39 @@ namespace SQL_Extractor_for_Excel
                 Text = Regex.Replace(Text, @"\s\[\d+\]\srunning\squeries", $" [{RunningQueries}] running queries");
 
             //runQueryWithResult = null;
-            if (pasteToDataTableCheckBox.Checked)
+
+            switch (ResultExportType)
             {
-                RunQueryToDataTable(query, SqlConn);
+                case ExportType.NewWorksheet:
+                    RunQueryToNewWorksheet(query, SqlConn);
+                    break;
+                case ExportType.SelectedCell:
+                    RunQueryToSelection(query, SqlConn);
+                    break;
+                case ExportType.DataTableForm:
+                    RunQueryToDataTable(query, SqlConn);
+                    break;
+                case ExportType.DataTableLiveForm:
+                    RunQueryToDataTableLive(query, SqlConn);
+                    break;
+                case ExportType.TxtTabDelimitedFile:
+                    break;
+                case ExportType.SpecialSE4EDT:
+                    break;
+                default:
+                    break;
             }
-            else
-            {
-                RunQueryToExcel(query, SqlConn);
-            }
+
             SaveEditorState();
+        }
+
+        private void RunQueryToDataTableLive(string query, SqlConn sqlConn)
+        {
+            var form = new DataTableForm(m_sqlManager, query, App, sqlConn, batchSize: 500, timeout: -1);
+            form.Show();
+            form.Activate();
+            --RunningQueries;
+            UpdateRunningQueriesText();
         }
 
         private void RunQueryToDataTable(string query, SqlConn sqlConn)
@@ -1054,96 +1081,92 @@ namespace SQL_Extractor_for_Excel
             runQueryWithResult.Start();
         }
 
-        private void RunQueryToExcel(string query, SqlConn sqlConn)
+        private void RunQueryToNewWorksheet(string query, SqlConn sqlConn)
         {
+            Excel.Workbook wb = App.ActiveWorkbook ?? App.Workbooks.Add();
+            Excel.Worksheet ws = wb.Sheets.Add();
+            string wsName = NewSheetName == m_sheetNameTextBoxPlaceholder ? DefaultSheetName : NewSheetName;
+            if (!string.IsNullOrEmpty(wsName)) { ws.Rename(wsName); wsName = ws.Name; }
+            Excel.Range rng = ws.Cells[1, 1];
+            StartQueryToExcel(query, sqlConn, rng, ws, wsName);
+        }
 
-            Excel.Range rng;
-            Excel.Worksheet ws = null;
-            string wsName;
-            if (!pasteResultsToSelectionCheckBox.Checked)
-            {
-                Excel.Workbook wb = App.ActiveWorkbook;
-                if (wb == null)
-                    wb = App.Workbooks.Add();
-                ws = wb.Sheets.Add();
-                wsName = NewSheetName == m_sheetNameTextBoxPlaceholder ? DefaultSheetName : NewSheetName;
-                if (!string.IsNullOrEmpty(wsName))
-                {
-                    ws.Rename(wsName);
-                    wsName = ws.Name;
-                }
-                rng = ws.Cells[1, 1];
-            }
-            else
-            {
-                rng = App.ActiveWindow.RangeSelection;
-                wsName = rng.Worksheet?.Name;
-            }
+        private void RunQueryToSelection(string query, SqlConn sqlConn)
+        {
+            Excel.Range rng = App.ActiveWindow.RangeSelection;
+            Excel.Worksheet ws = rng.Worksheet;
+            string wsName = ws?.Name;
+            StartQueryToExcel(query, sqlConn, rng, ws, wsName);
+        }
 
-            Task<(SqlResult, bool)> runQueryWithResult = new Task<(SqlResult, bool)>(() => SqlServerManager.GetDataFromServerToExcelRange(m_sqlManager, query, sqlConn, rng, PasteHeaders, 0));
+        private void StartQueryToExcel(string query, SqlConn sqlConn, Excel.Range rng, Excel.Worksheet ws, string wsName)
+        {
+            Task<(SqlResult, bool)> runQueryWithResult = new Task<(SqlResult, bool)>(
+                () => SqlServerManager.GetDataFromServerToExcelRange(m_sqlManager, query, sqlConn, rng, PasteHeaders, 0)
+            );
 
             runQueryWithResult.GetAwaiter().OnCompleted(() =>
             {
-                if (this.IsDisposed || this.Disposing || this == null)
-                    return;
-
+                if (this.IsDisposed || this.Disposing) return;
                 --RunningQueries;
 
                 this.Invoke(new Action(() =>
                 {
-                    string text;
-                    if (RunningQueries <= 0)
-                        text = FormTitle;
-                    else
-                        text = Regex.Replace(Text, @"\s\[\d+\]\srunning\squeries", $" [{RunningQueries}] running queries");
+                    UpdateRunningQueriesText();
+                    (SqlResult sqlResult, bool success) = runQueryWithResult.Result;
 
-                    this.Text = text;
-
-                    if (!runQueryWithResult.Result.Item2)
+                    if (!success)
                     {
-                        var result = MessageBox.Show($"Query for Worksheet [{wsName ?? "null"}] finished but Worksheet/Range unavailable/too small.\n\nPaste to DataTable?", "Query finished", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
-                        if (result == DialogResult.Yes)
+                        DialogResult choice = MessageBox.Show(
+                            $"Query for Worksheet [{wsName ?? "null"}] finished but Worksheet/Range unavailable/too small.\n\nPaste to DataTable?",
+                            "Query finished",
+                            MessageBoxButtons.YesNo,
+                            MessageBoxIcon.Question
+                        );
+
+                        if (choice == DialogResult.Yes)
                         {
-                            SqlResult sqlResult = runQueryWithResult.Result.Item1;
-                            string formName = $"DataTable [ET: {Math.Floor((DateTime.Now.Subtract((DateTime)sqlResult.SqlElement.m_startTime).TotalMinutes))} min]";
-                            DataTableForm form = new DataTableForm(sqlResult, query, App, formName, SqlElement.FormatQueryDetailsMessage(sqlResult.SqlElement));
-                            form.Show();
-                            form.Activate();
+                            string formName = $"DataTable [ET: {Math.Floor((DateTime.Now - (DateTime)sqlResult.SqlElement.m_startTime).TotalMinutes)} min]";
+                            var form = new DataTableForm(sqlResult, query, App, formName, SqlElement.FormatQueryDetailsMessage(sqlResult.SqlElement));
+                            form.Show(); form.Activate();
                         }
-                        else if (result == DialogResult.No && ws.Exists())
+                        else if (choice == DialogResult.No && ws.Exists())
                         {
-                            App.DisplayAlerts = false;
-                            ws.Delete();
-                            App.DisplayAlerts = true;
+                            App.DisplayAlerts = false; ws.Delete(); App.DisplayAlerts = true;
                         }
+
+                        return;
+                    }
+
+                    if (sqlResult.HasErrors)
+                    {
+                        if (ws.Exists() && ((Excel.Workbook)ws.Parent).Worksheets.Count > 1)
+                        {
+                            App.DisplayAlerts = false; ws.Delete(); App.DisplayAlerts = true;
+                        }
+
+                        var mb = new MessageBoxForm(
+                            $"Query finished with errors:\n\n{sqlResult.Errors}\n\nQuery:\n\n{query}",
+                            $"{wsName} query finished",
+                            true
+                        );
+                        mb.Show();
                     }
                     else
                     {
-                        string msg;
-                        SqlResult sqlResult = runQueryWithResult.Result.Item1;
-                        if (sqlResult.HasErrors)
-                        {
-                            msg = $"Query finished with errors:\n\n{sqlResult.Errors}\n\nQuery:\n\n{query}";
-                            if (ws.Exists() && (ws.Parent as Excel.Workbook).Worksheets.Count > 1)
-                            {
-                                App.DisplayAlerts = false;
-                                ws.Delete();
-                                App.DisplayAlerts = true;
-                            }
-                        }
-                        else
-                            msg = $"{query}\n\nFinished";
-                        if (!sqlResult.Cancelled)
-                        {
-                            MessageBoxForm messageBox = new MessageBoxForm(msg, $"{wsName ?? string.Empty} query finished", true);
-                            messageBox.Show();
-                        }
+                        var mb = new MessageBoxForm(
+                            $"{query}\n\nFinished",
+                            $"{wsName} query finished",
+                            true
+                        );
+                        mb.Show();
                     }
                 }));
             });
 
             runQueryWithResult.Start();
         }
+
 
         private void UpdateRunningQueriesText()
         {
@@ -1481,46 +1504,6 @@ namespace SQL_Extractor_for_Excel
                 NewSheetName = m_sheetNameTextBoxPlaceholder;
         }
 
-        private void pasteResultsToSelectionCheckBox_CheckedChanged(object sender, EventArgs e)
-        {
-            if (pasteResultsToSelectionCheckBox.Checked)
-            {
-                sheetNameTextBox.Enabled = false;
-                fillSheetNameBtn.Enabled = false;
-            }
-            else
-            {
-                sheetNameTextBox.Enabled = true;
-                fillSheetNameBtn.Enabled = true;
-            }
-        }
-
-        private void pasteToDataTableCheckBox_CheckedChanged(object sender, EventArgs e)
-        {
-            if (pasteToDataTableCheckBox.Checked)
-            {
-                sheetNameTextBox.Enabled = false;
-                fillSheetNameBtn.Enabled = false;
-                pasteResultsToSelectionCheckBox.Enabled = false;
-                headersCheckBox.Enabled = false;
-            }
-            else
-            {
-                if (pasteResultsToSelectionCheckBox.Checked)
-                {
-                    sheetNameTextBox.Enabled = false;
-                    fillSheetNameBtn.Enabled = false;
-                }
-                else
-                {
-                    sheetNameTextBox.Enabled = true;
-                    fillSheetNameBtn.Enabled = true;
-                }
-                pasteResultsToSelectionCheckBox.Enabled = true;
-                headersCheckBox.Enabled = true;
-            }
-        }
-
         private void fillSheetNameBtn_Click(object sender, EventArgs e)
         {
             string word = sqlEditorScintilla.GetWordFromPosition(sqlEditorScintilla.CurrentPosition);
@@ -1761,30 +1744,33 @@ namespace SQL_Extractor_for_Excel
 
         private void RefreshRunningQueriesDataGridView()
         {
-            if (this.IsDisposed || this.Disposing || this == null)
+            if (IsDisposed || Disposing) 
                 return;
 
-            this.Invoke(new Action(() =>
+            if (InvokeRequired)
             {
-                if (objectsAndVariablesTabControl.SelectedTab == runningQueriesTabPage)
-                    if (m_sqlManager.SqlElements.Count == runningQueriesDataGridView.RowCount)
+                Invoke(new Action(RefreshRunningQueriesDataGridView));
+                return;
+            }
+
+            if (objectsAndVariablesTabControl.SelectedTab == runningQueriesTabPage)
+                if (m_sqlManager.SqlElements.Count == runningQueriesDataGridView.RowCount)
+                {
+                    for (int i = 0; i < m_sqlManager.SqlElements.Count; i++)
                     {
-                        for (int i = 0; i < m_sqlManager.SqlElements.Count; i++)
-                        {
-                            string time = $"{Math.Floor(DateTime.Now.Subtract((DateTime)m_sqlManager.SqlElements[i].m_startTime).TotalMinutes)} min";
-                            if (runningQueriesDataGridView.Rows[i].Cells[2].Value.ToString() != time)
-                                runningQueriesDataGridView.Rows[i].Cells[2].Value = time;
-                        }
+                        string time = $"{Math.Floor(DateTime.Now.Subtract((DateTime)m_sqlManager.SqlElements[i].m_startTime).TotalMinutes)} min";
+                        if (runningQueriesDataGridView.Rows[i].Cells[2].Value.ToString() != time)
+                            runningQueriesDataGridView.Rows[i].Cells[2].Value = time;
                     }
-                    else
+                }
+                else
+                {
+                    runningQueriesDataGridView.Rows.Clear();
+                    foreach (SqlElement element in m_sqlManager.SqlElements)
                     {
-                        runningQueriesDataGridView.Rows.Clear();
-                        foreach (SqlElement element in m_sqlManager.SqlElements)
-                        {
-                            runningQueriesDataGridView.Rows.Add("Cancel", element.Name ?? "Query name", $"{Math.Floor((DateTime.Now.Subtract((DateTime)element.m_startTime).TotalMinutes))} min", "Query");
-                        }
+                        runningQueriesDataGridView.Rows.Add("Cancel", element.Name ?? "Query name", $"{Math.Floor((DateTime.Now.Subtract((DateTime)element.m_startTime).TotalMinutes))} min", "Query");
                     }
-            }));
+                }
         }
 
         private void runningQueriesDataGridView_CellClick(object sender, DataGridViewCellEventArgs e)
@@ -1844,7 +1830,7 @@ namespace SQL_Extractor_for_Excel
                     {
                         string saveFile = Path.Combine(FileManager.SqlEditorBackupPath, m_backupName);
 
-                        var save = new EditorState(sqlEditorScintilla.Text, m_sqlManager.SqlElements.Select(e => new SqlElementDto(e.Cmd.CommandText, e.ServerType, e.DbName)).ToList(), sqlEditorScintilla.WrapMode, pasteToDataTableCheckBox.Checked);
+                        var save = new EditorState(sqlEditorScintilla.Text, m_sqlManager.SqlElements.Select(e => new SqlElementDto(e.Cmd.CommandText, e.ServerType, e.DbName)).ToList(), sqlEditorScintilla.WrapMode);
 
                         var options = new JsonSerializerOptions
                         {
@@ -1891,7 +1877,6 @@ namespace SQL_Extractor_for_Excel
             if (Enum.TryParse<ScintillaNET.WrapMode>(save.WrapMode.ToString(), out var wrapMode))
                 sqlEditorScintilla.WrapMode = wrapMode;
 
-            pasteToDataTableCheckBox.Checked = save.PasteToDataTable;
 
             // rerun queries if there were any
             List<SqlElementDto> sqlElementsDto = save.SqlElementsDto;
@@ -1952,16 +1937,14 @@ namespace SQL_Extractor_for_Excel
             public string Query { get; set; }
             public List<SqlElementDto> SqlElementsDto { get; set; }
             public ScintillaNET.WrapMode WrapMode { get; set; }
-            public bool PasteToDataTable { get; set; }
 
             // Constructor with matching parameter names to properties
             [System.Text.Json.Serialization.JsonConstructor]
-            public EditorState(string query, List<SqlElementDto> sqlElementsDto, ScintillaNET.WrapMode wrapMode, bool pasteToDataTable)
+            public EditorState(string query, List<SqlElementDto> sqlElementsDto, ScintillaNET.WrapMode wrapMode)
             {
                 Query = query;
                 SqlElementsDto = sqlElementsDto;
                 WrapMode = wrapMode;
-                PasteToDataTable = pasteToDataTable;
             }
         }
 
@@ -1980,5 +1963,52 @@ namespace SQL_Extractor_for_Excel
             }
         }
 
+        private void PopulateExportTypeDic()
+        {
+            ResultExportTypeDic = new Dictionary<ExportType, string>();
+            foreach (ExportType exportType in Enum.GetValues(typeof(ExportType)))
+            {
+                string enumName = Enum.GetName(typeof(ExportType), exportType);
+                string displayName = Regex.Replace(enumName, @"(?<!^)(?=[A-Z])", " ");
+                ResultExportTypeDic.Add(exportType, displayName);
+            }
+        }
+
+        private void PopulateExportTypeComboBox()
+        {
+            exportTypeComboBox.Items.Clear();
+            exportTypeComboBox.Items.AddRange(ResultExportTypeDic.Values.ToArray());
+            exportTypeComboBox.SelectedIndex = (int)ExportType.DataTableForm;
+        }
+
+        private void exportTypeComboBox_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            string selectedDisplayName = exportTypeComboBox.SelectedItem as string;
+            if (selectedDisplayName != null)
+            {
+                ResultExportType = ResultExportTypeDic.First(x => x.Value == selectedDisplayName).Key;
+            }
+
+            if (ResultExportType != ExportType.NewWorksheet)
+            {
+                sheetNameTextBox.Enabled = false;
+                fillSheetNameBtn.Enabled = false;
+            }
+            else
+            {
+                sheetNameTextBox.Enabled = true;
+                fillSheetNameBtn.Enabled = true;
+            }
+        }
+
+        public enum ExportType
+        {
+            NewWorksheet,
+            SelectedCell,
+            DataTableForm,
+            DataTableLiveForm,
+            TxtTabDelimitedFile,
+            SpecialSE4EDT
+        }
     }
 }

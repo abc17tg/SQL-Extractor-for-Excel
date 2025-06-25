@@ -3,16 +3,21 @@ using System.Data;
 using System.Drawing;
 using System.Globalization;
 using System.Runtime.InteropServices;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
-using System.Windows.Interop;
 using SQL_Extractor_for_Excel.Scripts;
+using static ScintillaNET.Style;
 using Excel = Microsoft.Office.Interop.Excel;
 
 namespace SQL_Extractor_for_Excel.Forms
 {
     public partial class DataTableForm : Form
     {
+        private CancellationTokenSource m_liveCts;
+        private IProgress<DataTable> m_liveProgress;
+        private bool m_isLiveRunning = false;
+
         public string FormName;
         public SqlResult SqlResult = null;
         public DataTable DataTable;
@@ -21,6 +26,7 @@ namespace SQL_Extractor_for_Excel.Forms
         Excel.Application ExcelApp;
         public const string REFRESHING_STRING_VALUE = "[Refreshing]";
         public const string ERROR_STRING_VALUE = "[Error]";
+        public const string CANCELLED_STRING_VALUE = "[Cancelled]";
 
         private NumberFormatInfo m_nfi;
 
@@ -75,6 +81,126 @@ namespace SQL_Extractor_for_Excel.Forms
             dataGridView.ReadOnly = false;
             RefreshDimentions();
         }
+
+        public DataTableForm(SqlServerManager sqlServerManager, string query, Excel.Application app, SqlConn sqlConn, string name = null, int batchSize = 500, int timeout = 0)
+        {
+            InitializeComponent();
+            this.BackColor = Color.FromArgb(255, 140, 125);
+            m_nfi = new CultureInfo("en-US", false).NumberFormat;
+            m_nfi.NumberGroupSeparator = " ";
+            FormName = name ?? "DataTable" + " (Live)";
+            Text = FormName;
+            Query = query;
+            ExcelApp = app;
+            DisplayQuery = query;
+            refreshButton.Enabled = false;
+            queryRichTextBox.Text = DisplayQuery;
+            DataTable = new DataTable();
+            dataGridView.AutoGenerateColumns = true;
+            dataGridView.DataSource = DataTable;
+            dataGridView.RowPostPaint += dataGridView_RowPostPaint;
+            RefreshDimentions();
+
+            m_liveProgress = new Progress<DataTable>(dt =>
+            {
+                if (this.InvokeRequired)
+                {
+                    this.Invoke(new Action(() =>
+                    {
+                        DataTable = dt;
+                        dataGridView.DataSource = DataTable;
+                        RefreshDimentions();
+                    }));
+                }
+                else
+                {
+                    DataTable = dt;
+                    dataGridView.DataSource = DataTable;
+                    RefreshDimentions();
+                }
+            });
+
+            LoadDataAsync(sqlServerManager, query, sqlConn, batchSize, timeout);
+        }
+
+        private async void LoadDataAsync(SqlServerManager sqlServerManager, string query, SqlConn sqlConn, int batchSize, int timeout)
+        {
+            m_liveCts = new CancellationTokenSource();
+            SqlResult result = sqlConn.Type == SqlServerManager.ServerType.SqlServer
+                ? await SqlServerManager.GetDataFromSqlServerLiveAsync(sqlServerManager, query, sqlConn, m_liveProgress, m_liveCts.Token, batchSize, timeout)
+                : await SqlServerManager.GetDataFromOracleLiveAsync(sqlServerManager, query, sqlConn, m_liveProgress, m_liveCts.Token, batchSize, timeout);
+
+            if (!IsDisposed)
+            {
+                await InvokeAsync(() =>
+                {
+                    SqlResult = result;
+                    DataTable = result.DataTable;
+
+                    try
+                    {
+                        FormName = $"{Text.Replace("(Live)", "(Ready)")} [ET: {Math.Floor((DateTime.Now.Subtract((DateTime)SqlResult.SqlElement.m_startTime).TotalMinutes))} min]";
+                    }
+                    catch (Exception)
+                    {
+                        FormName = Text.Replace("(Live)", "(Ready)");
+                    }
+
+                    if (SqlResult.HasErrors)
+                    {
+                        this.Text = $"{FormName} {ERROR_STRING_VALUE}";
+                        DataTable = null;
+                        dataGridView.DataSource = DataTable;
+                        RefreshDimentions();
+                        pasteButton.Enabled = false;
+                        saveButton.Enabled = false;
+                        headersCheckBox.Enabled = false;
+                        DisplayQuery = $"Query finished with errors:\n\n{SqlResult.Errors}\n\nQuery:\n\n{Query}";
+                        queryRichTextBox.Text = DisplayQuery;
+                        this.Activate();
+                        this.UseWaitCursor = false;
+                        BackColor = Color.Red;
+                    }
+                    else if (result.Cancelled)
+                    {
+                        this.Text = $"{FormName} {CANCELLED_STRING_VALUE}";
+                        DataTable = SqlResult.DataTable;
+                        dataGridView.DataSource = DataTable;
+                        RefreshDimentions();
+                        pasteButton.Enabled = true;
+                        saveButton.Enabled = true;
+                        headersCheckBox.Enabled = true;
+                        DisplayQuery = SqlElement.FormatQueryDetailsMessage(SqlResult.SqlElement);
+                        queryRichTextBox.Text = DisplayQuery;
+                        this.Activate();
+                        this.UseWaitCursor = false;
+                        BackColor = Color.DarkGray;
+                    }
+                    else
+                    {
+                        this.Text = FormName;
+                        DataTable = SqlResult.DataTable;
+                        dataGridView.DataSource = DataTable;
+                        RefreshDimentions();
+                        pasteButton.Enabled = true;
+                        saveButton.Enabled = true;
+                        headersCheckBox.Enabled = true;
+                        DisplayQuery = SqlElement.FormatQueryDetailsMessage(SqlResult.SqlElement);
+                        queryRichTextBox.Text = DisplayQuery;
+                        this.Activate();
+                        this.UseWaitCursor = false;
+                        BackColor = Color.FromKnownColor(KnownColor.Control);
+                    }
+
+                });
+            }
+        }
+
+        private Task InvokeAsync(Action action)
+        {
+            return Task.Run(() => { if (InvokeRequired) Invoke(action); else action(); });
+        }
+
 
         private void DataTableForm_Load(object sender, EventArgs e)
         {
