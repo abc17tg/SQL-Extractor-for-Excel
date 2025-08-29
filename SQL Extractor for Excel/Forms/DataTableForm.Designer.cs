@@ -28,8 +28,8 @@
         /// </summary>
         private void InitializeComponent()
         {
-            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle1 = new System.Windows.Forms.DataGridViewCellStyle();
-            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle2 = new System.Windows.Forms.DataGridViewCellStyle();
+            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle5 = new System.Windows.Forms.DataGridViewCellStyle();
+            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle6 = new System.Windows.Forms.DataGridViewCellStyle();
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(DataTableForm));
             this.dataGridView = new System.Windows.Forms.DataGridView();
             this.mainTableLayoutPanel = new System.Windows.Forms.TableLayoutPanel();
@@ -39,6 +39,8 @@
             this.queryLabel = new System.Windows.Forms.Label();
             this.saveButton = new System.Windows.Forms.Button();
             this.refreshButton = new System.Windows.Forms.Button();
+            this.pasteToNewWorksheetButton = new System.Windows.Forms.Button();
+            this.pinBeforePasteCheckBoxToggle = new System.Windows.Forms.CheckBox();
             this.queryRichTextBox = new System.Windows.Forms.RichTextBox();
             ((System.ComponentModel.ISupportInitialize)(this.dataGridView)).BeginInit();
             this.mainTableLayoutPanel.SuspendLayout();
@@ -49,25 +51,25 @@
             this.dataGridView.AllowUserToAddRows = false;
             this.dataGridView.AllowUserToOrderColumns = true;
             this.dataGridView.AutoSizeColumnsMode = System.Windows.Forms.DataGridViewAutoSizeColumnsMode.DisplayedCells;
-            dataGridViewCellStyle1.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleLeft;
-            dataGridViewCellStyle1.BackColor = System.Drawing.SystemColors.Control;
-            dataGridViewCellStyle1.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            dataGridViewCellStyle1.ForeColor = System.Drawing.SystemColors.WindowText;
-            dataGridViewCellStyle1.SelectionBackColor = System.Drawing.SystemColors.Highlight;
-            dataGridViewCellStyle1.SelectionForeColor = System.Drawing.SystemColors.HighlightText;
-            dataGridViewCellStyle1.WrapMode = System.Windows.Forms.DataGridViewTriState.False;
-            this.dataGridView.ColumnHeadersDefaultCellStyle = dataGridViewCellStyle1;
+            dataGridViewCellStyle5.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleLeft;
+            dataGridViewCellStyle5.BackColor = System.Drawing.SystemColors.Control;
+            dataGridViewCellStyle5.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            dataGridViewCellStyle5.ForeColor = System.Drawing.SystemColors.WindowText;
+            dataGridViewCellStyle5.SelectionBackColor = System.Drawing.SystemColors.Highlight;
+            dataGridViewCellStyle5.SelectionForeColor = System.Drawing.SystemColors.HighlightText;
+            dataGridViewCellStyle5.WrapMode = System.Windows.Forms.DataGridViewTriState.False;
+            this.dataGridView.ColumnHeadersDefaultCellStyle = dataGridViewCellStyle5;
             this.dataGridView.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
-            this.mainTableLayoutPanel.SetColumnSpan(this.dataGridView, 6);
+            this.mainTableLayoutPanel.SetColumnSpan(this.dataGridView, 8);
             this.dataGridView.Cursor = System.Windows.Forms.Cursors.Cross;
-            dataGridViewCellStyle2.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleLeft;
-            dataGridViewCellStyle2.BackColor = System.Drawing.SystemColors.Window;
-            dataGridViewCellStyle2.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            dataGridViewCellStyle2.ForeColor = System.Drawing.SystemColors.ControlText;
-            dataGridViewCellStyle2.SelectionBackColor = System.Drawing.SystemColors.Highlight;
-            dataGridViewCellStyle2.SelectionForeColor = System.Drawing.SystemColors.HighlightText;
-            dataGridViewCellStyle2.WrapMode = System.Windows.Forms.DataGridViewTriState.False;
-            this.dataGridView.DefaultCellStyle = dataGridViewCellStyle2;
+            dataGridViewCellStyle6.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleLeft;
+            dataGridViewCellStyle6.BackColor = System.Drawing.SystemColors.Window;
+            dataGridViewCellStyle6.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            dataGridViewCellStyle6.ForeColor = System.Drawing.SystemColors.ControlText;
+            dataGridViewCellStyle6.SelectionBackColor = System.Drawing.SystemColors.Highlight;
+            dataGridViewCellStyle6.SelectionForeColor = System.Drawing.SystemColors.HighlightText;
+            dataGridViewCellStyle6.WrapMode = System.Windows.Forms.DataGridViewTriState.False;
+            this.dataGridView.DefaultCellStyle = dataGridViewCellStyle6;
             this.dataGridView.Dock = System.Windows.Forms.DockStyle.Fill;
             this.dataGridView.EditMode = System.Windows.Forms.DataGridViewEditMode.EditOnF2;
             this.dataGridView.ImeMode = System.Windows.Forms.ImeMode.On;
@@ -80,20 +82,24 @@
             // 
             this.mainTableLayoutPanel.AutoSize = true;
             this.mainTableLayoutPanel.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
-            this.mainTableLayoutPanel.ColumnCount = 6;
+            this.mainTableLayoutPanel.ColumnCount = 8;
+            this.mainTableLayoutPanel.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle());
             this.mainTableLayoutPanel.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle());
             this.mainTableLayoutPanel.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle());
             this.mainTableLayoutPanel.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100F));
+            this.mainTableLayoutPanel.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle());
             this.mainTableLayoutPanel.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 120F));
             this.mainTableLayoutPanel.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 30F));
             this.mainTableLayoutPanel.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 60F));
             this.mainTableLayoutPanel.Controls.Add(this.headersCheckBox, 0, 0);
             this.mainTableLayoutPanel.Controls.Add(this.dataGridView, 0, 1);
-            this.mainTableLayoutPanel.Controls.Add(this.pasteButton, 2, 0);
+            this.mainTableLayoutPanel.Controls.Add(this.pasteButton, 3, 0);
             this.mainTableLayoutPanel.Controls.Add(this.dataTableDimentionsLabel, 1, 0);
-            this.mainTableLayoutPanel.Controls.Add(this.queryLabel, 5, 0);
-            this.mainTableLayoutPanel.Controls.Add(this.saveButton, 3, 0);
-            this.mainTableLayoutPanel.Controls.Add(this.refreshButton, 4, 0);
+            this.mainTableLayoutPanel.Controls.Add(this.queryLabel, 7, 0);
+            this.mainTableLayoutPanel.Controls.Add(this.saveButton, 5, 0);
+            this.mainTableLayoutPanel.Controls.Add(this.refreshButton, 6, 0);
+            this.mainTableLayoutPanel.Controls.Add(this.pasteToNewWorksheetButton, 4, 0);
+            this.mainTableLayoutPanel.Controls.Add(this.pinBeforePasteCheckBoxToggle, 2, 0);
             this.mainTableLayoutPanel.Dock = System.Windows.Forms.DockStyle.Fill;
             this.mainTableLayoutPanel.Location = new System.Drawing.Point(0, 0);
             this.mainTableLayoutPanel.MinimumSize = new System.Drawing.Size(0, 35);
@@ -123,10 +129,10 @@
             this.pasteButton.AutoSize = true;
             this.pasteButton.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
             this.pasteButton.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.pasteButton.Location = new System.Drawing.Point(140, 3);
+            this.pasteButton.Location = new System.Drawing.Point(170, 3);
             this.pasteButton.MinimumSize = new System.Drawing.Size(150, 25);
             this.pasteButton.Name = "pasteButton";
-            this.pasteButton.Size = new System.Drawing.Size(678, 25);
+            this.pasteButton.Size = new System.Drawing.Size(547, 25);
             this.pasteButton.TabIndex = 30;
             this.pasteButton.Text = "Paste";
             this.pasteButton.UseVisualStyleBackColor = true;
@@ -179,6 +185,33 @@
             this.refreshButton.UseVisualStyleBackColor = true;
             this.refreshButton.Click += new System.EventHandler(this.refreshButton_Click);
             // 
+            // pasteToNewWorksheetButton
+            // 
+            this.pasteToNewWorksheetButton.AutoSize = true;
+            this.pasteToNewWorksheetButton.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
+            this.pasteToNewWorksheetButton.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.pasteToNewWorksheetButton.Location = new System.Drawing.Point(723, 3);
+            this.pasteToNewWorksheetButton.Name = "pasteToNewWorksheetButton";
+            this.pasteToNewWorksheetButton.Size = new System.Drawing.Size(95, 24);
+            this.pasteToNewWorksheetButton.TabIndex = 36;
+            this.pasteToNewWorksheetButton.Text = "Paste to new ws";
+            this.pasteToNewWorksheetButton.UseVisualStyleBackColor = true;
+            this.pasteToNewWorksheetButton.Click += new System.EventHandler(this.pasteToNewWorksheetButton_Click);
+            // 
+            // pinBeforePasteCheckBoxToggle
+            // 
+            this.pinBeforePasteCheckBoxToggle.Appearance = System.Windows.Forms.Appearance.Button;
+            this.pinBeforePasteCheckBoxToggle.BackgroundImage = global::SQL_Extractor_for_Excel.Properties.Resources.PushPin;
+            this.pinBeforePasteCheckBoxToggle.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Stretch;
+            this.pinBeforePasteCheckBoxToggle.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.pinBeforePasteCheckBoxToggle.Location = new System.Drawing.Point(140, 3);
+            this.pinBeforePasteCheckBoxToggle.Name = "pinBeforePasteCheckBoxToggle";
+            this.pinBeforePasteCheckBoxToggle.Size = new System.Drawing.Size(24, 24);
+            this.pinBeforePasteCheckBoxToggle.TabIndex = 37;
+            this.pinBeforePasteCheckBoxToggle.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
+            this.pinBeforePasteCheckBoxToggle.UseVisualStyleBackColor = true;
+            this.pinBeforePasteCheckBoxToggle.CheckedChanged += new System.EventHandler(this.pinBeforePasteCheckBoxToggle_CheckedChanged);
+            // 
             // queryRichTextBox
             // 
             this.queryRichTextBox.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
@@ -205,6 +238,7 @@
             this.Text = "DataTable";
             this.Activated += new System.EventHandler(this.DataTableForm_Activated);
             this.Load += new System.EventHandler(this.DataTableForm_Load);
+            this.ResizeEnd += new System.EventHandler(this.DataTableForm_ResizeEnd);
             ((System.ComponentModel.ISupportInitialize)(this.dataGridView)).EndInit();
             this.mainTableLayoutPanel.ResumeLayout(false);
             this.mainTableLayoutPanel.PerformLayout();
@@ -224,5 +258,7 @@
         private System.Windows.Forms.RichTextBox queryRichTextBox;
         private System.Windows.Forms.Button saveButton;
         private System.Windows.Forms.Button refreshButton;
+        private System.Windows.Forms.Button pasteToNewWorksheetButton;
+        private System.Windows.Forms.CheckBox pinBeforePasteCheckBoxToggle;
     }
 }

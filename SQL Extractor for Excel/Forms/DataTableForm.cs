@@ -32,7 +32,6 @@ namespace SQL_Extractor_for_Excel.Forms
 
         public const Int32 WM_SYSCOMMAND = 0x112;
         public const Int32 MF_BYPOSITION = 0x400;
-        public const Int32 ToggleTopMostMenuItem = 1000;
         public const Int32 CenterFormMenuItem = 1001;
 
         [DllImport("user32.dll")]
@@ -205,7 +204,6 @@ namespace SQL_Extractor_for_Excel.Forms
         private void DataTableForm_Load(object sender, EventArgs e)
         {
             IntPtr MenuHandle = GetSystemMenu(this.Handle, false);
-            InsertMenu(MenuHandle, 5, MF_BYPOSITION, ToggleTopMostMenuItem, "Pin/Unpin this window");
             InsertMenu(MenuHandle, 6, MF_BYPOSITION, CenterFormMenuItem, "Center window");
         }
 
@@ -220,9 +218,6 @@ namespace SQL_Extractor_for_Excel.Forms
             {
                 switch (msg.WParam.ToInt32())
                 {
-                    case ToggleTopMostMenuItem:
-                        ToggleTopMost();
-                        return;
                     case CenterFormMenuItem:
                         Utils.MoveFormToCenter(this);
                         return;
@@ -233,10 +228,6 @@ namespace SQL_Extractor_for_Excel.Forms
             base.WndProc(ref msg);
         }
 
-        private void ToggleTopMost()
-        {
-            this.TopMost = !this.TopMost;
-        }
         private void dataGridView_RowPostPaint(object sender, DataGridViewRowPostPaintEventArgs e)
         {
             using (SolidBrush b = new SolidBrush(dataGridView.RowHeadersDefaultCellStyle.ForeColor))
@@ -248,6 +239,7 @@ namespace SQL_Extractor_for_Excel.Forms
         private void pasteButton_Click(object sender, EventArgs e)
         {
             Paste();
+            pinBeforePasteCheckBoxToggle.Checked = false;
         }
 
         public void Paste()
@@ -385,7 +377,25 @@ namespace SQL_Extractor_for_Excel.Forms
 
         private void DataTableForm_Activated(object sender, EventArgs e)
         {
-            Utils.EnsureWindowIsVisible(this);
+        }
+
+        private void pinBeforePasteCheckBoxToggle_CheckedChanged(object sender, EventArgs e)
+        {
+            this.TopMost = pinBeforePasteCheckBoxToggle.Checked;
+        }
+
+        private void pasteToNewWorksheetButton_Click(object sender, EventArgs e)
+        {
+            Excel.Worksheet ws = ExcelApp.ActiveWorkbook.Worksheets.Add(Before: ExcelApp.ActiveSheet);
+            ws.Cells[1, 1].Select();
+            Paste();
+            pinBeforePasteCheckBoxToggle.Checked = false;
+        }
+
+        private void DataTableForm_ResizeEnd(object sender, EventArgs e)
+        {
+            if (this.WindowState == FormWindowState.Normal)
+                Utils.EnsureWindowIsVisible(this);
         }
     }
 }

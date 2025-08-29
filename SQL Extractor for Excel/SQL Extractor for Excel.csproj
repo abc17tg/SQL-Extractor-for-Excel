@@ -34,10 +34,10 @@
     </NuGetPackageImportStamp>
     <IsWebBootstrapper>False</IsWebBootstrapper>
     <BootstrapperEnabled>true</BootstrapperEnabled>
-    <PublishUrl>C:\Users\olszewsm\Documents\Documents\SQLExtractorForExcel\Releases\SQLExtractorForExcel_v1.7.3\</PublishUrl>
+    <PublishUrl>C:\Users\olszewsm\Documents\Documents\SQLExtractorForExcel\Releases\SQLExtractorForExcel_v1.9\</PublishUrl>
     <InstallUrl />
     <TargetCulture>en</TargetCulture>
-    <ApplicationVersion>1.8.0.0</ApplicationVersion>
+    <ApplicationVersion>1.8.0.1</ApplicationVersion>
     <AutoIncrementApplicationRevision>true</AutoIncrementApplicationRevision>
     <UpdateEnabled>true</UpdateEnabled>
     <UpdateInterval>7</UpdateInterval>
@@ -671,6 +671,7 @@
     <Compile Include="Properties\Resources.Designer.cs">
       <AutoGen>True</AutoGen>
       <DependentUpon>Resources.resx</DependentUpon>
+      <DesignTime>True</DesignTime>
     </Compile>
     <None Include="app.config" />
     <None Include="Oracle.DataAccess.Common.Configuration.Section.xsd">
@@ -11925,6 +11926,7 @@
     <Content Include="Resources\MessageBoxFormIcon.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+    <None Include="Resources\pushpin.png" />
     <Content Include="Resources\refresh.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>

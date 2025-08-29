@@ -492,13 +492,18 @@ public static class Utils
 
     public static void EnsureWindowIsVisible(Form form)
     {
-        // Get the window's bounds
         Rectangle formBounds = form.Bounds;
 
-        // Check if the form intersects with any screen
-        bool isVisibleOnAnyScreen = Screen.AllScreens.Any(screen => screen.WorkingArea.IntersectsWith(formBounds));
+        // Check if at least 75% of the form is visible on any screen
+        bool isSufficientlyVisible = Screen.AllScreens.Any(screen =>
+        {
+            Rectangle intersection = Rectangle.Intersect(screen.WorkingArea, formBounds);
+            double visibleArea = intersection.Width * intersection.Height;
+            double totalArea = formBounds.Width * formBounds.Height;
+            return (visibleArea / totalArea) >= 0.05; // At least 95% visible
+        });
 
-        if (!isVisibleOnAnyScreen)
+        if (!isSufficientlyVisible)
         {
             MoveFormToCenter(form);
         }

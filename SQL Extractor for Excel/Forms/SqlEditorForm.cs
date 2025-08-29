@@ -1685,7 +1685,13 @@ namespace SQL_Extractor_for_Excel
         private void SqlEditorForm_Activated(object sender, EventArgs e)
         {
             this.Opacity = 0.95;
-            Utils.EnsureWindowIsVisible(this);
+        }
+
+
+        private void SqlEditorForm_ResizeEnd(object sender, EventArgs e)
+        {
+            if(this.WindowState == FormWindowState.Normal)
+                Utils.EnsureWindowIsVisible(this);
         }
 
         private void SqlEditorForm_Deactivate(object sender, EventArgs e)
@@ -2010,5 +2016,6 @@ namespace SQL_Extractor_for_Excel
             TxtTabDelimitedFile,
             SpecialSE4EDT
         }
+
     }
 }
