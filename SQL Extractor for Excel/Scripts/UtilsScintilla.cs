@@ -6,6 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Windows.Forms;
+using Microsoft.VisualBasic;
 using ScintillaNET;
 using ScintillaNET_FindReplaceDialog;
 using static ScintillaNET.Style;
@@ -109,8 +110,6 @@ namespace SQL_Extractor_for_Excel.Scripts
                     endPos -= 1;
             }
 
-            
-
             // If we found a word, select it
             if (startPos != endPos)
             {
@@ -136,81 +135,186 @@ namespace SQL_Extractor_for_Excel.Scripts
             string origText = text;
             int startPos = editor.SelectionStart;
 
-            // Cache the compiled regex patterns for better performance
-            Regex singleQuotedPattern = new Regex(@"^\(\s*'[^']*'(,\s*'[^']*')*\s*\)$", RegexOptions.Compiled);
-            Regex unquotedPattern = new Regex(@"^\(\s*[^,']+(,\s*[^,']+)*\s*\)$", RegexOptions.Compiled);
-            Regex numericPattern = new Regex(@"^-?\d+(\.\d+)?$", RegexOptions.Compiled);
+            // Efficient regex patterns - avoid catastrophic backtracking
+            Regex columnPrefixPattern = new Regex(@"^\s*(?:\(\s*'[A-z_]+',\s*(?<ColumnName>\w+)\s*\)\s+IN\s+|\s+(?<ColumnName>\w+)\s+IN\s+)", RegexOptions.Compiled);
+            Regex quotedTuplePattern = new Regex(@"^\s*(?:\(\s*'[A-z_]+',\s*(?<ColumnName>\w+)\s*\)\s+IN\s+)?\((?:\('X',\s*'[^']*'\)\s*,?\s*)+\)$", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+            Regex unquotedTuplePattern = new Regex(@"^\s*(?:\(\s*'[A-z_]+',\s*(?<ColumnName>\w+)\s*\)\s+IN\s+)?\((?:\('X',\s*-?\d+(?:\.\d+)?\)\s*,?\s*)+\)$", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+            Regex singleQuotedPattern = new Regex(@"^\(\s*'[^']*'(?:\s*,\s*'[^']*')*\s*\)$", RegexOptions.Compiled);
+            Regex unquotedPattern = new Regex(@"^\(\s*-?\d+(?:\.\d+)?(?:\s*,\s*-?\d+(?:\.\d+)?)*\s*\)$", RegexOptions.Compiled);
+            Regex numericPattern = new Regex(@"^-?\d+(?:\.\d+)?$", RegexOptions.Compiled);
 
-            // Use char array instead of list for better performance
             char[] DelimiterChars = { ' ', '\'', '(', ')', ',', '\t', '\n', '\r', ';', '|' };
 
-            string result;
-            if (singleQuotedPattern.IsMatch(text))
+            string result = string.Empty;
+            string columnName = null;
+            string workingText = text;
+
+            // Extract column prefix if present
+            var colMatch = columnPrefixPattern.Match(text);
+            if (colMatch.Success)
             {
-                result = FormatToUnquotedSqlFilter(text);
+                columnName = colMatch.Groups[1].Value;
+                workingText = text.Substring(colMatch.Length);
             }
-            else if (unquotedPattern.IsMatch(text))
+
+            // Check format and toggle
+            var quotedTupleMatch = quotedTuplePattern.Match(text);
+            if (quotedTupleMatch.Success)
             {
-                result = FormatToQuotedSqlFilter(text);
+                string tupleCol = quotedTupleMatch.Groups[1].Success ? quotedTupleMatch.Groups[1].Value : null;
+                result = FormatTupleToUnquoted(text, numericPattern, tupleCol);
             }
             else
             {
-                // Use HashSet directly for better performance in distinct operation
-                var valueSet = new HashSet<string>(
-                    text.Split(DelimiterChars, StringSplitOptions.RemoveEmptyEntries)
-                        .Select(p => p.Trim())
-                );
-
-                // Avoid redundant .ToArray() call and move the condition check to a separate method
-                if (valueSet.All(p => numericPattern.IsMatch(p)))
+                var unquotedTupleMatch = unquotedTuplePattern.Match(text);
+                if (unquotedTupleMatch.Success)
                 {
-                    result = FormatToUnquotedSqlFilter(string.Join(",", valueSet));
-                    if (result == origText)
-                        result = FormatToQuotedSqlFilter(string.Join(",", valueSet));
+                    string tupleCol = unquotedTupleMatch.Groups[1].Success ? unquotedTupleMatch.Groups[1].Value : null;
+                    result = FormatTupleToQuoted(text, tupleCol);
+                }
+                else if (singleQuotedPattern.IsMatch(workingText))
+                {
+                    result = FormatToUnquotedSqlFilter(workingText, numericPattern, columnName);
+                }
+                else if (unquotedPattern.IsMatch(workingText))
+                {
+                    result = FormatToQuotedSqlFilter(workingText, numericPattern, columnName);
                 }
                 else
-                    result = FormatToQuotedSqlFilter(string.Join(",", valueSet));
+                {
+                    // Parse raw text
+                    var allVals = text.Split(DelimiterChars, StringSplitOptions.RemoveEmptyEntries)
+                        .Select(p => p.Trim())
+                        .Where(p => !string.IsNullOrEmpty(p))
+                        .Distinct()
+                        .ToList();
+
+                    bool isNumeric = allVals.All(p => numericPattern.IsMatch(p));
+                    if (allVals.Count > 1000)
+                    {
+                        result = UtilsExcel.CreateTupleFilter(allVals, columnName ?? "", isNumeric);
+                    }
+                    else
+                    {
+                        if (isNumeric)
+                            result = FormatToUnquotedSqlFilter(string.Join(",", allVals), numericPattern, columnName);
+                        else
+                            result = FormatToQuotedSqlFilter(string.Join(",", allVals), numericPattern, columnName);
+                    }
+                }
             }
 
-            // Replace the selected text in the editor
             editor.ReplaceSelection(result);
             editor.SetSelection(startPos, startPos + result.Length);
         }
 
-        private static string FormatToUnquotedSqlFilter(string text)
+        private static string FormatTupleToUnquoted(string text, Regex numericPattern, string columnName)
         {
-            // Format from ('x','x','x',...) to (x, x, x, ...)
-            text = text.Trim('(', ')'); // Remove outer parentheses
+            // Extract values
+            var valMatches = Regex.Matches(text, @"\('X',\s*'([^']*)'\)");
+            if (valMatches.Count == 0) return text;
 
-            // Use HashSet for distinct to avoid multiple enumeration
-            var distinctValues = new HashSet<string>(
-                text.Split(',')
-                    .Select(p => p.Trim().Trim('\''))
-            );
+            var vals = valMatches.Cast<Match>()
+                .Select(m => m.Groups[1].Value)
+                .Where(v => !string.IsNullOrEmpty(v))
+                .Distinct()
+                .ToList();
 
-            // Handle single value case
-            if (distinctValues.Count == 1)
-                return distinctValues.First();
+            // Check if all values are numeric
+            if (!vals.All(v => numericPattern.IsMatch(v)))
+                return text;
+
+            // Format as unquoted tuple
+            var tuples = vals.Select(v => $"('X', {v})");
+            string tuplesStr = string.Join(", ", tuples);
+            if (string.IsNullOrEmpty(columnName))
+                return $"({tuplesStr})";
             else
-                return $"({string.Join(", ", distinctValues)})";
+                return $"('X', {columnName}) IN ({tuplesStr})";
         }
 
-        private static string FormatToQuotedSqlFilter(string text)
+        private static string FormatTupleToQuoted(string text, string columnName)
         {
-            // Format from (x, x, x, ...) to ('x','x','x',...)
-            text = text.Trim('(', ')'); // Remove outer parentheses
+            // Extract values from tuples
+            var valMatches = Regex.Matches(text, @"\('X',\s*([^)]+)\)");
+            if (valMatches.Count == 0) return text;
 
-            // Use HashSet for distinct to avoid multiple enumeration
-            var distinctValues = new HashSet<string>(
-                text.Split(',')
-                    .Select(p => p.Trim())
-            );
+            var vals = valMatches.Cast<Match>()
+                .Select(m => m.Groups[1].Value.Trim())
+                .Where(v => !string.IsNullOrEmpty(v))
+                .Distinct()
+                .ToList();
 
-            // Handle single value case
-            if (distinctValues.Count == 1)
-                return $"'{distinctValues.First()}'";
+            // If over 1000, return quoted tuple
+            if (vals.Count > 1000)
+            {
+                return UtilsExcel.CreateTupleFilter(vals, columnName ?? "", false);
+            }
+
+            // Format as simple quoted list
+            string valueList = vals.Count == 1 ? $"'{vals[0].Replace("'", "''")}'" : $"({string.Join(", ", vals.Select(v => $"'{v.Replace("'", "''")}'"))})";
+            if (string.IsNullOrEmpty(columnName))
+                return valueList;
             else
-                return $"({string.Join(", ", distinctValues.Select(p => $"'{p}'"))})";
+                return $"{columnName} IN {valueList}";
+        }
+
+        private static string FormatToUnquotedSqlFilter(string text, Regex numericPattern, string columnName)
+        {
+            text = text.Trim('(', ')');
+
+            var vals = text.Split(',')
+                .Select(p => p.Trim().Trim('\''))
+                .Where(v => !string.IsNullOrEmpty(v))
+                .Distinct()
+                .ToList();
+
+            if (vals.Count > 1000)
+            {
+                if (!vals.All(v => numericPattern.IsMatch(v)))
+                    return columnName != null ? $"{columnName} IN {text}" : text;
+
+                return UtilsExcel.CreateTupleFilter(vals, columnName ?? "", true);
+            }
+
+            string valueList;
+            if (vals.Count == 1)
+                valueList = vals[0];
+            else
+                valueList = $"({string.Join(", ", vals)})";
+
+            if (columnName != null)
+                return $"{columnName} IN {valueList}";
+            else
+                return valueList;
+        }
+
+        private static string FormatToQuotedSqlFilter(string text, Regex numericPattern, string columnName)
+        {
+            text = text.Trim('(', ')');
+
+            var vals = text.Split(',')
+                .Select(p => p.Trim())
+                .Where(v => !string.IsNullOrEmpty(v))
+                .Distinct()
+                .ToList();
+
+            // Check if we should convert to tuple (over 1000 values)
+            if (vals.Count > 1000)
+            {
+                return UtilsExcel.CreateTupleFilter(vals, columnName ?? "", false);
+            }
+
+            string valueList;
+            if (vals.Count == 1)
+                valueList = $"'{vals[0].Replace("'", "''")}'";
+            else
+                valueList = $"({string.Join(", ", vals.Select(v => $"'{v.Replace("'", "''")}'"))})";
+
+            if (columnName != null)
+                return $"{columnName} IN {valueList}";
+            else
+                return valueList;
         }
 
         public static void ToggleSpacesAndNewLines(Scintilla editor, string text = null)

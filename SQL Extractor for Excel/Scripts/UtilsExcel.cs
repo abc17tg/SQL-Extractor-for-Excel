@@ -1,16 +1,17 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Data;
+using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Windows.Forms;
-using Excel = Microsoft.Office.Interop.Excel;
-using System.Runtime.InteropServices;
-using System.Data;
-using SQL_Extractor_for_Excel.Scripts;
-using System.Threading.Tasks;
-using System.Text.RegularExpressions;
 using System.Numerics;
-using System.Globalization;
+using System.Runtime.InteropServices;
+using System.Text.RegularExpressions;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+using Microsoft.VisualBasic;
+using SQL_Extractor_for_Excel.Scripts;
+using Excel = Microsoft.Office.Interop.Excel;
 
 public static class UtilsExcel
 {
@@ -67,7 +68,17 @@ public static class UtilsExcel
         return oApp.GetType().InvokeMember("Run", System.Reflection.BindingFlags.Default | System.Reflection.BindingFlags.InvokeMethod, null, oApp, oRunArgs);
     }
 
-    public static string FormatRangeToSqlPattern(Excel.Range rng)
+    public static string CreateTupleFilter(IEnumerable<string> values, string colName = "COLUMN_NAME", bool isNumeric = false)
+    {
+        var tuples = values.Select(v => isNumeric ? $"('X', {v})" : $"('X', '{v.Replace("'", "''")}')");
+        string tuplesStr = string.Join(", ", tuples);
+        if (string.IsNullOrEmpty(colName))
+            return $"({tuplesStr})";
+        else
+            return $"('X', {colName}) IN ({tuplesStr})";
+    }
+
+    public static string FormatRangeToSqlPattern(Excel.Range rng, bool bypassConvertToTupleMessageWithYes = false, string columnName = "")
     {
         if (!rng.Valid())
             return string.Empty;
@@ -93,19 +104,72 @@ public static class UtilsExcel
 
         values = values.Distinct().ToList();
 
-        if (!rng.IsNumeric())
+        bool useTuple = false;
+        if (values.Count > 1000)
         {
-            if (values.Count < 1001)
-                return $"('{string.Join("', '", values.Distinct())}')";
+            if (bypassConvertToTupleMessageWithYes)
+            {
+                useTuple = true;
+            }
             else
-                return string.Join("\n", values.Split((int)Math.Ceiling((double)values.Count / 1000)).Select(p => $"('{string.Join("', '", p)}')"));
+            {
+                string msg = $"There are {values.Count} distinct values, which exceeds 1000. Do you want to format it as a tuple to bypass the limit? Example: ('X', colName) IN (('X','val1'), ('X','val2'), ... )";
+                useTuple = MessageBox.Show(msg, "Confirm", MessageBoxButtons.YesNo) == DialogResult.Yes;
+            }
+        }
+
+        bool isNumeric = values.Count == 0 || rng.IsNumeric();
+
+        if (useTuple)
+        {
+            string colName;
+            if (!string.IsNullOrEmpty(columnName))
+            {
+                colName = columnName;
+            }
+            else
+            {
+                if (bypassConvertToTupleMessageWithYes)
+                {
+                    colName = "COLUMN_NAME";
+                }
+                else
+                {
+                    bool isHeaderFirst = MessageBox.Show("Is the first cell the column header?", "Confirm", MessageBoxButtons.YesNo) == DialogResult.Yes;
+                    if (isHeaderFirst)
+                    {
+                        if (values.Count < 2)
+                            return string.Empty;
+                        colName = values[0];
+                        values = values.Skip(1).ToList();
+                    }
+                    else
+                    {
+                        colName = Interaction.InputBox("Enter the column name:", "Column Name").Trim();
+                        if (string.IsNullOrEmpty(colName))
+                            colName = "COLUMN_NAME";
+                    }
+                }
+            }
+            isNumeric = values.Count == 0 || values.All(v => double.TryParse(v, NumberStyles.Any, CultureInfo.InvariantCulture, out double dummy));
+            return CreateTupleFilter(values, colName, isNumeric);
         }
         else
         {
-            if (values.Count < 1001)
-                return $"({string.Join(", ", values.Distinct())})";
+            if (!isNumeric)
+            {
+                if (values.Count < 1001)
+                    return $"('{string.Join("', '", values)}')";
+                else
+                    return string.Join("\n IN ", values.Split((int)Math.Ceiling((double)values.Count / 1000)).Select(p => $"('{string.Join("', '", p)}')"));
+            }
             else
-                return string.Join("\n", values.Split((int)Math.Ceiling((double)values.Count / 1000)).Select(p => $"({string.Join(", ", p)})"));
+            {
+                if (values.Count < 1001)
+                    return $"({string.Join(", ", values)})";
+                else
+                    return string.Join("\n IN ", values.Split((int)Math.Ceiling((double)values.Count / 1000)).Select(p => $"({string.Join(", ", p)})"));
+            }
         }
     }
 

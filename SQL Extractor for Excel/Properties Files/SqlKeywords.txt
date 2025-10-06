@@ -379,6 +379,7 @@ numtodsinterval
 numtoyminterval
 nvarchar
 nvarchar2
+nvl
 object
 occurrences_regex
 of

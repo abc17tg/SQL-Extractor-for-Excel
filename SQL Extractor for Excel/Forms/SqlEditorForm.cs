@@ -1297,7 +1297,7 @@ namespace SQL_Extractor_for_Excel
                         if (rng.Valid())
                         {
                             string indentation = UtilsScintilla.GetIndentationLevel(sqlEditorScintilla);
-                            sqlEditorScintilla.ReplaceSelection(string.Join($"\n{indentation}", UtilsExcel.FormatRangeToSqlPattern(rng).Split('\n')));
+                            sqlEditorScintilla.ReplaceSelection(string.Join($"\n{indentation}", UtilsExcel.FormatRangeToSqlPattern(rng, true).Split('\n')));
                         }
                         sqlEditorScintilla.Focus();
                         e.SuppressKeyPress = true;
