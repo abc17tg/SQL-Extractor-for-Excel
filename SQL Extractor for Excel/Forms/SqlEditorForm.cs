@@ -77,7 +77,6 @@ namespace SQL_Extractor_for_Excel
         [DllImport("user32.dll")]
         private static extern bool InsertMenu(IntPtr hMenu, Int32 wPosition, Int32 wFlags, Int32 wIDNewItem, string lpNewItem);
 
-
         public SqlEditorForm(Excel.Application app, string saveFile = null, string startQuery = null)
         {
             //ScintillaFix.CopyNativeFolderIfNotExistOrDifferentFixForScintillaBug();
@@ -1038,6 +1037,66 @@ namespace SQL_Extractor_for_Excel
 
         private void RunQueryToDataTableLive(string query, SqlConn sqlConn)
         {
+            // 1. Ask the CLASS for the active window (or a new one)
+            var form = DataTableTabbedForm.GetActiveOrNew();
+
+            // 2. Add the tab to it
+            form.AddLiveTab(m_sqlManager, query, App, sqlConn, batchSize: 500, timeout: -1);
+
+            // 3. Show and focus (Ensure it's visible if it was created or hidden)
+            if (!form.Visible) form.Show();
+            form.Activate();
+
+            --RunningQueries;
+            UpdateRunningQueriesText();
+        }
+
+        private void RunQueryToDataTable(string query, SqlConn sqlConn)
+        {
+            Task<(SqlResult, bool)> runQueryWithResult = new Task<(SqlResult, bool)>(() => (SqlServerManager.GetDataFromServer(m_sqlManager, query, sqlConn, 0), true));
+
+            runQueryWithResult.GetAwaiter().OnCompleted(() =>
+            {
+                if (this.IsDisposed || this.Disposing || this == null)
+                    return;
+
+                --RunningQueries;
+
+                this.Invoke(new Action(() =>
+                {
+                    UpdateRunningQueriesText();
+
+                    SqlResult sqlResult = runQueryWithResult.Result.Item1;
+                    if (sqlResult.HasErrors)
+                    {
+                        if (!sqlResult.Cancelled)
+                        {
+                            string msg = $"Query finished with errors:\n\n{sqlResult.Errors}\n\nQuery:\n\n{query}";
+                            MessageBoxForm messageBox = new MessageBoxForm(msg, "Query finished", true);
+                            messageBox.Show();
+                        }
+                        return;
+                    }
+
+                    string formName = $"DataTable [ET: {Math.Floor((DateTime.Now.Subtract((DateTime)sqlResult.SqlElement.m_startTime).TotalMinutes))} min]";
+
+                    // 1. Get Active or New Form from the static manager
+                    var form = DataTableTabbedForm.GetActiveOrNew();
+
+                    // 2. Add the result as a new tab
+                    form.AddSqlResultTab(sqlResult, query, App, formName, SqlElement.FormatQueryDetailsMessage(sqlResult.SqlElement));
+
+                    // 3. Show
+                    if (!form.Visible) form.Show();
+                    form.Activate();
+                }));
+            });
+
+            runQueryWithResult.Start();
+        }
+
+        /*private void RunQueryToDataTableLive(string query, SqlConn sqlConn)
+        {
             var form = new DataTableForm(m_sqlManager, query, App, sqlConn, batchSize: 500, timeout: -1);
             form.Show();
             form.Activate();
@@ -1079,7 +1138,7 @@ namespace SQL_Extractor_for_Excel
             });
 
             runQueryWithResult.Start();
-        }
+        }*/
 
         private void RunQueryToNewWorksheet(string query, SqlConn sqlConn)
         {

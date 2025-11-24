@@ -131,6 +131,9 @@
   -->
   <ItemGroup>
     <Reference Include="Accessibility" />
+    <Reference Include="Acornima, Version=1.2.0.0, Culture=neutral, PublicKeyToken=496b38436bb9edeb, processorArchitecture=MSIL">
+      <HintPath>..\packages\Acornima.1.2.0\lib\net462\Acornima.dll</HintPath>
+    </Reference>
     <Reference Include="Azure.Core, Version=1.44.1.0, Culture=neutral, PublicKeyToken=92742159e12e44c8, processorArchitecture=MSIL">
       <HintPath>..\packages\Azure.Core.1.44.1\lib\net472\Azure.Core.dll</HintPath>
     </Reference>
@@ -531,6 +534,18 @@
     <Compile Include="FindAndReplace\GoTo\GoToDialog.Designer.cs">
       <DependentUpon>GoToDialog.cs</DependentUpon>
     </Compile>
+    <Compile Include="Controls\DataTableControl.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="Controls\DataTableControl.Designer.cs">
+      <DependentUpon>DataTableControl.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Forms\DataTableTabbedForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Forms\DataTableTabbedForm.Designer.cs">
+      <DependentUpon>DataTableTabbedForm.cs</DependentUpon>
+    </Compile>
     <Compile Include="Forms\DataTableForm.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -627,6 +642,12 @@
     <EmbeddedResource Include="FindAndReplace\GoTo\GoToDialog.resx">
       <DependentUpon>GoToDialog.cs</DependentUpon>
     </EmbeddedResource>
+    <EmbeddedResource Include="Controls\DataTableControl.resx">
+      <DependentUpon>DataTableControl.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Forms\DataTableTabbedForm.resx">
+      <DependentUpon>DataTableTabbedForm.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="Forms\DataTableForm.resx">
       <DependentUpon>DataTableForm.cs</DependentUpon>
     </EmbeddedResource>
@@ -700,6 +721,7 @@
     <Compile Include="Scripts\SqlConn.cs" />
     <Compile Include="Scripts\SqlElement.cs" />
     <Compile Include="Scripts\SqlFilter.cs" />
+    <Compile Include="Scripts\SqlFormat.cs" />
     <Compile Include="Scripts\SqlFormatter.cs" />
     <Compile Include="Scripts\SqlResult.cs" />
     <Compile Include="Scripts\SqlServerManager.cs" />
@@ -11954,6 +11976,40 @@
   </PropertyGroup>
   <PropertyGroup>
     <ManifestCertificateThumbprint>F1BC45431F94C0E18FA7AA034BAF13BC31D948A0</ManifestCertificateThumbprint>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x64'">
+    <DebugSymbols>true</DebugSymbols>
+    <OutputPath>bin\x64\Debug\</OutputPath>
+    <DefineConstants>VSTO40;UseOfficeInterop;DEBUG;TRACE</DefineConstants>
+    <DebugType>full</DebugType>
+    <PlatformTarget>x64</PlatformTarget>
+    <LangVersion>7.3</LangVersion>
+    <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x64'">
+    <OutputPath>bin\x64\Release\</OutputPath>
+    <DefineConstants>VSTO40;UseOfficeInterop;TRACE</DefineConstants>
+    <Optimize>true</Optimize>
+    <DebugType>pdbonly</DebugType>
+    <PlatformTarget>x64</PlatformTarget>
+    <LangVersion>7.3</LangVersion>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x86'">
+    <DebugSymbols>true</DebugSymbols>
+    <OutputPath>bin\x86\Debug\</OutputPath>
+    <DefineConstants>VSTO40;UseOfficeInterop;DEBUG;TRACE</DefineConstants>
+    <DebugType>full</DebugType>
+    <PlatformTarget>x86</PlatformTarget>
+    <LangVersion>7.3</LangVersion>
+    <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x86'">
+    <OutputPath>bin\x86\Release\</OutputPath>
+    <DefineConstants>VSTO40;UseOfficeInterop;TRACE</DefineConstants>
+    <Optimize>true</Optimize>
+    <DebugType>pdbonly</DebugType>
+    <PlatformTarget>x86</PlatformTarget>
+    <LangVersion>7.3</LangVersion>
   </PropertyGroup>
   <!-- Include the build rules for a C# project. -->
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

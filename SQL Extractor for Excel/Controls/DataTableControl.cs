@@ -2,124 +2,136 @@
 using System.Data;
 using System.Drawing;
 using System.Globalization;
-using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using SQL_Extractor_for_Excel.Scripts;
-using static ScintillaNET.Style;
 using Excel = Microsoft.Office.Interop.Excel;
 
-namespace SQL_Extractor_for_Excel.Forms
+namespace SQL_Extractor_for_Excel.Controls
 {
-    public partial class DataTableForm : Form
+    public partial class DataTableControl : UserControl
     {
         private CancellationTokenSource m_liveCts;
         private IProgress<DataTable> m_liveProgress;
-        private bool m_isLiveRunning = false;
+        private NumberFormatInfo m_nfi;
 
-        public string FormName;
+        public string ControlName;
         public SqlResult SqlResult = null;
         public DataTable DataTable;
         public string Query;
         public string DisplayQuery;
-        Excel.Application ExcelApp;
+        public Excel.Application ExcelApp;
+
         public const string REFRESHING_STRING_VALUE = "[Refreshing]";
         public const string ERROR_STRING_VALUE = "[Error]";
         public const string CANCELLED_STRING_VALUE = "[Cancelled]";
 
-        private NumberFormatInfo m_nfi;
-
-        public const Int32 WM_SYSCOMMAND = 0x112;
-        public const Int32 MF_BYPOSITION = 0x400;
-        public const Int32 CenterFormMenuItem = 1001;
-
-        [DllImport("user32.dll")]
-        private static extern IntPtr GetSystemMenu(IntPtr hWnd, bool bRevert);
-        [DllImport("user32.dll")]
-        private static extern bool InsertMenu(IntPtr hMenu, Int32 wPosition, Int32 wFlags, Int32 wIDNewItem, string lpNewItem);
-
-        public DataTableForm(DataTable dataTable, string query, Excel.Application app, string name = null, string displayQuery = null)
+        public DataTableControl()
         {
             InitializeComponent();
-
             m_nfi = new CultureInfo("en-US", false).NumberFormat;
             m_nfi.NumberGroupSeparator = " ";
-            FormName = name ?? "DataTable";
-            Text = FormName;
+        }
+
+        // ---------------------------------------------------------
+        // Initialization Methods
+        // ---------------------------------------------------------
+
+        public void InitializeFromDataTable(DataTable dataTable, string query, Excel.Application app, string name, string displayQuery)
+        {
+            ControlName = name ?? "DataTable";
+            UpdateTabTitle(ControlName);
+
             DataTable = dataTable;
             Query = query;
             DisplayQuery = !string.IsNullOrEmpty(displayQuery) ? displayQuery : !string.IsNullOrEmpty(query) ? query : "Query missing.";
             ExcelApp = app;
-            queryRichTextBox.Text = DisplayQuery;
-            dataGridView.AutoGenerateColumns = true;
-            dataGridView.DataSource = DataTable;
-            dataGridView.RowPostPaint += dataGridView_RowPostPaint;
-            dataGridView.ReadOnly = false;
-            refreshButton.Enabled = false;
-            RefreshDimentions();
+
+            SetupUI();
         }
 
-        public DataTableForm(SqlResult sqlResult, string query, Excel.Application app, string name = null, string displayQuery = null)
+        public void InitializeFromSqlResult(SqlResult sqlResult, string query, Excel.Application app, string name, string displayQuery)
         {
-            InitializeComponent();
+            ControlName = name ?? "DataTable";
+            UpdateTabTitle(ControlName);
 
-            m_nfi = new CultureInfo("en-US", false).NumberFormat;
-            m_nfi.NumberGroupSeparator = " ";
-            FormName = name ?? "DataTable";
-            Text = FormName;
             SqlResult = sqlResult;
             DataTable = sqlResult.DataTable;
             Query = query;
             DisplayQuery = !string.IsNullOrEmpty(displayQuery) ? displayQuery : !string.IsNullOrEmpty(query) ? query : "Query missing.";
             ExcelApp = app;
-            queryRichTextBox.Text = DisplayQuery;
-            dataGridView.AutoGenerateColumns = true;
-            dataGridView.DataSource = DataTable;
-            dataGridView.RowPostPaint += dataGridView_RowPostPaint;
-            dataGridView.ReadOnly = false;
-            RefreshDimentions();
+
+            SetupUI();
         }
 
-        public DataTableForm(SqlServerManager sqlServerManager, string query, Excel.Application app, SqlConn sqlConn, string name = null, int batchSize = 500, int timeout = 0)
+        public void InitializeLive(SqlServerManager sqlServerManager, string query, Excel.Application app, SqlConn sqlConn, string name, int batchSize, int timeout)
         {
-            InitializeComponent();
-            this.BackColor = Color.FromArgb(255, 140, 125);
-            m_nfi = new CultureInfo("en-US", false).NumberFormat;
-            m_nfi.NumberGroupSeparator = " ";
-            FormName = name ?? "DataTable" + " (Live)";
-            Text = FormName;
+            this.mainTableLayoutPanel.BackColor = Color.FromArgb(255, 140, 125);
+
+            ControlName = name ?? "DataTable" + " (Live)";
+            UpdateTabTitle(ControlName);
+
             Query = query;
             ExcelApp = app;
             DisplayQuery = query;
+
             refreshButton.Enabled = false;
             queryRichTextBox.Text = DisplayQuery;
+
             DataTable = new DataTable();
-            dataGridView.AutoGenerateColumns = true;
-            dataGridView.DataSource = DataTable;
-            dataGridView.RowPostPaint += dataGridView_RowPostPaint;
+            SetupGrid();
             RefreshDimentions();
 
             m_liveProgress = new Progress<DataTable>(dt =>
             {
                 if (this.InvokeRequired)
                 {
-                    this.Invoke(new Action(() =>
-                    {
-                        DataTable = dt;
-                        dataGridView.DataSource = DataTable;
-                        RefreshDimentions();
-                    }));
+                    this.Invoke(new Action(() => UpdateLiveData(dt)));
                 }
                 else
                 {
-                    DataTable = dt;
-                    dataGridView.DataSource = DataTable;
-                    RefreshDimentions();
+                    UpdateLiveData(dt);
                 }
             });
 
             LoadDataAsync(sqlServerManager, query, sqlConn, batchSize, timeout);
+        }
+
+        // ---------------------------------------------------------
+        // Core Logic
+        // ---------------------------------------------------------
+
+        private void SetupUI()
+        {
+            queryRichTextBox.Text = DisplayQuery;
+            refreshButton.Enabled = SqlResult != null; // Only enable if we have a result object to refresh from
+            SetupGrid();
+            RefreshDimentions();
+        }
+
+        private void SetupGrid()
+        {
+            dataGridView.AutoGenerateColumns = true;
+            dataGridView.DataSource = DataTable;
+            dataGridView.RowPostPaint += dataGridView_RowPostPaint;
+            dataGridView.ReadOnly = false;
+        }
+
+        private void UpdateLiveData(DataTable dt)
+        {
+            DataTable = dt;
+            dataGridView.DataSource = DataTable;
+            RefreshDimentions();
+        }
+
+        // Helper to update the Parent TabPage text
+        private void UpdateTabTitle(string text)
+        {
+            if (this.Parent is TabPage page)
+            {
+                page.Text = text;
+            }
         }
 
         private async void LoadDataAsync(SqlServerManager sqlServerManager, string query, SqlConn sqlConn, int batchSize, int timeout)
@@ -138,16 +150,16 @@ namespace SQL_Extractor_for_Excel.Forms
 
                     try
                     {
-                        FormName = $"{Text.Replace("(Live)", "(Ready)")} [ET: {Math.Floor((DateTime.Now.Subtract((DateTime)SqlResult.SqlElement.m_startTime).TotalMinutes))} min]";
+                        ControlName = $"{ControlName.Replace("(Live)", "(Ready)")} [ET: {Math.Floor((DateTime.Now.Subtract((DateTime)SqlResult.SqlElement.m_startTime).TotalMinutes))} min]";
                     }
                     catch (Exception)
                     {
-                        FormName = Text.Replace("(Live)", "(Ready)");
+                        ControlName = ControlName.Replace("(Live)", "(Ready)");
                     }
 
                     if (SqlResult.HasErrors)
                     {
-                        this.Text = $"{FormName} {ERROR_STRING_VALUE}";
+                        UpdateTabTitle($"{ControlName} {ERROR_STRING_VALUE}");
                         DataTable = null;
                         dataGridView.DataSource = DataTable;
                         RefreshDimentions();
@@ -156,13 +168,13 @@ namespace SQL_Extractor_for_Excel.Forms
                         headersCheckBox.Enabled = false;
                         DisplayQuery = $"Query finished with errors:\n\n{SqlResult.Errors}\n\nQuery:\n\n{Query}";
                         queryRichTextBox.Text = DisplayQuery;
-                        this.Activate();
-                        this.UseWaitCursor = false;
-                        BackColor = Color.Red;
+
+                        this.Cursor = Cursors.Default;
+                        this.mainTableLayoutPanel.BackColor = Color.Red;
                     }
                     else if (result.Cancelled)
                     {
-                        this.Text = $"{FormName} {CANCELLED_STRING_VALUE}";
+                        UpdateTabTitle($"{ControlName} {CANCELLED_STRING_VALUE}");
                         DataTable = SqlResult.DataTable;
                         dataGridView.DataSource = DataTable;
                         RefreshDimentions();
@@ -171,13 +183,13 @@ namespace SQL_Extractor_for_Excel.Forms
                         headersCheckBox.Enabled = true;
                         DisplayQuery = SqlElement.FormatQueryDetailsMessage(SqlResult.SqlElement);
                         queryRichTextBox.Text = DisplayQuery;
-                        this.Activate();
-                        this.UseWaitCursor = false;
-                        BackColor = Color.DarkGray;
+
+                        this.Cursor = Cursors.Default;
+                        this.mainTableLayoutPanel.BackColor = Color.DarkGray;
                     }
                     else
                     {
-                        this.Text = FormName;
+                        UpdateTabTitle(ControlName);
                         DataTable = SqlResult.DataTable;
                         dataGridView.DataSource = DataTable;
                         RefreshDimentions();
@@ -186,10 +198,13 @@ namespace SQL_Extractor_for_Excel.Forms
                         headersCheckBox.Enabled = true;
                         DisplayQuery = SqlElement.FormatQueryDetailsMessage(SqlResult.SqlElement);
                         queryRichTextBox.Text = DisplayQuery;
-                        this.Activate();
-                        this.UseWaitCursor = false;
-                        BackColor = Color.FromKnownColor(KnownColor.Control);
+
+                        this.Cursor = Cursors.Default;
+                        this.mainTableLayoutPanel.BackColor = Color.FromKnownColor(KnownColor.Control);
                     }
+
+                    // Ensure refresh button is enabled if we have a result
+                    refreshButton.Enabled = true;
                 });
             }
         }
@@ -199,33 +214,9 @@ namespace SQL_Extractor_for_Excel.Forms
             return Task.Run(() => { if (InvokeRequired) Invoke(action); else action(); });
         }
 
-
-        private void DataTableForm_Load(object sender, EventArgs e)
-        {
-            IntPtr MenuHandle = GetSystemMenu(this.Handle, false);
-            InsertMenu(MenuHandle, 6, MF_BYPOSITION, CenterFormMenuItem, "Center window");
-        }
-
-        ~DataTableForm()
-        {
-            DataTable?.Dispose();
-        }
-
-        protected override void WndProc(ref Message msg)
-        {
-            if (msg.Msg == WM_SYSCOMMAND)
-            {
-                switch (msg.WParam.ToInt32())
-                {
-                    case CenterFormMenuItem:
-                        Utils.MoveFormToCenter(this);
-                        return;
-                    default:
-                        break;
-                }
-            }
-            base.WndProc(ref msg);
-        }
+        // ---------------------------------------------------------
+        // Event Handlers & UI Logic
+        // ---------------------------------------------------------
 
         private void dataGridView_RowPostPaint(object sender, DataGridViewRowPostPaintEventArgs e)
         {
@@ -292,6 +283,20 @@ namespace SQL_Extractor_for_Excel.Forms
             queryRichTextBox.Visible = true;
         }
 
+        public void ToogleQueryView()
+        {
+            if(queryRichTextBox.Visible)
+            {
+                queryRichTextBox.SendToBack();
+                queryRichTextBox.Visible = false;
+            }
+            else
+            {
+                queryRichTextBox.BringToFront();
+                queryRichTextBox.Visible = true;
+            }
+        }
+
         private void RefreshDimentions()
         {
             if (DataTable == null)
@@ -312,31 +317,34 @@ namespace SQL_Extractor_for_Excel.Forms
 
         private void refreshButton_Click(object sender, EventArgs e)
         {
+            // Check if SqlResult is valid before trying to refresh
+            if (SqlResult == null || SqlResult.SqlConn == null) return;
+
             Task<(SqlResult, bool)> runQueryWithResult = new Task<(SqlResult, bool)>(() => (SqlServerManager.GetDataFromServer(new SqlServerManager(), Query, SqlResult.SqlConn, 0), true));
 
             runQueryWithResult.GetAwaiter().OnCompleted(() =>
             {
-                if (this.IsDisposed || this.Disposing || this == null)
+                if (this.IsDisposed || this.Disposing)
                     return;
 
                 this.Invoke(new Action(() =>
                 {
-                    if (this.Text.Contains(REFRESHING_STRING_VALUE))
-                        this.Text = FormName;
+                    if (ControlName.Contains(REFRESHING_STRING_VALUE))
+                        UpdateTabTitle(ControlName);
 
                     SqlResult sqlResult = runQueryWithResult.Result.Item1;
                     try
                     {
-                        FormName = $"DataTable [ET: {Math.Floor((DateTime.Now.Subtract((DateTime)sqlResult.SqlElement.m_startTime).TotalMinutes))} min]";
+                        UpdateTabTitle($"DataTable [ET: {Math.Floor((DateTime.Now.Subtract((DateTime)sqlResult.SqlElement.m_startTime).TotalMinutes))} min]");
                     }
                     catch (Exception)
                     {
-                        FormName = "DataTable";
+                        UpdateTabTitle("DataTable");
                     }
 
                     if (sqlResult.HasErrors)
                     {
-                        this.Text = $"{FormName} {ERROR_STRING_VALUE}";
+                        UpdateTabTitle($"{ControlName} {ERROR_STRING_VALUE}");
                         DataTable = null;
                         dataGridView.DataSource = DataTable;
                         RefreshDimentions();
@@ -345,9 +353,7 @@ namespace SQL_Extractor_for_Excel.Forms
                         headersCheckBox.Enabled = false;
                         DisplayQuery = $"Query finished with errors:\n\n{sqlResult.Errors}\n\nQuery:\n\n{Query}";
                         queryRichTextBox.Text = DisplayQuery;
-                        this.Show();
-                        this.Activate();
-                        this.UseWaitCursor = false;
+                        this.Cursor = Cursors.Default;
                         return;
                     }
 
@@ -359,28 +365,25 @@ namespace SQL_Extractor_for_Excel.Forms
                     headersCheckBox.Enabled = true;
                     DisplayQuery = SqlElement.FormatQueryDetailsMessage(sqlResult.SqlElement);
                     queryRichTextBox.Text = DisplayQuery;
-                    this.Show();
-                    this.Activate();
-                    this.UseWaitCursor = false;
+                    this.Cursor = Cursors.Default;
                     return;
                 }));
             });
 
-
-            if (!this.Text.Contains(REFRESHING_STRING_VALUE))
-                this.Text = $"{FormName} {REFRESHING_STRING_VALUE}";
+            UpdateTabTitle($"{ControlName} {REFRESHING_STRING_VALUE}");
 
             runQueryWithResult.Start();
-            this.UseWaitCursor = true;
-        }
-
-        private void DataTableForm_Activated(object sender, EventArgs e)
-        {
+            this.Cursor = Cursors.WaitCursor;
         }
 
         private void pinBeforePasteCheckBoxToggle_CheckedChanged(object sender, EventArgs e)
         {
-            this.TopMost = pinBeforePasteCheckBoxToggle.Checked;
+            // Logic to toggle TopMost on the PARENT FORM
+            Form parentForm = this.FindForm();
+            if (parentForm != null)
+            {
+                parentForm.TopMost = pinBeforePasteCheckBoxToggle.Checked;
+            }
         }
 
         private void pasteToNewWorksheetButton_Click(object sender, EventArgs e)
@@ -389,12 +392,6 @@ namespace SQL_Extractor_for_Excel.Forms
             ws.Cells[1, 1].Select();
             Paste();
             pinBeforePasteCheckBoxToggle.Checked = false;
-        }
-
-        private void DataTableForm_ResizeEnd(object sender, EventArgs e)
-        {
-            if (this.WindowState == FormWindowState.Normal)
-                Utils.EnsureWindowIsVisible(this);
         }
     }
 }

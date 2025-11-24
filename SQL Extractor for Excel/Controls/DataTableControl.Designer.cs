@@ -1,13 +1,16 @@
-﻿namespace SQL_Extractor_for_Excel.Forms
+﻿using SQL_Extractor_for_Excel.Forms;
+using SQL_Extractor_for_Excel.Properties;
+
+namespace SQL_Extractor_for_Excel.Controls
 {
-    partial class DataTableForm
+    partial class DataTableControl
     {
-        /// <summary>
+        /// <summary> 
         /// Required designer variable.
         /// </summary>
         private System.ComponentModel.IContainer components = null;
 
-        /// <summary>
+        /// <summary> 
         /// Clean up any resources being used.
         /// </summary>
         /// <param name="disposing">true if managed resources should be disposed; otherwise, false.</param>
@@ -20,17 +23,17 @@
             base.Dispose(disposing);
         }
 
-        #region Windows Form Designer generated code
+        #region Component Designer generated code
 
-        /// <summary>
-        /// Required method for Designer support - do not modify
+        /// <summary> 
+        /// Required method for Designer support - do not modify 
         /// the contents of this method with the code editor.
         /// </summary>
         private void InitializeComponent()
         {
             System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle1 = new System.Windows.Forms.DataGridViewCellStyle();
             System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle2 = new System.Windows.Forms.DataGridViewCellStyle();
-            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(DataTableForm));
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(DataTableControl));
             this.dataGridView = new System.Windows.Forms.DataGridView();
             this.mainTableLayoutPanel = new System.Windows.Forms.TableLayoutPanel();
             this.headersCheckBox = new System.Windows.Forms.CheckBox();
@@ -226,19 +229,14 @@
             this.queryRichTextBox.Visible = false;
             this.queryRichTextBox.DoubleClick += new System.EventHandler(this.queryRichTextBox_DoubleClick);
             // 
-            // DataTableForm
+            // DataTableControl
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(1031, 415);
             this.Controls.Add(this.mainTableLayoutPanel);
             this.Controls.Add(this.queryRichTextBox);
-            this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
-            this.Name = "DataTableForm";
-            this.Text = "DataTable";
-            this.Activated += new System.EventHandler(this.DataTableForm_Activated);
-            this.Load += new System.EventHandler(this.DataTableForm_Load);
-            this.ResizeEnd += new System.EventHandler(this.DataTableForm_ResizeEnd);
+            this.Name = "DataTableControl";
+            this.Size = new System.Drawing.Size(1031, 415);
             ((System.ComponentModel.ISupportInitialize)(this.dataGridView)).EndInit();
             this.mainTableLayoutPanel.ResumeLayout(false);
             this.mainTableLayoutPanel.PerformLayout();
@@ -249,16 +247,16 @@
 
         #endregion
 
-        private System.Windows.Forms.DataGridView dataGridView;
-        private System.Windows.Forms.TableLayoutPanel mainTableLayoutPanel;
-        private System.Windows.Forms.CheckBox headersCheckBox;
-        private System.Windows.Forms.Button pasteButton;
-        private System.Windows.Forms.Label dataTableDimentionsLabel;
-        private System.Windows.Forms.Label queryLabel;
-        private System.Windows.Forms.RichTextBox queryRichTextBox;
-        private System.Windows.Forms.Button saveButton;
-        private System.Windows.Forms.Button refreshButton;
-        private System.Windows.Forms.Button pasteToNewWorksheetButton;
-        private System.Windows.Forms.CheckBox pinBeforePasteCheckBoxToggle;
+        public System.Windows.Forms.DataGridView dataGridView;
+        public System.Windows.Forms.TableLayoutPanel mainTableLayoutPanel;
+        public System.Windows.Forms.CheckBox headersCheckBox;
+        public System.Windows.Forms.Button pasteButton;
+        public System.Windows.Forms.Label dataTableDimentionsLabel;
+        public System.Windows.Forms.Label queryLabel;
+        public System.Windows.Forms.RichTextBox queryRichTextBox;
+        public System.Windows.Forms.Button saveButton;
+        public System.Windows.Forms.Button refreshButton;
+        public System.Windows.Forms.Button pasteToNewWorksheetButton;
+        public System.Windows.Forms.CheckBox pinBeforePasteCheckBoxToggle;
     }
 }
