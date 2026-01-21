@@ -15,10 +15,8 @@ using Excel = Microsoft.Office.Interop.Excel;
 namespace SQL_Extractor_for_Excel.Forms
 {
     public partial class DataTableTabbedForm : Form
-    {
-        // ---------------------------------------------------------
+    {
         // Global Window Management (Static)
-        // ---------------------------------------------------------
         public static List<DataTableTabbedForm> OpenForms = new List<DataTableTabbedForm>();
         public static DataTableTabbedForm GlobalLastActiveForm = null;
 
@@ -36,11 +34,8 @@ namespace SQL_Extractor_for_Excel.Forms
             // If absolutely nothing is open, create new
             var newForm = new DataTableTabbedForm();
             return newForm;
-        }
-
-        // ---------------------------------------------------------
+        }
         // Win32 API
-        // ---------------------------------------------------------
         public const Int32 WM_SYSCOMMAND = 0x112;
         public const Int32 MF_BYPOSITION = 0x400;
         public const Int32 CenterFormMenuItem = 1001;
@@ -55,13 +50,8 @@ namespace SQL_Extractor_for_Excel.Forms
         private TabPage m_draggedTab;
 
         // Add this variable
-        private Random m_random = new Random();
-
-
-        // ---------------------------------------------------------
+        private Random m_random = new Random();
         // Constructors
-        // ---------------------------------------------------------
-
         public DataTableTabbedForm()
         {
             InitializeComponent();
@@ -111,12 +101,8 @@ namespace SQL_Extractor_for_Excel.Forms
                     GlobalLastActiveForm = OpenForms.LastOrDefault();
                 }
             };
-        }
-
-        // ---------------------------------------------------------
+        }
         // Tab Management Logic
-        // ---------------------------------------------------------
-
         private void AddNewTab(string title, Action<DataTableControl> initializer)
         {
             TabPage newPage = new TabPage(title ?? "DataTable");
@@ -165,7 +151,6 @@ namespace SQL_Extractor_for_Excel.Forms
         {
             AddNewTab(name, (ctrl) => ctrl.InitializeFromDataTable(dataTable, query, app, name, displayQuery));
         }
-
 
         // Drag & Drop Logic
         private void tabControl_MouseDown(object sender, MouseEventArgs e)
@@ -281,12 +266,11 @@ namespace SQL_Extractor_for_Excel.Forms
             // Only scroll if hovering over the tab header area
             if (tabControl.TabPages.Count == 0) return;
 
-            // Check if mouse is roughly in the header zone (standard height is ~20-30px)
-            // Or simply check if we are NOT over the content area (simplified)
             if (tabControl.SelectedTab != null && tabControl.SelectedTab.Controls.Count > 0)
             {
-                // If you want strict "header only" scrolling, uncomment next line:
-                // if (e.Location.Y > tabControl.GetTabRect(0).Height) return;
+                // strict "header only" scrolling, uncomment next line:
+                if (e.Location.Y > tabControl.GetTabRect(0).Height) 
+                    return;
             }
 
             int currentIndex = tabControl.SelectedIndex;
@@ -410,12 +394,8 @@ namespace SQL_Extractor_for_Excel.Forms
         {
             // Generates a random light color (RGB values between 200-255)
             return Color.FromArgb(255, m_random.Next(200, 256), m_random.Next(200, 256), m_random.Next(200, 256));
-        }
-
-        // ---------------------------------------------------------
+        }
         // Standard Form Events
-        // ---------------------------------------------------------
-
         private void DataTableTabbedForm_Load(object sender, EventArgs e)
         {
             IntPtr MenuHandle = GetSystemMenu(this.Handle, false);
