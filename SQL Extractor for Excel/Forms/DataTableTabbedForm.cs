@@ -70,6 +70,8 @@ namespace SQL_Extractor_for_Excel.Forms
             tabControl.DrawMode = TabDrawMode.OwnerDrawFixed;
             tabControl.DrawItem += tabControl_DrawItem;
 
+            tabControl.MouseWheel += tabControl_MouseWheel;
+
             RegisterForm();
             UpdateFormTitle();
         }
@@ -164,10 +166,8 @@ namespace SQL_Extractor_for_Excel.Forms
             AddNewTab(name, (ctrl) => ctrl.InitializeFromDataTable(dataTable, query, app, name, displayQuery));
         }
 
-        // ---------------------------------------------------------
-        // Drag & Drop Logic (The Core Update)
-        // ---------------------------------------------------------
 
+        // Drag & Drop Logic
         private void tabControl_MouseDown(object sender, MouseEventArgs e)
         {
             for (int i = 0; i < tabControl.TabPages.Count; i++)
@@ -175,23 +175,9 @@ namespace SQL_Extractor_for_Excel.Forms
                 Rectangle r = tabControl.GetTabRect(i);
                 if (r.Contains(e.Location))
                 {
-                    // Inside tabControl_MouseDown, replace the removal block with this:
                     if (e.Button == MouseButtons.Middle || (e.Button == MouseButtons.Right && ModifierKeys == Keys.Control))
                     {
-                        TabPage tabToRemove = tabControl.TabPages[i];
-
-                        if (tabToRemove.Controls.Count > 0 && tabToRemove.Controls[0] is DataTableControl dtc)
-                        {
-                            dtc.Dispose();
-                        }
-
-                        tabControl.TabPages.RemoveAt(i);
-
-                        // Update Count immediately after removal
-                        UpdateFormTitle();
-
-                        if (tabControl.TabPages.Count == 0) this.Close();
-
+                        RemoveTabInternal(tabControl.TabPages[i]);
                         return;
                     }
 
@@ -214,20 +200,7 @@ namespace SQL_Extractor_for_Excel.Forms
                 {
                     if (e.Button == MouseButtons.Right)
                     {
-                        TabPage tabToRemove = tabControl.TabPages[i];
-
-                        if (tabToRemove.Controls.Count > 0 && tabToRemove.Controls[0] is DataTableControl dtc)
-                        {
-                            dtc.Dispose();
-                        }
-
-                        tabControl.TabPages.RemoveAt(i);
-
-                        // Update Count immediately after removal
-                        UpdateFormTitle();
-
-                        if (tabControl.TabPages.Count == 0) this.Close();
-
+                        RemoveTabInternal(tabControl.TabPages[i]);
                         return;
                     }
                 }
@@ -240,26 +213,14 @@ namespace SQL_Extractor_for_Excel.Forms
             {
                 if (e.KeyCode == Keys.Escape)
                 {
-                    TabPage tabToRemove = tabControl.SelectedTab;
-
-                    if (tabToRemove.Controls.Count > 0 && tabToRemove.Controls[0] is DataTableControl dtc)
-                    {
-                        dtc.Dispose();
-                    }
-
-                    tabControl.TabPages.Remove(tabToRemove);
-
-                    // Update Count immediately after removal
-                    UpdateFormTitle();
-
-                    if (tabControl.TabPages.Count == 0) this.Close();
-
+                    RemoveTabInternal(tabControl.SelectedTab);
                     return;
                 }
 
                 if (e.KeyCode == Keys.Q)
                 {
-                    tabControl.SelectedTab.FindAllChildrenByType<DataTableControl>().First().ToogleQueryView();
+                    if (tabControl.SelectedTab != null)
+                        tabControl.SelectedTab.FindAllChildrenByType<DataTableControl>().FirstOrDefault()?.ToogleQueryView();
                 }
             }
         }
@@ -315,6 +276,70 @@ namespace SQL_Extractor_for_Excel.Forms
             }
         }
 
+        private void tabControl_MouseWheel(object sender, MouseEventArgs e)
+        {
+            // Only scroll if hovering over the tab header area
+            if (tabControl.TabPages.Count == 0) return;
+
+            // Check if mouse is roughly in the header zone (standard height is ~20-30px)
+            // Or simply check if we are NOT over the content area (simplified)
+            if (tabControl.SelectedTab != null && tabControl.SelectedTab.Controls.Count > 0)
+            {
+                // If you want strict "header only" scrolling, uncomment next line:
+                // if (e.Location.Y > tabControl.GetTabRect(0).Height) return;
+            }
+
+            int currentIndex = tabControl.SelectedIndex;
+
+            // Scroll Up -> Go Left
+            if (e.Delta > 0)
+            {
+                if (currentIndex > 0)
+                    tabControl.SelectedIndex = currentIndex - 1;
+            }
+            // Scroll Down -> Go Right
+            else
+            {
+                if (currentIndex < tabControl.TabPages.Count - 1)
+                    tabControl.SelectedIndex = currentIndex + 1;
+            }
+        }
+
+        public void CloseActiveTab()
+        {
+            RemoveTabInternal(tabControl.SelectedTab);
+        }
+
+        private void RemoveTabInternal(TabPage tabToRemove)
+        {
+            if (tabToRemove == null) return;
+
+            int originalIndex = tabControl.TabPages.IndexOf(tabToRemove);
+
+            if (tabToRemove.Controls.Count > 0 && tabToRemove.Controls[0] is DataTableControl dtc)
+            {
+                dtc.Dispose();
+            }
+
+            tabControl.TabPages.Remove(tabToRemove);
+
+            // Switch to tab on the left
+            if (tabControl.TabPages.Count > 0)
+            {
+                int newIndex = originalIndex - 1;
+                if (newIndex < 0) newIndex = 0; // Fallback to first if we closed the first one
+
+                // Ensure index is valid
+                if (newIndex < tabControl.TabPages.Count)
+                    tabControl.SelectedIndex = newIndex;
+            }
+
+            // Update Count immediately after removal
+            UpdateFormTitle();
+
+            if (tabControl.TabPages.Count == 0) this.Close();
+        }
+
         private void tabControl_DrawItem(object sender, DrawItemEventArgs e)
         {
             TabPage tabPage = tabControl.TabPages[e.Index];
@@ -323,17 +348,26 @@ namespace SQL_Extractor_for_Excel.Forms
             // Get color from Tag (fallback to Control color if null)
             Color tabHeaderColor = (tabPage.Tag is Color c) ? c : SystemColors.Control;
 
-            // 1. Draw the Header Background using the unique color
+            // 1. Draw the Header Background
             using (Brush brush = new SolidBrush(tabHeaderColor))
             {
                 e.Graphics.FillRectangle(brush, tabRect);
             }
 
-            // 2. Draw the Text
-            TextRenderer.DrawText(e.Graphics, tabPage.Text, tabControl.Font, tabRect, Color.Black, TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
+            // 2. Active Tab Highlight (Blue Frame)
+            if (e.Index == tabControl.SelectedIndex)
+            {
+                // Draw a thick blue border inside the tab
+                using (Pen pen = new Pen(Color.DodgerBlue, 3))
+                {
+                    Rectangle borderRect = tabRect;
+                    borderRect.Inflate(-2, -2); // Shrink slightly to fit inside
+                    e.Graphics.DrawRectangle(pen, borderRect);
+                }
+            }
 
-            // Optional: Draw a border around the tab header for better definition
-            // e.Graphics.DrawRectangle(SystemPens.ControlDark, tabRect);
+            // 3. Draw the Text
+            TextRenderer.DrawText(e.Graphics, tabPage.Text, tabControl.Font, tabRect, Color.Black, TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
         }
 
         private void MoveTabToForm(TabPage tab, DataTableTabbedForm targetForm)

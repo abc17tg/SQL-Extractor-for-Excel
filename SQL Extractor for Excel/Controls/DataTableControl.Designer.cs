@@ -40,6 +40,7 @@ namespace SQL_Extractor_for_Excel.Controls
             this.pasteButton = new System.Windows.Forms.Button();
             this.dataTableDimentionsLabel = new System.Windows.Forms.Label();
             this.queryLabel = new System.Windows.Forms.Label();
+            this.closeTabButton = new System.Windows.Forms.Button();
             this.saveButton = new System.Windows.Forms.Button();
             this.refreshButton = new System.Windows.Forms.Button();
             this.pasteToNewWorksheetButton = new System.Windows.Forms.Button();
@@ -63,7 +64,7 @@ namespace SQL_Extractor_for_Excel.Controls
             dataGridViewCellStyle1.WrapMode = System.Windows.Forms.DataGridViewTriState.False;
             this.dataGridView.ColumnHeadersDefaultCellStyle = dataGridViewCellStyle1;
             this.dataGridView.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
-            this.mainTableLayoutPanel.SetColumnSpan(this.dataGridView, 8);
+            this.mainTableLayoutPanel.SetColumnSpan(this.dataGridView, 9);
             this.dataGridView.Cursor = System.Windows.Forms.Cursors.Cross;
             dataGridViewCellStyle2.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleLeft;
             dataGridViewCellStyle2.BackColor = System.Drawing.SystemColors.Window;
@@ -85,7 +86,7 @@ namespace SQL_Extractor_for_Excel.Controls
             // 
             this.mainTableLayoutPanel.AutoSize = true;
             this.mainTableLayoutPanel.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
-            this.mainTableLayoutPanel.ColumnCount = 8;
+            this.mainTableLayoutPanel.ColumnCount = 9;
             this.mainTableLayoutPanel.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle());
             this.mainTableLayoutPanel.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle());
             this.mainTableLayoutPanel.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle());
@@ -94,11 +95,13 @@ namespace SQL_Extractor_for_Excel.Controls
             this.mainTableLayoutPanel.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 120F));
             this.mainTableLayoutPanel.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 30F));
             this.mainTableLayoutPanel.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 60F));
+            this.mainTableLayoutPanel.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 30F));
             this.mainTableLayoutPanel.Controls.Add(this.headersCheckBox, 0, 0);
             this.mainTableLayoutPanel.Controls.Add(this.dataGridView, 0, 1);
             this.mainTableLayoutPanel.Controls.Add(this.pasteButton, 3, 0);
             this.mainTableLayoutPanel.Controls.Add(this.dataTableDimentionsLabel, 1, 0);
             this.mainTableLayoutPanel.Controls.Add(this.queryLabel, 7, 0);
+            this.mainTableLayoutPanel.Controls.Add(this.closeTabButton, 8, 0);
             this.mainTableLayoutPanel.Controls.Add(this.saveButton, 5, 0);
             this.mainTableLayoutPanel.Controls.Add(this.refreshButton, 6, 0);
             this.mainTableLayoutPanel.Controls.Add(this.pasteToNewWorksheetButton, 4, 0);
@@ -135,7 +138,7 @@ namespace SQL_Extractor_for_Excel.Controls
             this.pasteButton.Location = new System.Drawing.Point(170, 3);
             this.pasteButton.MinimumSize = new System.Drawing.Size(150, 25);
             this.pasteButton.Name = "pasteButton";
-            this.pasteButton.Size = new System.Drawing.Size(547, 25);
+            this.pasteButton.Size = new System.Drawing.Size(517, 25);
             this.pasteButton.TabIndex = 30;
             this.pasteButton.Text = "Paste";
             this.pasteButton.UseVisualStyleBackColor = true;
@@ -156,7 +159,7 @@ namespace SQL_Extractor_for_Excel.Controls
             // 
             this.queryLabel.AutoSize = true;
             this.queryLabel.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.queryLabel.Location = new System.Drawing.Point(974, 0);
+            this.queryLabel.Location = new System.Drawing.Point(944, 0);
             this.queryLabel.Name = "queryLabel";
             this.queryLabel.Size = new System.Drawing.Size(54, 30);
             this.queryLabel.TabIndex = 32;
@@ -164,10 +167,23 @@ namespace SQL_Extractor_for_Excel.Controls
             this.queryLabel.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
             this.queryLabel.Click += new System.EventHandler(this.queryLabel_Click);
             // 
+            // closeTabButton
+            // 
+            this.closeTabButton.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Stretch;
+            this.closeTabButton.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.closeTabButton.ForeColor = System.Drawing.Color.OrangeRed;
+            this.closeTabButton.Location = new System.Drawing.Point(1004, 3);
+            this.closeTabButton.Name = "closeTabButton";
+            this.closeTabButton.Size = new System.Drawing.Size(24, 24);
+            this.closeTabButton.TabIndex = 38;
+            this.closeTabButton.Text = "❌";
+            this.closeTabButton.UseVisualStyleBackColor = true;
+            this.closeTabButton.Click += new System.EventHandler(this.closeTabButton_Click);
+            // 
             // saveButton
             // 
             this.saveButton.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.saveButton.Location = new System.Drawing.Point(824, 3);
+            this.saveButton.Location = new System.Drawing.Point(794, 3);
             this.saveButton.MinimumSize = new System.Drawing.Size(0, 25);
             this.saveButton.Name = "saveButton";
             this.saveButton.Size = new System.Drawing.Size(114, 25);
@@ -181,7 +197,7 @@ namespace SQL_Extractor_for_Excel.Controls
             this.refreshButton.BackgroundImage = ((System.Drawing.Image)(resources.GetObject("refreshButton.BackgroundImage")));
             this.refreshButton.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Stretch;
             this.refreshButton.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.refreshButton.Location = new System.Drawing.Point(944, 3);
+            this.refreshButton.Location = new System.Drawing.Point(914, 3);
             this.refreshButton.Name = "refreshButton";
             this.refreshButton.Size = new System.Drawing.Size(24, 24);
             this.refreshButton.TabIndex = 34;
@@ -193,7 +209,7 @@ namespace SQL_Extractor_for_Excel.Controls
             this.pasteToNewWorksheetButton.AutoSize = true;
             this.pasteToNewWorksheetButton.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
             this.pasteToNewWorksheetButton.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.pasteToNewWorksheetButton.Location = new System.Drawing.Point(723, 3);
+            this.pasteToNewWorksheetButton.Location = new System.Drawing.Point(693, 3);
             this.pasteToNewWorksheetButton.Name = "pasteToNewWorksheetButton";
             this.pasteToNewWorksheetButton.Size = new System.Drawing.Size(95, 24);
             this.pasteToNewWorksheetButton.TabIndex = 36;
@@ -204,7 +220,7 @@ namespace SQL_Extractor_for_Excel.Controls
             // pinBeforePasteCheckBoxToggle
             // 
             this.pinBeforePasteCheckBoxToggle.Appearance = System.Windows.Forms.Appearance.Button;
-            this.pinBeforePasteCheckBoxToggle.BackgroundImage = global::SQL_Extractor_for_Excel.Properties.Resources.PushPin;
+            this.pinBeforePasteCheckBoxToggle.BackgroundImage = ((System.Drawing.Image)(resources.GetObject("pinBeforePasteCheckBoxToggle.BackgroundImage")));
             this.pinBeforePasteCheckBoxToggle.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Stretch;
             this.pinBeforePasteCheckBoxToggle.Dock = System.Windows.Forms.DockStyle.Fill;
             this.pinBeforePasteCheckBoxToggle.Location = new System.Drawing.Point(140, 3);
@@ -258,5 +274,6 @@ namespace SQL_Extractor_for_Excel.Controls
         public System.Windows.Forms.Button refreshButton;
         public System.Windows.Forms.Button pasteToNewWorksheetButton;
         public System.Windows.Forms.CheckBox pinBeforePasteCheckBoxToggle;
+        public System.Windows.Forms.Button closeTabButton;
     }
 }

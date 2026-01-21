@@ -5,6 +5,7 @@ using System.Globalization;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using SQL_Extractor_for_Excel.Forms;
 using SQL_Extractor_for_Excel.Scripts;
 using Excel = Microsoft.Office.Interop.Excel;
 
@@ -308,6 +309,12 @@ namespace SQL_Extractor_for_Excel.Controls
         private void headersCheckBox_CheckedChanged(object sender, EventArgs e)
         {
             RefreshDimentions();
+        }
+
+        private void closeTabButton_Click(object sender, EventArgs e)
+        {
+            var parent = this.FindForm() as DataTableTabbedForm;
+            parent?.CloseActiveTab();
         }
 
         private void saveButton_Click(object sender, EventArgs e)
