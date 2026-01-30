@@ -75,7 +75,7 @@
             this.dataGridView.ImeMode = System.Windows.Forms.ImeMode.On;
             this.dataGridView.Location = new System.Drawing.Point(3, 33);
             this.dataGridView.Name = "dataGridView";
-            this.dataGridView.Size = new System.Drawing.Size(1025, 379);
+            this.dataGridView.Size = new System.Drawing.Size(1025, 400);
             this.dataGridView.TabIndex = 0;
             // 
             // mainTableLayoutPanel
@@ -107,7 +107,7 @@
             this.mainTableLayoutPanel.RowCount = 2;
             this.mainTableLayoutPanel.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 30F));
             this.mainTableLayoutPanel.RowStyles.Add(new System.Windows.Forms.RowStyle());
-            this.mainTableLayoutPanel.Size = new System.Drawing.Size(1031, 415);
+            this.mainTableLayoutPanel.Size = new System.Drawing.Size(1031, 436);
             this.mainTableLayoutPanel.TabIndex = 32;
             // 
             // headersCheckBox
@@ -220,7 +220,7 @@
             this.queryRichTextBox.Location = new System.Drawing.Point(0, 0);
             this.queryRichTextBox.Name = "queryRichTextBox";
             this.queryRichTextBox.ReadOnly = true;
-            this.queryRichTextBox.Size = new System.Drawing.Size(1031, 415);
+            this.queryRichTextBox.Size = new System.Drawing.Size(1031, 436);
             this.queryRichTextBox.TabIndex = 34;
             this.queryRichTextBox.Text = "";
             this.queryRichTextBox.Visible = false;
@@ -230,7 +230,7 @@
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(1031, 415);
+            this.ClientSize = new System.Drawing.Size(1031, 436);
             this.Controls.Add(this.mainTableLayoutPanel);
             this.Controls.Add(this.queryRichTextBox);
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));

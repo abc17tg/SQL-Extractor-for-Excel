@@ -15,7 +15,8 @@ using Excel = Microsoft.Office.Interop.Excel;
 namespace SQL_Extractor_for_Excel.Forms
 {
     public partial class DataTableTabbedForm : Form
-    {
+    {
+
         // Global Window Management (Static)
         public static List<DataTableTabbedForm> OpenForms = new List<DataTableTabbedForm>();
         public static DataTableTabbedForm GlobalLastActiveForm = null;
@@ -34,7 +35,8 @@ namespace SQL_Extractor_for_Excel.Forms
             // If absolutely nothing is open, create new
             var newForm = new DataTableTabbedForm();
             return newForm;
-        }
+        }
+
         // Win32 API
         public const Int32 WM_SYSCOMMAND = 0x112;
         public const Int32 MF_BYPOSITION = 0x400;
@@ -50,7 +52,8 @@ namespace SQL_Extractor_for_Excel.Forms
         private TabPage m_draggedTab;
 
         // Add this variable
-        private Random m_random = new Random();
+        private Random m_random = new Random();
+
         // Constructors
         public DataTableTabbedForm()
         {
@@ -101,7 +104,8 @@ namespace SQL_Extractor_for_Excel.Forms
                     GlobalLastActiveForm = OpenForms.LastOrDefault();
                 }
             };
-        }
+        }
+
         // Tab Management Logic
         private void AddNewTab(string title, Action<DataTableControl> initializer)
         {
@@ -394,7 +398,8 @@ namespace SQL_Extractor_for_Excel.Forms
         {
             // Generates a random light color (RGB values between 200-255)
             return Color.FromArgb(255, m_random.Next(200, 256), m_random.Next(200, 256), m_random.Next(200, 256));
-        }
+        }
+
         // Standard Form Events
         private void DataTableTabbedForm_Load(object sender, EventArgs e)
         {
