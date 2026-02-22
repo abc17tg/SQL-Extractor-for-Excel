@@ -165,7 +165,8 @@ namespace SQL_Extractor_for_Excel
             this.fetchTablesBtn.Size = new System.Drawing.Size(162, 26);
             this.fetchTablesBtn.TabIndex = 18;
             this.fetchTablesBtn.Text = "Fetch";
-            this.toolTip.SetToolTip(this.fetchTablesBtn, "Fetch all tables and views from the given database (selection must be empty)");
+            this.toolTip.SetToolTip(this.fetchTablesBtn, "(Alt + F) Fetch all tables and views from the given database (selection must be e" +
+        "mpty)");
             this.fetchTablesBtn.UseVisualStyleBackColor = true;
             this.fetchTablesBtn.Click += new System.EventHandler(this.fetchBtn_Click);
             // 
@@ -678,6 +679,8 @@ namespace SQL_Extractor_for_Excel
             this.objectsAndVariablesTabControl.TabIndex = 31;
             this.objectsAndVariablesTabControl.SelectedIndexChanged += new System.EventHandler(this.objectsAndVariablesTabControl_TabIndexChanged);
             this.objectsAndVariablesTabControl.TabIndexChanged += new System.EventHandler(this.objectsAndVariablesTabControl_TabIndexChanged);
+            this.objectsAndVariablesTabControl.DragDrop += new System.Windows.Forms.DragEventHandler(this.SqlEditorForm_DragDrop);
+            this.objectsAndVariablesTabControl.DragEnter += new System.Windows.Forms.DragEventHandler(this.SqlEditorForm_DragEnter);
             // 
             // tablesTabPage
             // 
@@ -827,7 +830,8 @@ namespace SQL_Extractor_for_Excel
             this.fetchFieldsBtn.Size = new System.Drawing.Size(162, 26);
             this.fetchFieldsBtn.TabIndex = 18;
             this.fetchFieldsBtn.Text = "Fetch";
-            this.toolTip.SetToolTip(this.fetchFieldsBtn, "Fetch all fields from the given table (selection must include table name)");
+            this.toolTip.SetToolTip(this.fetchFieldsBtn, "(Alt + F) Fetch all fields from the given table (selection must include table nam" +
+        "e)");
             this.fetchFieldsBtn.UseVisualStyleBackColor = true;
             this.fetchFieldsBtn.Click += new System.EventHandler(this.fetchBtn_Click);
             // 
@@ -1051,6 +1055,8 @@ namespace SQL_Extractor_for_Excel
             this.Deactivate += new System.EventHandler(this.SqlEditorForm_Deactivate);
             this.Load += new System.EventHandler(this.SqlEditorForm_Load);
             this.ResizeEnd += new System.EventHandler(this.SqlEditorForm_ResizeEnd);
+            this.DragDrop += new System.Windows.Forms.DragEventHandler(this.SqlEditorForm_DragDrop);
+            this.DragEnter += new System.Windows.Forms.DragEventHandler(this.SqlEditorForm_DragEnter);
             this.mainTableLayoutPanel.ResumeLayout(false);
             this.buttonsTableLayoutPanel.ResumeLayout(false);
             this.mainSplitContainer.Panel1.ResumeLayout(false);

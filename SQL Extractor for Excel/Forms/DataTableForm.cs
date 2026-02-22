@@ -305,9 +305,11 @@ namespace SQL_Extractor_for_Excel.Forms
             RefreshDimentions();
         }
 
-        private void saveButton_Click(object sender, EventArgs e)
+        private async void saveButton_Click(object sender, EventArgs e)
         {
-            DataTable.SaveAsTabDelimited();
+            string fileName = "Export_" + DateTime.Now.ToString("yyyy_MM_dd");
+            string dbName = "";
+            await FileExport.SaveDataWithFormatChoice(fileName, dbName, Query, DataTable);
         }
 
         private void refreshButton_Click(object sender, EventArgs e)

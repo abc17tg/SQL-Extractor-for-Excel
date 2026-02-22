@@ -138,7 +138,7 @@ namespace SQL_Extractor_for_Excel.Controls
             this.pasteButton.Location = new System.Drawing.Point(170, 3);
             this.pasteButton.MinimumSize = new System.Drawing.Size(150, 25);
             this.pasteButton.Name = "pasteButton";
-            this.pasteButton.Size = new System.Drawing.Size(517, 25);
+            this.pasteButton.Size = new System.Drawing.Size(512, 25);
             this.pasteButton.TabIndex = 30;
             this.pasteButton.Text = "Paste";
             this.pasteButton.UseVisualStyleBackColor = true;
@@ -188,7 +188,7 @@ namespace SQL_Extractor_for_Excel.Controls
             this.saveButton.Name = "saveButton";
             this.saveButton.Size = new System.Drawing.Size(114, 25);
             this.saveButton.TabIndex = 33;
-            this.saveButton.Text = "Save as txt";
+            this.saveButton.Text = "Save As";
             this.saveButton.UseVisualStyleBackColor = true;
             this.saveButton.Click += new System.EventHandler(this.saveButton_Click);
             // 
@@ -209,11 +209,11 @@ namespace SQL_Extractor_for_Excel.Controls
             this.pasteToNewWorksheetButton.AutoSize = true;
             this.pasteToNewWorksheetButton.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
             this.pasteToNewWorksheetButton.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.pasteToNewWorksheetButton.Location = new System.Drawing.Point(693, 3);
+            this.pasteToNewWorksheetButton.Location = new System.Drawing.Point(688, 3);
             this.pasteToNewWorksheetButton.Name = "pasteToNewWorksheetButton";
-            this.pasteToNewWorksheetButton.Size = new System.Drawing.Size(95, 24);
+            this.pasteToNewWorksheetButton.Size = new System.Drawing.Size(100, 24);
             this.pasteToNewWorksheetButton.TabIndex = 36;
-            this.pasteToNewWorksheetButton.Text = "Paste to new ws";
+            this.pasteToNewWorksheetButton.Text = "Paste to new WS";
             this.pasteToNewWorksheetButton.UseVisualStyleBackColor = true;
             this.pasteToNewWorksheetButton.Click += new System.EventHandler(this.pasteToNewWorksheetButton_Click);
             // 

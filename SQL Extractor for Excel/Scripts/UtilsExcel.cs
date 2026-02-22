@@ -10,6 +10,7 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using Microsoft.VisualBasic;
+using SQL_Extractor_for_Excel;
 using SQL_Extractor_for_Excel.Scripts;
 using Excel = Microsoft.Office.Interop.Excel;
 
@@ -177,7 +178,9 @@ public static class UtilsExcel
     {
         try
         {
-            return (rng.Cells.Count - rng.Application.WorksheetFunction.Count(rng)) == 0;
+            bool allNumbers = (rng.Cells.Count - rng.Application.WorksheetFunction.Count(rng)) == 0;
+            bool noLeadingZeros = !rng.Cells.Cast<Excel.Range>().Any(cell => { string s = (cell.Text ?? ""); return s.Length > 0 && s[0] == '0' && s.Length > 1 && char.IsDigit(s[1]); });
+            return (allNumbers && noLeadingZeros);
         }
         catch (COMException)
         {
@@ -215,7 +218,6 @@ public static class UtilsExcel
             return false;
         }
     }
-
 
     public static void FilterPivotItems(Excel.PivotField pf, List<string> pivotItemNames)
     {
@@ -334,7 +336,8 @@ public static class UtilsExcel
             case TypeCode.Single:
             case TypeCode.Double:
             case TypeCode.Decimal:
-                return "General"; // Decimal number format
+                return $"0{CultureInfo.CurrentCulture.NumberFormat.NumberDecimalSeparator}################"; // Decimal number format
+                //return "General";
             case TypeCode.DateTime:
                 return DetermineDateTimeFormat(column); // Date and time format
             case TypeCode.String:

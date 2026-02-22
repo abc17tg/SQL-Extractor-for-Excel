@@ -41,3 +41,4 @@ Remove aliases	Ctrl + G
 Move lines	Alt + Up/Down
 Run	Ctrl + R
 Run selection	Ctrl + Shift + R
+Fetch	Alt + F

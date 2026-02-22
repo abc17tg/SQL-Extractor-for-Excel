@@ -233,7 +233,7 @@ namespace SQL_Extractor_for_Excel.Controls
             pinBeforePasteCheckBoxToggle.Checked = false;
         }
 
-        public void Paste()
+        public async void Paste()
         {
             Excel.Range rng = ExcelApp.ActiveWindow.RangeSelection;
 
@@ -254,7 +254,9 @@ namespace SQL_Extractor_for_Excel.Controls
                     var result = MessageBox.Show("Range too small to paste\n\nYes: Save as tab delimited text\nNo: Save splitted to new sheets\nCancel: abort paste operation", "Error", MessageBoxButtons.YesNoCancel, MessageBoxIcon.Error);
                     if (result == DialogResult.Yes)
                     {
-                        DataTable.SaveAsTabDelimited();
+                        string fileName = "Export_" + DateTime.Now.ToString("yyyy_MM_dd");
+                        string dbName = "";
+                        await FileExport.SaveDataWithFormatChoice(fileName, dbName, Query, DataTable);
                     }
                     else if (result == DialogResult.No)
                     {
@@ -317,9 +319,11 @@ namespace SQL_Extractor_for_Excel.Controls
             parent?.CloseActiveTab();
         }
 
-        private void saveButton_Click(object sender, EventArgs e)
+        private async void saveButton_Click(object sender, EventArgs e)
         {
-            DataTable.SaveAsTabDelimited();
+            string fileName = "Export_" + DateTime.Now.ToString("yyyy_MM_dd");
+            string dbName = "";
+            await FileExport.SaveDataWithFormatChoice(fileName, dbName, Query, DataTable);
         }
 
         private void refreshButton_Click(object sender, EventArgs e)

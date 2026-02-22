@@ -204,8 +204,17 @@ namespace SQL_Extractor_for_Excel.Scripts
                 }
             }
 
+            /*editor.ReplaceSelection(result);
+            editor.SetSelection(startPos, startPos + result.Length);*/
             editor.ReplaceSelection(result);
-            editor.SetSelection(startPos, startPos + result.Length);
+
+            int offset = result.IndexOf(") IN (('", StringComparison.OrdinalIgnoreCase) + (") IN ").Length;
+            if (offset < 0)
+                offset = result.IndexOf('(');
+            if (offset < 0)
+                offset = 0;
+
+            editor.SetSelection(startPos + offset, startPos + result.Length);
         }
 
         private static string FormatTupleToUnquoted(string text, Regex numericPattern, string columnName)
@@ -665,6 +674,7 @@ namespace SQL_Extractor_for_Excel.Scripts
 
             editor.ClearCmdKey(Keys.Alt | Keys.Up);
             editor.ClearCmdKey(Keys.Alt | Keys.Down);
+            editor.ClearCmdKey(Keys.Alt | Keys.F);
             editor.ClearCmdKey(Keys.Control | Keys.F);
             editor.ClearCmdKey(Keys.Control | Keys.G);
             editor.ClearCmdKey(Keys.Control | Keys.H);

@@ -17,9 +17,11 @@ namespace SQL_Extractor_for_Excel.Scripts
         public static string SqlQueriesPath => Path.Combine(BasePath, "SQL Queries");
         public static string PropertiesFilesPath => Path.Combine(BasePath, "Properties Files");
         public static string SqlTablesFetchQueriesPath => Path.Combine(PropertiesFilesPath, "FetchTablesQueries");
+        public static string SettingsPath => Path.Combine(PropertiesFilesPath, "Settings");
         public static string SqlServerQueriesPath => Path.Combine(SqlQueriesPath, "SqlServer");
         public static string OracleQueriesPath => Path.Combine(SqlQueriesPath, "Oracle");
         public static string ExcelQueriesPath => Path.Combine(SqlQueriesPath, "Excel");
+        public static string FileExportDefaultPath => Path.Combine(BasePath, "Export files");
         public static string ResourcesPath => Path.Combine(BasePath, "Resources");
         public static string DownloadsPath => Microsoft.Win32.Registry.GetValue(@"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders", "{374DE290-123F-4565-9164-39C4925E467B}", String.Empty).ToString();
         public static string PythonDir => Path.Combine(FileManager.BasePath, "Python");
@@ -122,6 +124,18 @@ namespace SQL_Extractor_for_Excel.Scripts
                 totalSize += fi.Length;
             }
             return totalSize;
+        }
+
+        public static List<string> GetWindowNames()
+        {
+            string filePath = Path.Combine(PropertiesFilesPath, "WindowNames.txt");
+            if (!File.Exists(filePath))
+                return null;
+            return File.ReadAllLines(filePath)
+                       .Select(line => line.Trim())
+                       .Where(line => !string.IsNullOrEmpty(line))
+                       .Distinct()
+                       .ToList();
         }
 
         public static Dictionary<string, string> GetOracleQueries()
@@ -266,23 +280,24 @@ namespace SQL_Extractor_for_Excel.Scripts
 
         public static string GetPathByDialog(string initialName = "", string initialDirectory = "", string filter = "Text Files | *.txt", string defaultExt = ".txt")
         {
-            SaveFileDialog saveDlg = new SaveFileDialog();
+            using (SaveFileDialog saveDlg = new SaveFileDialog())
+            {
+                if (!string.IsNullOrEmpty(initialDirectory))
+                    saveDlg.InitialDirectory = initialDirectory;
+                else
+                    saveDlg.InitialDirectory = DownloadsPath;
 
-            if (!string.IsNullOrEmpty(initialDirectory))
-                saveDlg.InitialDirectory = initialDirectory;
-            else
-                saveDlg.InitialDirectory =
+                saveDlg.FileName = initialName;
+                saveDlg.OverwritePrompt = true;
+                saveDlg.DefaultExt = defaultExt;
+                saveDlg.AddExtension = true;
+                saveDlg.Filter = filter;
 
-            saveDlg.FileName = initialName;
-            saveDlg.OverwritePrompt = true;
-            saveDlg.DefaultExt = defaultExt;
-            saveDlg.AddExtension = true;
-            saveDlg.Filter = filter;
-
-            if (saveDlg.ShowDialog() == DialogResult.OK)
-                return saveDlg.FileName;
-            else
-                return null;
+                if (saveDlg.ShowDialog() == DialogResult.OK)
+                    return saveDlg.FileName;
+                else
+                    return null;
+            }
         }
 
         public static void OpenStringWithNotepad(string text)

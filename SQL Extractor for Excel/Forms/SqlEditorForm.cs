@@ -1,17 +1,23 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Data;
 using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
+using System.Runtime.InteropServices.ComTypes;
+using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using Microsoft.VisualBasic.FileIO;
 using ScintillaNET;
 using SQL_Extractor_for_Excel.Forms;
 using SQL_Extractor_for_Excel.Scripts;
+using SQL_Extractor_for_Excel.Settings;
+using static ScintillaNET.Style;
 using static SQL_Extractor_for_Excel.Forms.QueryPickerForm;
 using Excel = Microsoft.Office.Interop.Excel;
 using Timer = System.Windows.Forms.Timer;
@@ -21,6 +27,7 @@ namespace SQL_Extractor_for_Excel
     public partial class SqlEditorForm : Form
     {
         public string FormTitle;
+        public string WindowName;
         public string Query;
         public int RunningQueries = 0;
         public Excel.Application App;
@@ -44,12 +51,14 @@ namespace SQL_Extractor_for_Excel
         private List<string> m_fieldsListBoxAllItemsList = new List<string>();
         private List<string> m_fieldsListBoxSelectedItemsList = new List<string>();
 
+        private EditorSettingsManager m_editorSettings;
         private string m_sqlKeywords;
         private string m_fieldsKeywords;
         private string m_tablesKeywords;
         private List<string> m_sqlKeywordList = new List<string>();
         private List<string> m_fieldsKeywordList => m_fieldsListBoxAllItemsList;
         private List<string> m_tablesKeywordList => m_tablesListBoxAllItemsList;
+        private List<string> m_uniqueWordsList;
         private int m_autoCStartPosition = -1; // Position in text where AC was triggered/started
         private char m_currentTriggerChar = '\0';// Store the character that triggered the list (if '.' or '#')
         private string m_autoCSelectedWord = string.Empty;
@@ -62,6 +71,8 @@ namespace SQL_Extractor_for_Excel
         private static readonly string m_listBoxFetchingText = "Fetching ...";
         private Dictionary<string, List<string>> m_variablesD = new Dictionary<string, List<string>>();
 
+        private readonly DataTransferService m_dataService = new DataTransferService();
+
         public const Int32 WM_SYSCOMMAND = 0x112;
         public const Int32 MF_BYPOSITION = 0x400;
         private const int WM_NCMOUSEMOVE = 0x00A0;
@@ -71,6 +82,7 @@ namespace SQL_Extractor_for_Excel
         public const Int32 ToggleTopMostMenuItem = 1000;
         public const Int32 CenterFormMenuItem = 1001;
         public const Int32 NewFormMenuItem = 1002;
+        public const Int32 SettingsMenuItem = 1003;
 
         [DllImport("user32.dll")]
         private static extern IntPtr GetSystemMenu(IntPtr hWnd, bool bRevert);
@@ -91,8 +103,26 @@ namespace SQL_Extractor_for_Excel
             m_guid = Guid.NewGuid().ToString();
             m_backupName = $"{Text}_{m_guid}.json";
 
+            List<string> names = FileManager.GetWindowNames();
+            var usedNames = new HashSet<string>();
+            WindowName = null;
+            if (names != null)
+            {
+                foreach (Form form in Application.OpenForms)
+                {
+                    if (form != this && form is SqlEditorForm sqlForm && !string.IsNullOrEmpty(sqlForm.WindowName))
+                    {
+                        usedNames.Add(sqlForm.WindowName);
+                    }
+                }
+                WindowName = names.FirstOrDefault(p => !usedNames.Contains(p));
+            }
+            string windowName = "";
+            if (WindowName != null)
+                windowName = $"[{WindowName}] ";
+
             Version version = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version;
-            Text = $"{Text} v{Utils.GetVersionString(version)}";
+            Text = $"{windowName}{Text} v{Utils.GetVersionString(version)}";
             FormTitle = Text;
 
             m_sqlManager = new SqlServerManager();
@@ -113,6 +143,22 @@ namespace SQL_Extractor_for_Excel
             serverComboBox.ContextMenuStrip.Items.Add("Add Server Connection").Click += (sender, e) => { SqlServerManager.AddSqlConnection(); RefreshSavedQueriesComboBox(serverComboBox.SelectedItem?.ToString()); };
             serverComboBox.ContextMenuStrip.Items.Add("Update local password to server").Click += (sender, e) =>
             { PasswordUpdate(); RefreshSavedQueriesComboBox(serverComboBox.SelectedItem?.ToString()); };
+
+            #region Settings
+            m_editorSettings = new EditorSettingsManager();
+
+            ApplyAllEditorSettings();
+            if (string.IsNullOrWhiteSpace(startQuery))
+            {
+                startQuery = m_editorSettings.GetStartSqlQueryOnLaunch();
+                if (!string.IsNullOrWhiteSpace(startQuery))
+                {
+                    sqlEditorScintilla.Text = startQuery;
+                }
+            }
+            m_editorSettings.ApplySyntaxColors(sqlEditorScintilla);
+            m_editorSettings.ApplyTextWrap(sqlEditorScintilla);
+            #endregion
 
             if (!string.IsNullOrEmpty(saveFile))
                 LoadEditorState(saveFile);
@@ -186,7 +232,7 @@ namespace SQL_Extractor_for_Excel
             var originalTrigger = m_currentTriggerChar;
             var originalStartPos = m_autoCStartPosition;
             // Perform deletion *after* cancelling if triggered by . or #
-            if (originalTrigger == '.' || originalTrigger == '#')
+            if (originalTrigger == '.' || originalTrigger == '#' || originalTrigger == '`')
             {
                 var currentPos = sqlEditorScintilla.CurrentPosition;
                 int triggerPos = originalStartPos - 1; // Position of the trigger char itself
@@ -233,8 +279,8 @@ namespace SQL_Extractor_for_Excel
                     var originalStartPos = m_autoCStartPosition;
 
 
-                    // Perform deletion *after* cancelling if triggered by . or #
-                    if (originalTrigger == '.' || originalTrigger == '#')
+                    // Perform deletion *after* cancelling if triggered by . ` or #
+                    if (originalTrigger == '.' || originalTrigger == '#' || originalTrigger == '`')
                     {
                         var currentPos = sqlEditorScintilla.CurrentPosition;
                         int triggerPos = originalStartPos - 1; // Position of the trigger char itself
@@ -278,8 +324,8 @@ namespace SQL_Extractor_for_Excel
 
                     sqlEditorScintilla.AutoCCancel(); // This triggers AutoCCancelled handler
 
-                    // Perform deletion *after* cancelling if triggered by . or #
-                    if (originalTrigger == '.' || originalTrigger == '#')
+                    // Perform deletion *after* cancelling if triggered by . ` or #
+                    if (originalTrigger == '.' || originalTrigger == '#' || originalTrigger == '`')
                     {
                         var currentPos = sqlEditorScintilla.CurrentPosition;
                         int triggerPos = originalStartPos - 1; // Position of the trigger char itself
@@ -304,6 +350,113 @@ namespace SQL_Extractor_for_Excel
                         m_autoCWasActiveOnBackspace = true;
                 }
             }
+        }
+
+        private void ApplyAllEditorSettings()
+        {
+            m_editorSettings.ApplyAllSettings(this,sqlEditorScintilla, ServerType?.ToString() ?? "Oracle");
+        }
+
+        /// <summary>
+        /// Called by GlobalAppSettings whenever a global setting changes.
+        /// Only the settings that THIS window has marked as "Apply globally" will be updated.
+        /// </summary>
+        public void SyncAndApplyGlobalSettings()
+        {
+            if (IsDisposed || Disposing) return;
+
+            // Sync only the flags that are set to global
+            m_editorSettings.SyncLocalWithGlobal();
+
+            // Re-apply everything (TopMost, colors, wrap, keywords, etc.)
+            ApplyAllEditorSettings();
+        }
+
+        private void OpenSettingsDialog()
+        {
+            // Pass BOTH local settings AND the override flags
+            using (var settingsForm = new SettingsForm(this, m_editorSettings.Local, m_editorSettings.OverrideFlags))
+            {
+                if (settingsForm.ShowDialog(this) == DialogResult.OK)
+                {
+                    ApplyAllEditorSettings();
+                }
+            }
+        }
+
+        public void UpdateEditorSettings(AppSettings updatedLocal, SettingsOverrideFlags updatedFlags)
+        {
+            m_editorSettings.UpdateFrom(updatedLocal, updatedFlags);
+        }
+
+        private string GetDefaultExportOption()
+        {
+            return m_editorSettings.GetDefaultExportOption();
+        }
+
+        private List<string> GetUniqueWordsFromEditor()
+        {
+            string fullText = sqlEditorScintilla.Text;
+            var exclusions = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            /*            exclusions.UnionWith(m_fieldsKeywordList);
+                        exclusions.UnionWith(m_tablesKeywordList);*/
+            exclusions.UnionWith(m_sqlKeywordList);
+            var words = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            int pos = 0;
+            bool inQuote = false;
+            char quoteChar = '\0';
+            StringBuilder sb = new StringBuilder();
+            while (pos < fullText.Length)
+            {
+                char c = fullText[pos];
+                if (inQuote)
+                {
+                    if (c == quoteChar)
+                    {
+                        if (pos + 1 < fullText.Length && fullText[pos + 1] == quoteChar)
+                        {
+                            pos += 2;
+                            continue;
+                        }
+                        else
+                        {
+                            inQuote = false;
+                        }
+                    }
+                    pos++;
+                    continue;
+                }
+                else
+                {
+                    if (c == '\'' || c == '"')
+                    {
+                        inQuote = true;
+                        quoteChar = c;
+                        pos++;
+                        continue;
+                    }
+                    if (char.IsLetterOrDigit(c) || c == '_' || c == '.')
+                    {
+                        sb.Clear();
+                        while (pos < fullText.Length && (char.IsLetterOrDigit(fullText[pos]) || fullText[pos] == '_' || fullText[pos] == '.'))
+                        {
+                            sb.Append(fullText[pos]);
+                            pos++;
+                        }
+                        string word = sb.ToString();
+                        if (word.Length >= 3 && !word.All(char.IsDigit) && !exclusions.Contains(word))
+                        {
+                            words.Add(word);
+                        }
+                        continue;
+                    }
+                    else
+                    {
+                        pos++;
+                    }
+                }
+            }
+            return words.ToList();
         }
 
         private void sqlEditorScintilla_KeyUp2(object sender, KeyEventArgs e)
@@ -354,11 +507,32 @@ namespace SQL_Extractor_for_Excel
             {
                 if (e.Char == '.')
                 {
-                    m_currentTriggerChar = '.';
-                    // Start position is *after* the trigger character
+                    var prevPos = currentPos - 2;
+                    bool showList = true;
+                    if (prevPos >= 0)
+                    {
+                        char prevChar = (char)sqlEditorScintilla.GetCharAt(prevPos);
+                        if (char.IsLetterOrDigit(prevChar))
+                        {
+                            showList = false;
+                        }
+                    }
+                    if (showList)
+                    {
+                        m_currentTriggerChar = '.';
+                        // Start position is *after* the trigger character
+                        m_autoCStartPosition = currentPos;
+                        // Show full list initially, allow manual filtering for subsequent chars
+                        ShowFilteredList(m_fieldsKeywordList, ""); // Assumes m_fieldsKeywordList is populated
+                    }
+                    return;
+                }
+                else if (e.Char == '`')
+                {
+                    m_currentTriggerChar = '`';
                     m_autoCStartPosition = currentPos;
-                    // Show full list initially, allow manual filtering for subsequent chars
-                    ShowFilteredList(m_fieldsKeywordList, ""); // Assumes m_fieldsKeywordList is populated
+                    m_uniqueWordsList = GetUniqueWordsFromEditor();
+                    ShowFilteredList(m_uniqueWordsList, "");
                     return;
                 }
                 else if (e.Char == '#')
@@ -436,6 +610,7 @@ namespace SQL_Extractor_for_Excel
             {
                 case '.': return m_fieldsKeywordList;
                 case '#': return m_tablesKeywordList;
+                case '`': return m_uniqueWordsList;
                 case '\0': // SQL Keywords context
                            // Ensure start position is valid for SQL context
                     return (m_autoCStartPosition != -1) ? m_sqlKeywordList : null;
@@ -578,7 +753,8 @@ namespace SQL_Extractor_for_Excel
                 string saveFile = Path.Combine(FileManager.SqlEditorBackupPath, m_backupName);
                 if (File.Exists(saveFile))
                 {
-                    File.Delete(saveFile);
+                    // File.Delete(saveFile);
+                    FileSystem.DeleteFile(saveFile, UIOption.OnlyErrorDialogs, RecycleOption.SendToRecycleBin);
                 }
             }
             else
@@ -608,6 +784,9 @@ namespace SQL_Extractor_for_Excel
                     case NewFormMenuItem:
                         SqlEditorForm form = new SqlEditorForm(App);
                         form.Show();
+                        break;
+                    case SettingsMenuItem:
+                        OpenSettingsDialog();
                         break;
                     default:
                         break;
@@ -645,6 +824,7 @@ namespace SQL_Extractor_for_Excel
             InsertMenu(MenuHandle, 5, MF_BYPOSITION, ToggleTopMostMenuItem, "Pin/Unpin this window");
             InsertMenu(MenuHandle, 6, MF_BYPOSITION, CenterFormMenuItem, "Center window");
             InsertMenu(MenuHandle, 7, MF_BYPOSITION, NewFormMenuItem, "New SQL Extractor window");
+            InsertMenu(MenuHandle, 8, MF_BYPOSITION, SettingsMenuItem, "Settings");
 
             SaveEditorState();
         }
@@ -1027,6 +1207,7 @@ namespace SQL_Extractor_for_Excel
                 case ExportType.TxtTabDelimitedFile:
                     break;
                 case ExportType.SpecialSE4EDT:
+                    RunQueryToSE4EDT(query, SqlConn);
                     break;
                 default:
                     break;
@@ -1089,6 +1270,44 @@ namespace SQL_Extractor_for_Excel
                     // 3. Show
                     if (!form.Visible) form.Show();
                     form.Activate();
+                }));
+            });
+
+            runQueryWithResult.Start();
+        }
+
+        private void RunQueryToSE4EDT(string query, SqlConn sqlConn, string filePath = null)
+        {
+            Task<(SqlResult, bool)> runQueryWithResult = new Task<(SqlResult, bool)>(() => (SqlServerManager.GetDataFromServer(m_sqlManager, query, sqlConn, 0), true));
+
+            runQueryWithResult.GetAwaiter().OnCompleted(() =>
+            {
+                if (this.IsDisposed || this.Disposing || this == null)
+                    return;
+
+                --RunningQueries;
+
+                this.Invoke(new Action(async () =>
+                {
+                    UpdateRunningQueriesText();
+
+                    SqlResult sqlResult = runQueryWithResult.Result.Item1;
+                    if (sqlResult.HasErrors)
+                    {
+                        if (!sqlResult.Cancelled)
+                        {
+                            string msg = $"Query finished with errors:\n\n{sqlResult.Errors}\n\nQuery:\n\n{query}";
+                            MessageBoxForm messageBox = new MessageBoxForm(msg, "Query finished", true);
+                            messageBox.Show();
+                        }
+                        return;
+                    }
+
+                    string fileName = $"DT_ET{Math.Floor((DateTime.Now.Subtract((DateTime)sqlResult.SqlElement.m_startTime).TotalMinutes))}min_{DateTime.Now.ToString("s")}";
+                    if (filePath == null || Directory.Exists(filePath))
+                        await m_dataService.SaveSE4EDTToDefaultPathAsync(fileName, sqlConn.Name, query, sqlResult.DataTable);
+                    else
+                        await m_dataService.SaveSE4EDTAsync(Path.Combine(filePath, fileName), new SE4EDTData(sqlConn.Name, query, sqlResult.DataTable));
                 }));
             });
 
@@ -1403,6 +1622,18 @@ namespace SQL_Extractor_for_Excel
                     }
                 }
             }
+        }
+
+        protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
+        {
+            // Check for Alt + F (keyData includes modifiers)
+            if ((keyData & Keys.Alt) == Keys.Alt && (keyData & Keys.F) == Keys.F)
+            {
+                Fetch();
+                return true;
+            }
+
+            return base.ProcessCmdKey(ref msg, keyData);
         }
 
         private void FetchFields(string tableName, SqlConn sqlConn)
@@ -1749,13 +1980,78 @@ namespace SQL_Extractor_for_Excel
 
         private void SqlEditorForm_ResizeEnd(object sender, EventArgs e)
         {
-            if(this.WindowState == FormWindowState.Normal)
+            if (this.WindowState == FormWindowState.Normal)
                 Utils.EnsureWindowIsVisible(this);
         }
 
         private void SqlEditorForm_Deactivate(object sender, EventArgs e)
         {
             this.Opacity = 0.65;
+        }
+
+        private void SqlEditorForm_DragEnter(object sender, DragEventArgs e)
+        {
+            if (e.Data.GetDataPresent(DataFormats.FileDrop))
+            {
+                string[] files = (string[])e.Data.GetData(DataFormats.FileDrop);
+
+                // Validate extension
+                if (files.Length > 0 && files.Any(f => f.EndsWith(".se4edt", StringComparison.OrdinalIgnoreCase)))
+                {
+                    e.Effect = DragDropEffects.Copy;
+                    return;
+                }
+            }
+            e.Effect = DragDropEffects.None;
+        }
+
+        private async void SqlEditorForm_DragDrop(object sender, DragEventArgs e)
+        {
+            if (e.Data.GetDataPresent(DataFormats.FileDrop))
+            {
+                string[] files = (string[])e.Data.GetData(DataFormats.FileDrop);
+                if (files.Length > 0)
+                {
+                    foreach (string file in files)
+                    {
+                        switch (file)
+                        {
+                            case string f when f.EndsWith(".se4edt", StringComparison.OrdinalIgnoreCase):
+                                try
+                                {
+                                    SE4EDTData loadedData = await m_dataService.LoadSE4EDTAsync(file);
+
+                                    // Reconstruct DataTable with correct types
+                                    DataTable table = loadedData.ToDataTable();
+
+                                    string formName = $"DataTable [imported]";
+                                    var form = DataTableTabbedForm.GetActiveOrNew();
+                                    string displayQuery = $"File imported from:\n{file}\n\n{new string('-', 25)}\n\nDB:\n{loadedData.DatabaseName}\n\n{new string('-', 25)}\n\n{loadedData.SqlQuery}\n";
+                                    // 2. Add the result as a new tab
+                                    form.AddDataTableTab(table, loadedData.SqlQuery, App, formName, displayQuery);
+                                    if (!form.Visible)
+                                        form.Show();
+                                    form.Activate();
+                                }
+                                catch (Exception ex)
+                                {
+                                    MessageBox.Show($"Failed to load SE4EDT file.\n{ex.Message}", "Import Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                                }
+                                break;
+                            case string f when f.EndsWith(".json", StringComparison.OrdinalIgnoreCase):
+                                try
+                                {
+                                    SqlEditorForm form = new SqlEditorForm(App, file);
+                                    form.Show();
+                                }
+                                catch (Exception) { }
+                                break;
+                            default:
+                                break;
+                        }
+                    }
+                }
+            }
         }
 
         private void variablesDataGridView_CellContentClick(object sender, DataGridViewCellEventArgs e)
@@ -1809,7 +2105,7 @@ namespace SQL_Extractor_for_Excel
 
         private void RefreshRunningQueriesDataGridView()
         {
-            if (IsDisposed || Disposing) 
+            if (IsDisposed || Disposing)
                 return;
 
             if (InvokeRequired)
@@ -2034,7 +2330,7 @@ namespace SQL_Extractor_for_Excel
             foreach (ExportType exportType in Enum.GetValues(typeof(ExportType)))
             {
                 string enumName = Enum.GetName(typeof(ExportType), exportType);
-                string displayName = Regex.Replace(enumName, @"(?<!^)(?=[A-Z])", " ");
+                string displayName = Regex.Replace(enumName, @"(?<=[a-z])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])", " ");
                 ResultExportTypeDic.Add(exportType, displayName);
             }
         }

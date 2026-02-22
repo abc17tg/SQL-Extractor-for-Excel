@@ -1,9 +1,10 @@
 ﻿using System;
-using Excel = Microsoft.Office.Interop.Excel;
-using Office = Microsoft.Office.Core;
-using SQL_Extractor_for_Excel.Scripts;
 using System.IO;
 using System.Windows.Forms;
+using Microsoft.VisualBasic.FileIO;
+using SQL_Extractor_for_Excel.Scripts;
+using Excel = Microsoft.Office.Interop.Excel;
+using Office = Microsoft.Office.Core;
 
 namespace SQL_Extractor_for_Excel
 {
@@ -41,7 +42,8 @@ namespace SQL_Extractor_for_Excel
                         {
                             SqlEditorForm form = new SqlEditorForm(app, backupFile);
                             form.Show();
-                            File.Delete(backupFile);
+                            // File.Delete(backupFile);
+                            FileSystem.DeleteFile(backupFile, UIOption.OnlyErrorDialogs, RecycleOption.SendToRecycleBin);
                         }
                         break;
                     case DialogResult.None:
@@ -50,7 +52,8 @@ namespace SQL_Extractor_for_Excel
                     case DialogResult.No:
                         foreach (string backupFile in backupFiles)
                         {
-                            File.Delete(backupFile);
+                            // File.Delete(backupFile);
+                            FileSystem.DeleteFile(backupFile, UIOption.OnlyErrorDialogs, RecycleOption.SendToRecycleBin);
                         }
                         break;
                 };

@@ -1,16 +1,17 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Data;
+using System.Drawing;
 using System.IO;
 using System.Linq;
-using System.Windows.Forms;
 using System.Runtime.InteropServices;
-using System.Data;
 using System.Security.Cryptography;
-using System.Drawing;
 using System.Text;
-using System.Threading.Tasks;
-using SQL_Extractor_for_Excel.Forms;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+using SQL_Extractor_for_Excel.Forms;
+using SQL_Extractor_for_Excel.Scripts;
 
 public static class Utils
 {
@@ -581,7 +582,7 @@ public static class Utils
         return dt;
     }
 
-    public static void SaveAsTabDelimited(this DataTable dt, string delimiter = "\t", string folderPath = null)
+    public static void SaveAsTabDelimitedOld(this DataTable dt, string delimiter = "\t", string folderPath = null)
     {
         object lockObject = new object();
         bool delimiterExist = false;
@@ -649,6 +650,55 @@ public static class Utils
             {
                 MessageBox.Show(ex.Message.ToString());
             }
+        }
+    }
+
+    public static void SaveAsTabDelimited(this DataTable dt, string delimiter = "\t", string folderPath = null)
+    {
+        string defaultFileName = (string.IsNullOrWhiteSpace(dt.TableName) ? "DT_Export" : dt.TableName) + DateTime.Now.ToString("_yyyy_MM_dd");
+
+        string fullPath = FileManager.GetPathByDialog(defaultFileName, folderPath, "Text Files | *.txt", ".txt");
+
+        if (string.IsNullOrEmpty(fullPath)) return;
+
+        try
+        {
+            StringBuilder sb = new StringBuilder();
+
+            // Helper function for Excel-style escaping
+            string EscapeField(string field)
+            {
+                if (string.IsNullOrEmpty(field)) return "";
+
+                // If field contains delimiter, quote, or newline, wrap it and escape quotes
+                if (field.Contains(delimiter) || field.Contains("\"") || field.Contains("\n") || field.Contains("\r"))
+                {
+                    return $"\"{field.Replace("\"", "\"\"")}\"";
+                }
+                return field;
+            }
+            ;
+
+            // Headers
+            string[] columnNames = dt.Columns.Cast<DataColumn>()
+                                             .Select(c => EscapeField(c.ColumnName))
+                                             .ToArray();
+            sb.AppendLine(string.Join(delimiter, columnNames));
+
+            // Rows
+            foreach (DataRow row in dt.Rows)
+            {
+                string[] fields = row.ItemArray
+                                     .Select(field => EscapeField(field?.ToString()))
+                                     .ToArray();
+                sb.AppendLine(string.Join(delimiter, fields));
+            }
+
+            File.WriteAllText(fullPath, sb.ToString());
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(ex.Message);
         }
     }
 
