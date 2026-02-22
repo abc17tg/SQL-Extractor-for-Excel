@@ -56,6 +56,8 @@ This is an ongoing project that’s still evolving. It’s fully functional for 
 
 ## Screenshots
 
+![SQL Editor](Screenshots/Screenshot 2026-02-22 204113.png)
+
 ## Open Source
 
 I’ve decided to make this project open source because I think others might find it useful. Feel free to use it, tinker with it, or suggest improvements. It’s far from perfect, and contributions or feedback are always welcome!
